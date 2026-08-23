@@ -1,389 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <meta
-        name="theme-color"
-        content="#09090d"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIRAI — Anime Tracker</title>
-
-    <!-- Put your favicon in the same folder -->
-    <link
-        rel="icon"
-        type="image/png"
-        href="mirai-icon.png"
-    >
-
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
-
+    <link rel="stylesheet" href="style.css">
 </head>
-
 
 <body>
 
+    <div class="app">
 
-<!-- ======================================================
-     SIDEBAR
-====================================================== -->
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
 
-<aside
-    class="sidebar"
-    id="sidebar"
->
-
-    <div class="logo">
-
-        <span class="logo-star">
-            ★
-        </span>
-
-        <span>
-            MIRAI
-        </span>
-
-    </div>
-
-
-    <nav class="sidebar-nav">
-
-        <p class="nav-label">
-            MENU
-        </p>
-
-
-        <a
-            href="#"
-            class="nav-item active"
-            data-page="home"
-        >
-
-            <span>
-                ⌂
-            </span>
-
-            <span class="nav-text">
-                Home
-            </span>
-
-        </a>
-
-
-        <a
-            href="#"
-            class="nav-item"
-            data-page="my-list"
-        >
-
-            <span>
-                ▣
-            </span>
-
-            <span class="nav-text">
-                My List
-            </span>
-
-        </a>
-
-
-        <a
-            href="#"
-            class="nav-item"
-            data-page="trending"
-        >
-
-            <span>
-                ↗
-            </span>
-
-            <span class="nav-text">
-                Trending
-            </span>
-
-        </a>
-
-
-        <a
-            href="#"
-            class="nav-item"
-            data-page="schedule"
-        >
-
-            <span>
-                ◷
-            </span>
-
-            <span class="nav-text">
-                Schedule
-            </span>
-
-        </a>
-
-
-        <a
-            href="#"
-            class="nav-item"
-            data-page="discover"
-        >
-
-            <span>
-                ⌕
-            </span>
-
-            <span class="nav-text">
-                Discover
-            </span>
-
-        </a>
-
-
-        <a
-            href="#"
-            class="nav-item"
-            data-page="random"
-        >
-
-            <span>
-                ✦
-            </span>
-
-            <span class="nav-text">
-                Random
-            </span>
-
-        </a>
-
-    </nav>
-
-
-    <div class="sidebar-bottom">
-
-        <div class="sidebar-line"></div>
-
-
-        <div class="user-placeholder">
-
-            <div class="user-avatar">
-                ?
+            <div class="brand">
+                <div class="brand-icon">◆</div>
+                <div>
+                    <div class="brand-name">MIRAI</div>
+                    <div class="brand-subtitle">Anime Tracker</div>
+                </div>
             </div>
 
-            <div class="user-text">
+            <nav class="navigation">
 
-                <strong>
-                    Guest
-                </strong>
-
-                <small>
-                    Login later
-                </small>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</aside>
-
-
-<!-- ======================================================
-     SIDEBAR TOGGLE
-====================================================== -->
-
-<button
-    class="sidebar-toggle"
-    id="sidebarToggle"
-    type="button"
-    aria-label="Toggle sidebar"
->
-    ‹
-</button>
-
-
-<!-- ======================================================
-     MAIN
-====================================================== -->
-
-<main class="main">
-
-
-    <!-- ==================================================
-         TOP BAR
-    =================================================== -->
-
-    <header class="topbar">
-
-
-        <button
-            class="mobile-menu"
-            id="mobileMenu"
-            type="button"
-            aria-label="Open menu"
-        >
-            ☰
-        </button>
-
-
-        <div class="page-heading">
-
-            <span id="pageTitle">
-                Home
-            </span>
-
-        </div>
-
-
-        <!-- SEARCH -->
-
-        <div class="search-wrapper">
-
-            <div class="search-container">
-
-                <span class="search-icon">
-                    ⌕
-                </span>
-
-
-                <input
-                    type="text"
-                    id="searchInput"
-                    placeholder="Search anime..."
-                    autocomplete="off"
-                >
-
-
-                <button
-                    class="search-clear"
-                    id="searchClear"
-                    type="button"
-                    aria-label="Clear search"
-                >
-                    ×
+                <button class="nav-item active" data-page="home">
+                    <span class="nav-icon">⌂</span>
+                    <span>Home</span>
                 </button>
 
+                <button class="nav-item" data-page="search">
+                    <span class="nav-icon">⌕</span>
+                    <span>Search</span>
+                </button>
 
-                <span class="search-shortcut">
-                    /
-                </span>
+                <button class="nav-item" data-page="schedule">
+                    <span class="nav-icon">▣</span>
+                    <span>Schedule</span>
+                </button>
 
-            </div>
+                <button class="nav-item" data-page="my-list">
+                    <span class="nav-icon">☰</span>
+                    <span>My List</span>
+                </button>
 
+            </nav>
 
-            <!-- SEARCH DROPDOWN -->
+            <div class="sidebar-bottom">
 
-            <div
-                class="search-dropdown"
-                id="searchDropdown"
-            ></div>
+                <div class="account-area">
 
-        </div>
+                    <div class="logged-out-account" id="loggedOutAccount">
 
-    </header>
+                        <button class="account-button login-button" id="sidebarLoginBtn">
+                            <span>⇥</span>
+                            <span>Log In</span>
+                        </button>
 
-
-    <!-- ==================================================
-         HOME
-    =================================================== -->
-
-    <section
-        class="page active-page"
-        id="homePage"
-    >
-
-
-        <!-- HERO -->
-
-        <section
-            class="welcome"
-            id="welcomeHero"
-        >
-
-            <div class="welcome-content">
-
-                <p class="eyebrow">
-                    YOUR ANIME SPACE
-                </p>
-
-
-                <h1>
-                    Welcome to
-                    <span>
-                        MIRAI.
-                    </span>
-                </h1>
-
-
-                <p class="welcome-text">
-                    Keep track of what you're watching,
-                    discover something new, and never lose
-                    your place again.
-                </p>
-
-
-                <!-- DASHBOARD STATS -->
-
-                <div class="home-stats">
-
-                    <div class="stat-card">
-
-                        <strong id="statWatching">
-                            0
-                        </strong>
-
-                        <span>
-                            Watching
-                        </span>
+                        <button class="account-button signup-button" id="sidebarSignupBtn">
+                            <span>＋</span>
+                            <span>Create Account</span>
+                        </button>
 
                     </div>
 
+                    <div class="logged-in-account hidden" id="loggedInAccount">
 
-                    <div class="stat-card">
+                        <div class="user-card">
+                            <div class="user-avatar" id="userAvatar">?</div>
 
-                        <strong id="statCompleted">
-                            0
-                        </strong>
+                            <div class="user-info">
+                                <span class="user-label">Logged in as</span>
+                                <strong id="sidebarUsername">User</strong>
+                            </div>
+                        </div>
 
-                        <span>
-                            Completed
-                        </span>
-
-                    </div>
-
-
-                    <div class="stat-card">
-
-                        <strong id="statPlan">
-                            0
-                        </strong>
-
-                        <span>
-                            Plan to Watch
-                        </span>
-
-                    </div>
-
-
-                    <div class="stat-card">
-
-                        <strong id="statTotal">
-                            0
-                        </strong>
-
-                        <span>
-                            Total
-                        </span>
+                        <button class="account-button logout-button" id="logoutBtn">
+                            <span>⇥</span>
+                            <span>Log Out</span>
+                        </button>
 
                     </div>
 
@@ -391,909 +86,257 @@
 
             </div>
 
-        </section>
+        </aside>
 
+        <!-- MOBILE HEADER -->
+        <header class="mobile-header">
 
-        <!-- SEARCH RESULTS -->
+            <button class="mobile-menu-button" id="mobileMenuBtn">
+                ☰
+            </button>
 
-        <section
-            class="content-section"
-            id="searchSection"
-        >
-
-            <div class="section-heading">
-
-                <div>
-
-                    <p class="eyebrow">
-                        SEARCH
-                    </p>
-
-                    <h2 id="searchTitle">
-                        Find Anime
-                    </h2>
-
-                </div>
-
+            <div class="mobile-brand">
+                <span class="mobile-brand-icon">◆</span>
+                <span>MIRAI</span>
             </div>
 
+            <button class="mobile-account-button" id="mobileAccountBtn">
+                ♙
+            </button>
 
-            <div
-                class="anime-grid"
-                id="searchResults"
-            >
+        </header>
 
-                <div class="empty-state">
+        <!-- MAIN -->
+        <main class="main">
 
-                    <div class="empty-icon">
-                        ⌕
+            <!-- HOME -->
+            <section class="page active-page" id="homePage">
+
+                <div class="hero">
+
+                    <div class="hero-content">
+
+                        <div class="hero-label">
+                            <span>◆</span>
+                            YOUR ANIME UNIVERSE
+                        </div>
+
+                        <h1>
+                            Discover your next
+                            <span>favourite anime.</span>
+                        </h1>
+
+                        <p>
+                            Keep track of what you're watching,
+                            discover new shows and build your
+                            personal anime collection.
+                        </p>
+
+                        <div class="hero-buttons">
+
+                            <button class="primary-button" id="heroSearchBtn">
+                                Start Exploring
+                                <span>→</span>
+                            </button>
+
+                            <button class="secondary-button" id="heroListBtn">
+                                My List
+                            </button>
+
+                        </div>
+
                     </div>
 
-                    <h3>
-                        Search for an anime
-                    </h3>
-
-                    <p>
-                        Try Naruto, One Piece,
-                        Bleach, or Jujutsu Kaisen.
-                    </p>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- CONTINUE WATCHING -->
-
-        <section
-            class="content-section"
-            id="continueSection"
-        >
-
-            <div class="section-heading">
-
-                <div>
-
-                    <p class="eyebrow">
-                        PICK UP WHERE YOU LEFT OFF
-                    </p>
-
-                    <h2>
-                        Continue Watching
-                    </h2>
-
-                </div>
-
-
-                <button
-                    class="text-button"
-                    id="continueListButton"
-                    type="button"
-                >
-                    View list →
-                </button>
-
-            </div>
-
-
-            <div
-                class="continue-grid"
-                id="continueResults"
-            ></div>
-
-        </section>
-
-
-        <!-- MY LIST -->
-
-        <section class="content-section">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <p class="eyebrow">
-                        YOUR COLLECTION
-                    </p>
-
-                    <h2>
-                        My List
-                    </h2>
-
-                </div>
-
-
-                <button
-                    class="text-button"
-                    id="homeMyListButton"
-                    type="button"
-                >
-                    View all →
-                </button>
-
-            </div>
-
-
-            <div
-                class="anime-grid"
-                id="homeMyListResults"
-            >
-
-                <div class="empty-state">
-
-                    <div class="empty-icon">
-                        ☆
+                    <div class="hero-decoration">
+                        <div class="orbit orbit-one"></div>
+                        <div class="orbit orbit-two"></div>
+                        <div class="hero-diamond">◆</div>
                     </div>
 
-                    <h3>
-                        Your list is empty
-                    </h3>
+                </div>
 
-                    <p>
-                        Add an anime to see it here.
-                    </p>
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-kicker">DISCOVER</span>
+                        <h2>Popular Anime</h2>
+                    </div>
+
+                    <button class="text-button" id="homeSearchBtn">
+                        View more →
+                    </button>
 
                 </div>
 
-            </div>
-
-        </section>
-
-    </section>
-
-
-    <!-- ==================================================
-         MY LIST
-    =================================================== -->
-
-    <section
-        class="page"
-        id="my-listPage"
-    >
-
-        <div class="page-header">
-
-            <p class="eyebrow">
-                YOUR COLLECTION
-            </p>
-
-            <h1>
-                My List
-            </h1>
-
-            <p>
-                Keep track of the anime you want to watch,
-                are watching, or have finished.
-            </p>
-
-        </div>
-
-
-        <div class="list-toolbar">
-
-            <div class="list-filters">
-
-                <button
-                    class="list-filter active"
-                    data-status="all"
-                    type="button"
-                >
-                    All
-                    <small id="countAll">
-                        0
-                    </small>
-                </button>
-
-
-                <button
-                    class="list-filter"
-                    data-status="watching"
-                    type="button"
-                >
-                    Watching
-                    <small id="countWatching">
-                        0
-                    </small>
-                </button>
-
-
-                <button
-                    class="list-filter"
-                    data-status="plan"
-                    type="button"
-                >
-                    Plan to Watch
-                    <small id="countPlan">
-                        0
-                    </small>
-                </button>
-
-
-                <button
-                    class="list-filter"
-                    data-status="completed"
-                    type="button"
-                >
-                    Completed
-                    <small id="countCompleted">
-                        0
-                    </small>
-                </button>
-
-            </div>
-
-
-            <label class="sort-control">
-
-                <span>
-                    Sort
-                </span>
-
-                <select id="listSort">
-
-                    <option value="recent">
-                        Recently Added
-                    </option>
-
-                    <option value="title">
-                        Title
-                    </option>
-
-                    <option value="score">
-                        MAL Score
-                    </option>
-
-                    <option value="rating">
-                        My Rating
-                    </option>
-
-                    <option value="episodes">
-                        Episodes
-                    </option>
-
-                </select>
-
-            </label>
-
-        </div>
-
-
-        <div
-            class="anime-grid"
-            id="myListResults"
-        ></div>
-
-    </section>
-
-
-    <!-- ==================================================
-         TRENDING
-    =================================================== -->
-
-    <section
-        class="page"
-        id="trendingPage"
-    >
-
-        <div class="page-header">
-
-            <p class="eyebrow">
-                POPULAR
-            </p>
-
-            <h1>
-                Trending Anime
-            </h1>
-
-            <p>
-                See what anime are currently popular.
-            </p>
-
-        </div>
-
-
-        <div
-            class="anime-grid large-grid"
-            id="trendingPageResults"
-        >
-
-            <div class="loading">
-                Loading trending anime...
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- ==================================================
-         SCHEDULE
-    =================================================== -->
-
-    <section
-        class="page"
-        id="schedulePage"
-    >
-
-        <div class="page-header schedule-page-header">
-
-            <p class="eyebrow">
-                AIRING NOW
-            </p>
-
-            <h1>
-                Anime Schedule
-            </h1>
-
-            <p>
-                See what's airing throughout the week.
-            </p>
-
-        </div>
-
-
-        <!-- DAYS -->
-
-        <div
-            class="schedule-days"
-            id="scheduleDays"
-        >
-
-            <button
-                class="schedule-day"
-                data-day="sunday"
-                type="button"
-            >
-                <span class="day-name">
-                    SUN
-                </span>
-                <span
-                    class="day-date"
-                    id="date-sunday"
-                ></span>
-            </button>
-
-
-            <button
-                class="schedule-day"
-                data-day="monday"
-                type="button"
-            >
-                <span class="day-name">
-                    MON
-                </span>
-                <span
-                    class="day-date"
-                    id="date-monday"
-                ></span>
-            </button>
-
-
-            <button
-                class="schedule-day"
-                data-day="tuesday"
-                type="button"
-            >
-                <span class="day-name">
-                    TUE
-                </span>
-                <span
-                    class="day-date"
-                    id="date-tuesday"
-                ></span>
-            </button>
-
-
-            <button
-                class="schedule-day"
-                data-day="wednesday"
-                type="button"
-            >
-                <span class="day-name">
-                    WED
-                </span>
-                <span
-                    class="day-date"
-                    id="date-wednesday"
-                ></span>
-            </button>
-
-
-            <button
-                class="schedule-day"
-                data-day="thursday"
-                type="button"
-            >
-                <span class="day-name">
-                    THU
-                </span>
-                <span
-                    class="day-date"
-                    id="date-thursday"
-                ></span>
-            </button>
-
-
-            <button
-                class="schedule-day"
-                data-day="friday"
-                type="button"
-            >
-                <span class="day-name">
-                    FRI
-                </span>
-                <span
-                    class="day-date"
-                    id="date-friday"
-                ></span>
-            </button>
-
-
-            <button
-                class="schedule-day"
-                data-day="saturday"
-                type="button"
-            >
-                <span class="day-name">
-                    SAT
-                </span>
-                <span
-                    class="day-date"
-                    id="date-saturday"
-                ></span>
-            </button>
-
-        </div>
-
-
-        <!-- SELECTED DATE -->
-
-        <div
-            class="selected-date"
-            id="selectedScheduleDate"
-        >
-
-            <div class="selected-date-icon">
-                ◷
-            </div>
-
-            <div>
-
-                <strong id="selectedDayName">
-                    Sunday
-                </strong>
-
-                <span id="selectedFullDate">
-                    Loading date...
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- NEXT AIRING -->
-
-        <section
-            class="next-airing-section"
-            id="nextAiringSection"
-        >
-
-            <div class="section-heading">
-
-                <div>
-
-                    <p class="eyebrow">
-                        UP NEXT
-                    </p>
-
-                    <h2>
-                        Next Airing
-                    </h2>
-
+                <div class="anime-grid" id="popularGrid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Loading popular anime...</span>
+                    </div>
                 </div>
 
-            </div>
+            </section>
 
+            <!-- SEARCH -->
+            <section class="page" id="searchPage">
 
-            <div
-                class="next-airing-card"
-                id="nextAiringCard"
-            >
-
-                <div class="loading">
-                    Loading next airing...
+                <div class="page-heading">
+                    <span class="section-kicker">EXPLORE</span>
+                    <h1>Search Anime</h1>
+                    <p>Find your next show to watch.</p>
                 </div>
 
-            </div>
+                <form class="search-form" id="searchForm">
 
-        </section>
-
-
-        <!-- NEWEST AIRING -->
-
-        <section class="schedule-featured">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <p class="eyebrow">
-                        FRESH FROM THE SEASON
-                    </p>
-
-                    <h2>
-                        Newest Airing
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div
-                class="airing-featured-grid"
-                id="newestAiringResults"
-            >
-
-                <div class="loading">
-                    Loading newest episodes...
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- DAILY SCHEDULE -->
-
-        <section class="schedule-timeline">
-
-            <div class="section-heading">
-
-                <div>
-
-                    <p class="eyebrow">
-                        DAILY SCHEDULE
-                    </p>
-
-                    <h2 id="scheduleHeading">
-                        Sunday's Anime
-                    </h2>
-
-                </div>
-
-
-                <span
-                    class="schedule-count"
-                    id="scheduleCount"
-                >
-                    0 anime
-                </span>
-
-            </div>
-
-
-            <div id="scheduleResults">
-
-                <div class="loading">
-                    Loading schedule...
-                </div>
-
-            </div>
-
-        </section>
-
-    </section>
-
-
-    <!-- ==================================================
-         DISCOVER
-    =================================================== -->
-
-    <section
-        class="page"
-        id="discoverPage"
-    >
-
-        <div class="page-header">
-
-            <p class="eyebrow">
-                EXPLORE
-            </p>
-
-            <h1>
-                Discover
-            </h1>
-
-            <p>
-                Find something new to add to your list.
-            </p>
-
-        </div>
-
-
-        <div class="discover-controls">
-
-            <button
-                class="discover-button active"
-                data-genre="all"
-                type="button"
-            >
-                All
-            </button>
-
-
-            <button
-                class="discover-button"
-                data-genre="action"
-                type="button"
-            >
-                Action
-            </button>
-
-
-            <button
-                class="discover-button"
-                data-genre="comedy"
-                type="button"
-            >
-                Comedy
-            </button>
-
-
-            <button
-                class="discover-button"
-                data-genre="romance"
-                type="button"
-            >
-                Romance
-            </button>
-
-
-            <button
-                class="discover-button"
-                data-genre="fantasy"
-                type="button"
-            >
-                Fantasy
-            </button>
-
-        </div>
-
-
-        <div
-            class="anime-grid"
-            id="discoverResults"
-        >
-
-            <div class="loading">
-                Loading...
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- ==================================================
-         RANDOM
-    =================================================== -->
-
-    <section
-        class="page"
-        id="randomPage"
-    >
-
-        <div class="random-page">
-
-            <p class="eyebrow">
-                NEED SOMETHING NEW?
-            </p>
-
-            <h1>
-                Pick something for me.
-            </h1>
-
-            <p>
-                Let MIRAI choose a random anime for you.
-            </p>
-
-
-            <button
-                class="random-button"
-                id="randomButton"
-                type="button"
-            >
-                ✦ Give me an anime
-            </button>
-
-
-            <div
-                id="randomResult"
-                class="random-result"
-            ></div>
-
-        </div>
-
-    </section>
-
-
-    <!-- ==================================================
-         ANIME MODAL
-    =================================================== -->
-
-    <div
-        class="modal hidden"
-        id="animeModal"
-    >
-
-        <div
-            class="modal-backdrop"
-            id="modalBackdrop"
-        ></div>
-
-
-        <div class="modal-content">
-
-            <button
-                class="modal-close"
-                id="modalClose"
-                type="button"
-                aria-label="Close"
-            >
-                ×
-            </button>
-
-
-            <div
-                class="modal-image"
-                id="modalImage"
-            ></div>
-
-
-            <div class="modal-info">
-
-                <p
-                    class="eyebrow"
-                    id="modalType"
-                >
-                    ANIME
-                </p>
-
-
-                <h2 id="modalTitle">
-                    Anime Title
-                </h2>
-
-
-                <div
-                    class="modal-meta"
-                    id="modalMeta"
-                ></div>
-
-
-                <p
-                    class="modal-description"
-                    id="modalDescription"
-                ></p>
-
-
-                <div
-                    class="modal-genres"
-                    id="modalGenres"
-                ></div>
-
-
-                <!-- TRACKING -->
-
-                <div class="tracking-controls">
-
-
-                    <!-- STATUS -->
-
-                    <label>
-
-                        <span>
-                            Status
-                        </span>
-
-
-                        <select id="statusSelect">
-
-                            <option value="plan">
-                                Plan to Watch
-                            </option>
-
-                            <option value="watching">
-                                Watching
-                            </option>
-
-                            <option value="completed">
-                                Completed
-                            </option>
-
-                        </select>
-
-                    </label>
-
-
-                    <!-- EPISODE -->
-
-                    <label>
-
-                        <span>
-                            Episode
-                        </span>
-
+                    <div class="search-input-wrapper">
+                        <span>⌕</span>
 
                         <input
-                            type="number"
-                            id="episodeInput"
-                            min="0"
-                            value="0"
+                            type="text"
+                            id="searchInput"
+                            placeholder="Search for an anime..."
+                            autocomplete="off"
                         >
+                    </div>
 
-                    </label>
+                    <button class="primary-button" type="submit">
+                        Search
+                    </button>
 
+                </form>
 
-                    <!-- RATING -->
+                <div class="search-status" id="searchStatus"></div>
 
-                    <label class="rating-control">
+                <div class="anime-grid" id="searchGrid"></div>
 
-                        <div class="rating-label-row">
+            </section>
 
-                            <span>
-                                My Rating
-                            </span>
+            <!-- SCHEDULE -->
+            <section class="page" id="schedulePage">
 
-                            <strong
-                                id="ratingValue"
-                            >
-                                No rating
-                            </strong>
+                <div class="page-heading">
+                    <span class="section-kicker">THIS WEEK</span>
+                    <h1>Anime Schedule</h1>
+                    <p>See what's airing throughout the week.</p>
+                </div>
 
-                        </div>
+                <div class="schedule-tabs" id="scheduleTabs">
 
+                    <button class="schedule-tab active" data-day="monday">
+                        Monday
+                    </button>
 
-                        <div class="rating-slider-wrap">
+                    <button class="schedule-tab" data-day="tuesday">
+                        Tuesday
+                    </button>
 
-                            <span class="rating-min">
-                                0
-                            </span>
+                    <button class="schedule-tab" data-day="wednesday">
+                        Wednesday
+                    </button>
 
+                    <button class="schedule-tab" data-day="thursday">
+                        Thursday
+                    </button>
 
-                            <input
-                                type="range"
-                                id="ratingSelect"
-                                min="0"
-                                max="10"
-                                step="0.5"
-                                value="0"
-                            >
+                    <button class="schedule-tab" data-day="friday">
+                        Friday
+                    </button>
 
+                    <button class="schedule-tab" data-day="saturday">
+                        Saturday
+                    </button>
 
-                            <span class="rating-max">
-                                10
-                            </span>
-
-                        </div>
-
-                    </label>
-
+                    <button class="schedule-tab" data-day="sunday">
+                        Sunday
+                    </button>
 
                 </div>
 
+                <div class="anime-grid" id="scheduleGrid">
 
-                <button
-                    class="add-list-button"
-                    id="addListButton"
-                    type="button"
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Loading schedule...</span>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- MY LIST -->
+            <section class="page" id="myListPage">
+
+                <div class="page-heading list-heading">
+
+                    <div>
+                        <span class="section-kicker">YOUR COLLECTION</span>
+                        <h1>My List</h1>
+                        <p id="listSubtitle">
+                            Your personal anime collection.
+                        </p>
+                    </div>
+
+                    <button class="primary-button" id="listLoginBtn">
+                        Log In
+                    </button>
+
+                </div>
+
+                <div id="myListContent"></div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- ANIME DETAILS MODAL -->
+    <div class="modal-overlay" id="animeModal">
+
+        <div class="modal anime-modal">
+
+            <button class="modal-close" id="animeModalClose">×</button>
+
+            <div class="anime-modal-content">
+
+                <img
+                    id="modalAnimeImage"
+                    class="modal-anime-image"
+                    src=""
+                    alt=""
                 >
-                    ★ Add to My List
-                </button>
+
+                <div class="modal-anime-info">
+
+                    <span class="section-kicker" id="modalAnimeType">
+                        ANIME
+                    </span>
+
+                    <h2 id="modalAnimeTitle">Anime</h2>
+
+                    <div class="anime-meta" id="modalAnimeMeta"></div>
+
+                    <p id="modalAnimeSynopsis"></p>
+
+                    <div class="modal-actions">
+
+                        <button
+                            class="primary-button"
+                            id="modalListButton"
+                        >
+                            + Add to My List
+                        </button>
+
+                        <button
+                            class="secondary-button"
+                            id="modalRateButton"
+                        >
+                            ★ Rate
+                        </button>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -1301,90 +344,172 @@
 
     </div>
 
+    <!-- RATING MODAL -->
+    <div class="modal-overlay" id="ratingModal">
 
-    <!-- ==================================================
-         FOOTER
-    =================================================== -->
+        <div class="modal rating-modal">
 
-    <footer>
+            <button class="modal-close" id="ratingModalClose">×</button>
 
-        <span class="footer-star">
-            ★
-        </span>
+            <div class="rating-header">
+                <span class="section-kicker">YOUR RATING</span>
+                <h2>How did you like it?</h2>
+                <p id="ratingAnimeTitle">Anime</p>
+            </div>
 
-        MIRAI
+            <div class="stars" id="ratingStars">
 
-        <small>
-            Anime tracking made simple.
-        </small>
+                <button data-rating="1">★</button>
+                <button data-rating="2">★</button>
+                <button data-rating="3">★</button>
+                <button data-rating="4">★</button>
+                <button data-rating="5">★</button>
 
-    </footer>
+            </div>
 
-</main>
+            <div class="rating-value" id="ratingValue">
+                Select a rating
+            </div>
 
+            <button class="primary-button rating-submit" id="submitRating">
+                Save Rating
+            </button>
 
-<!-- ======================================================
-     MOBILE NAV
-====================================================== -->
+        </div>
 
-<nav
-    class="mobile-bottom-nav"
-    id="mobileBottomNav"
->
+    </div>
 
-    <button
-        class="mobile-nav-item active"
-        data-page="home"
-        type="button"
-    >
-        <span>⌂</span>
-        <small>Home</small>
-    </button>
+    <!-- LOGIN / REGISTER MODAL -->
+    <div class="modal-overlay" id="accountModal">
 
+        <div class="modal account-modal">
 
-    <button
-        class="mobile-nav-item"
-        data-page="my-list"
-        type="button"
-    >
-        <span>▣</span>
-        <small>List</small>
-    </button>
+            <button class="modal-close" id="accountModalClose">×</button>
 
+            <div class="account-logo">
+                <span>◆</span>
+                MIRAI
+            </div>
 
-    <button
-        class="mobile-nav-item"
-        data-page="trending"
-        type="button"
-    >
-        <span>↗</span>
-        <small>Trending</small>
-    </button>
+            <!-- LOGIN -->
+            <div class="account-form-container" id="loginContainer">
 
+                <div class="account-heading">
+                    <span class="section-kicker">WELCOME BACK</span>
+                    <h2>Log in</h2>
+                    <p>Continue your anime journey.</p>
+                </div>
 
-    <button
-        class="mobile-nav-item"
-        data-page="schedule"
-        type="button"
-    >
-        <span>◷</span>
-        <small>Schedule</small>
-    </button>
+                <form id="loginForm">
 
+                    <label for="loginEmail">Email</label>
 
-    <button
-        class="mobile-nav-item"
-        data-page="discover"
-        type="button"
-    >
-        <span>⌕</span>
-        <small>Discover</small>
-    </button>
+                    <input
+                        type="email"
+                        id="loginEmail"
+                        placeholder="you@example.com"
+                        required
+                    >
 
-</nav>
+                    <label for="loginPassword">Password</label>
 
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        placeholder="Your password"
+                        required
+                    >
 
-<script src="script.js"></script>
+                    <div class="form-error" id="loginError"></div>
+
+                    <button class="primary-button full-button" type="submit">
+                        Log In
+                    </button>
+
+                </form>
+
+                <p class="account-switch">
+                    Don't have an account?
+                    <button id="showRegisterBtn">Create one</button>
+                </p>
+
+            </div>
+
+            <!-- REGISTER -->
+            <div class="account-form-container hidden" id="registerContainer">
+
+                <div class="account-heading">
+                    <span class="section-kicker">JOIN MIRAI</span>
+                    <h2>Create Account</h2>
+                    <p>Start building your anime collection.</p>
+                </div>
+
+                <form id="registerForm">
+
+                    <label for="registerUsername">Username</label>
+
+                    <input
+                        type="text"
+                        id="registerUsername"
+                        placeholder="Your username"
+                        minlength="3"
+                        required
+                    >
+
+                    <label for="registerEmail">Email</label>
+
+                    <input
+                        type="email"
+                        id="registerEmail"
+                        placeholder="you@example.com"
+                        required
+                    >
+
+                    <label for="registerPassword">Password</label>
+
+                    <input
+                        type="password"
+                        id="registerPassword"
+                        placeholder="At least 6 characters"
+                        minlength="6"
+                        required
+                    >
+
+                    <label for="registerConfirmPassword">
+                        Confirm Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="registerConfirmPassword"
+                        placeholder="Enter your password again"
+                        minlength="6"
+                        required
+                    >
+
+                    <div class="form-error" id="registerError"></div>
+
+                    <button class="primary-button full-button" type="submit">
+                        Create Account
+                    </button>
+
+                </form>
+
+                <p class="account-switch">
+                    Already have an account?
+                    <button id="showLoginBtn">Log in</button>
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <script src="script.js"></script>
 
 </body>
 </html>
