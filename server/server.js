@@ -18,8 +18,7 @@ dotenv.config({
 
 const app = express();
 
-const PORT =
-    process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 const MAL_CLIENT_ID =
     process.env.MAL_CLIENT_ID;
@@ -29,23 +28,15 @@ const DATABASE_URL =
 
 
 // ======================================================
-// CHECK ENVIRONMENT
+// ENVIRONMENT CHECK
 // ======================================================
 
 if (!MAL_CLIENT_ID) {
-
-    console.error(
-        "ERROR: MAL_CLIENT_ID was not found."
-    );
-
+    console.error("ERROR: MAL_CLIENT_ID was not found.");
 }
 
 if (!DATABASE_URL) {
-
-    console.error(
-        "ERROR: DATABASE_URL was not found."
-    );
-
+    console.error("ERROR: DATABASE_URL was not found.");
 }
 
 
@@ -72,11 +63,7 @@ const pool = new Pool({
 async function setupDatabase() {
 
     if (!DATABASE_URL) {
-
-        throw new Error(
-            "DATABASE_URL is missing."
-        );
-
+        throw new Error("DATABASE_URL is missing.");
     }
 
     await pool.query(`
@@ -144,11 +131,7 @@ async function setupDatabase() {
 
     `);
 
-
-    console.log(
-        "MIRAI database ready."
-    );
-
+    console.log("MIRAI database ready.");
 }
 
 
@@ -197,8 +180,7 @@ app.use(
             httpOnly: true,
 
             secure:
-                process.env.NODE_ENV ===
-                "production",
+                process.env.NODE_ENV === "production",
 
             sameSite: "lax",
 
@@ -216,39 +198,31 @@ app.use(
 
 
 // ======================================================
-// MAL API HELPER
+// MAL API
 // ======================================================
 
 async function malFetch(url) {
 
-    const response =
-        await fetch(url, {
+    const response = await fetch(url, {
 
-            headers: {
-                "X-MAL-CLIENT-ID":
-                    MAL_CLIENT_ID
-            }
+        headers: {
+            "X-MAL-CLIENT-ID": MAL_CLIENT_ID
+        }
 
-        });
-
+    });
 
     console.log(
         "MAL STATUS:",
         response.status
     );
 
-
-    const text =
-        await response.text();
-
+    const text = await response.text();
 
     let data;
 
-
     try {
 
-        data =
-            JSON.parse(text);
+        data = JSON.parse(text);
 
     } catch {
 
@@ -258,14 +232,12 @@ async function malFetch(url) {
 
     }
 
-
     if (!response.ok) {
 
         console.error(
             "MAL ERROR:",
             data
         );
-
 
         throw new Error(
             data?.message ||
@@ -274,8 +246,118 @@ async function malFetch(url) {
 
     }
 
-
     return data;
+}
+
+
+// ======================================================
+// NORMALIZE MAL ANIME
+// ======================================================
+
+function normalizeAnime(item) {
+
+    const anime =
+        item?.node ||
+        item;
+
+    if (!anime) {
+        return null;
+    }
+
+    const picture =
+        anime.main_picture || {};
+
+    return {
+
+        id:
+            anime.id,
+
+        mal_id:
+            anime.id,
+
+        title:
+            anime.title ||
+            "Unknown Anime",
+
+        image:
+            picture.large ||
+            picture.medium ||
+            "",
+
+        image_url:
+            picture.large ||
+            picture.medium ||
+            "",
+
+        synopsis:
+            anime.synopsis ||
+            "No synopsis available.",
+
+        score:
+            anime.mean ??
+            null,
+
+        mal_score:
+            anime.mean ??
+            null,
+
+        episodes:
+            anime.num_episodes ??
+            null,
+
+        episode_count:
+            anime.num_episodes ??
+            null,
+
+        type:
+            anime.media_type ||
+            "Anime",
+
+        status:
+            anime.status ||
+            "",
+
+        start_date:
+            anime.start_date ||
+            null,
+
+        end_date:
+            anime.end_date ||
+            null,
+
+        rank:
+            anime.rank ??
+            null,
+
+        popularity:
+            anime.popularity ??
+            null,
+
+        genres:
+            anime.genres ||
+            [],
+
+        broadcast:
+            anime.broadcast ||
+            null,
+
+        source:
+            anime.source ||
+            null,
+
+        alternative_titles:
+            anime.alternative_titles ||
+            null
+
+    };
+}
+
+
+function normalizeAnimeList(data) {
+
+    return (data?.data || [])
+        .map(normalizeAnime)
+        .filter(Boolean);
 
 }
 
@@ -284,11 +366,7 @@ async function malFetch(url) {
 // AUTH HELPERS
 // ======================================================
 
-function requireAuth(
-    req,
-    res,
-    next
-) {
+function requireAuth(req, res, next) {
 
     if (
         !req.session ||
@@ -306,15 +384,11 @@ function requireAuth(
 
     }
 
-
     next();
-
 }
 
 
-function sanitizeUser(
-    user
-) {
+function sanitizeUser(user) {
 
     return {
 
@@ -330,7 +404,6 @@ function sanitizeUser(
             user.created_at
 
     };
-
 }
 
 
@@ -361,350 +434,347 @@ app.get(
 
 
 // ======================================================
-// REGISTER
+// AUTH
 // ======================================================
+
+async function registerUser(req, res) {
+
+    try {
+
+        const username =
+            String(
+                req.body.username || ""
+            ).trim();
+
+        const email =
+            String(
+                req.body.email || ""
+            ).trim()
+            .toLowerCase();
+
+        const password =
+            String(
+                req.body.password || ""
+            );
+
+
+        if (
+            !username ||
+            !email ||
+            !password
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error:
+                    "Username, email, and password are required."
+
+            });
+
+        }
+
+
+        if (
+            username.length < 3 ||
+            username.length > 30
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error:
+                    "Username must be between 3 and 30 characters."
+
+            });
+
+        }
+
+
+        if (password.length < 6) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error:
+                    "Password must be at least 6 characters."
+
+            });
+
+        }
+
+
+        const existing =
+            await pool.query(
+                `
+                    SELECT id
+                    FROM users
+
+                    WHERE LOWER(username) =
+                          LOWER($1)
+
+                       OR LOWER(email) =
+                          LOWER($2)
+
+                    LIMIT 1
+                `,
+                [
+                    username,
+                    email
+                ]
+            );
+
+
+        if (existing.rows.length) {
+
+            return res.status(409).json({
+
+                success: false,
+
+                error:
+                    "A user with that username or email already exists."
+
+            });
+
+        }
+
+
+        const passwordHash =
+            await bcrypt.hash(
+                password,
+                12
+            );
+
+
+        const result =
+            await pool.query(
+                `
+                    INSERT INTO users
+                    (
+                        username,
+                        email,
+                        password_hash
+                    )
+
+                    VALUES
+                    ($1, $2, $3)
+
+                    RETURNING
+                        id,
+                        username,
+                        email,
+                        created_at
+                `,
+                [
+                    username,
+                    email,
+                    passwordHash
+                ]
+            );
+
+
+        const user =
+            result.rows[0];
+
+
+        req.session.userId =
+            user.id;
+
+
+        res.status(201).json({
+
+            success: true,
+
+            user:
+                sanitizeUser(user)
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "REGISTER ERROR:",
+            error
+        );
+
+        res.status(500).json({
+
+            success: false,
+
+            error:
+                "Could not create account.",
+
+            details:
+                error.message
+
+        });
+
+    }
+}
+
+
+async function loginUser(req, res) {
+
+    try {
+
+        const identifier =
+            String(
+                req.body.identifier ||
+                req.body.email ||
+                ""
+            ).trim();
+
+        const password =
+            String(
+                req.body.password ||
+                ""
+            );
+
+
+        if (
+            !identifier ||
+            !password
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error:
+                    "Username/email and password are required."
+
+            });
+
+        }
+
+
+        const result =
+            await pool.query(
+                `
+                    SELECT
+                        id,
+                        username,
+                        email,
+                        password_hash,
+                        created_at
+
+                    FROM users
+
+                    WHERE LOWER(username) =
+                          LOWER($1)
+
+                       OR LOWER(email) =
+                          LOWER($1)
+
+                    LIMIT 1
+                `,
+                [
+                    identifier
+                ]
+            );
+
+
+        if (!result.rows.length) {
+
+            return res.status(401).json({
+
+                success: false,
+
+                error:
+                    "Invalid username/email or password."
+
+            });
+
+        }
+
+
+        const user =
+            result.rows[0];
+
+
+        const valid =
+            await bcrypt.compare(
+                password,
+                user.password_hash
+            );
+
+
+        if (!valid) {
+
+            return res.status(401).json({
+
+                success: false,
+
+                error:
+                    "Invalid username/email or password."
+
+            });
+
+        }
+
+
+        req.session.userId =
+            user.id;
+
+
+        res.json({
+
+            success: true,
+
+            user:
+                sanitizeUser(user)
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "LOGIN ERROR:",
+            error
+        );
+
+        res.status(500).json({
+
+            success: false,
+
+            error:
+                "Could not log in.",
+
+            details:
+                error.message
+
+        });
+
+    }
+}
+
+
+// IMPORTANT:
+// These routes support BOTH the old frontend paths
+// and the /api paths.
+
+app.post(
+    "/auth/register",
+    registerUser
+);
 
 app.post(
     "/api/auth/register",
-    async (req, res) => {
-
-        try {
-
-            const username =
-                String(
-                    req.body.username ||
-                    ""
-                ).trim();
-
-            const email =
-                String(
-                    req.body.email ||
-                    ""
-                ).trim()
-                .toLowerCase();
-
-            const password =
-                String(
-                    req.body.password ||
-                    ""
-                );
-
-
-            if (
-                !username ||
-                !email ||
-                !password
-            ) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Username, email, and password are required."
-
-                });
-
-            }
-
-
-            if (
-                username.length < 3 ||
-                username.length > 30
-            ) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Username must be between 3 and 30 characters."
-
-                });
-
-            }
-
-
-            if (
-                password.length < 8
-            ) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Password must be at least 8 characters."
-
-                });
-
-            }
-
-
-            const existing =
-                await pool.query(
-                    `
-
-                        SELECT id
-                        FROM users
-                        WHERE LOWER(username) = LOWER($1)
-                           OR LOWER(email) = LOWER($2)
-                        LIMIT 1
-
-                    `,
-                    [
-                        username,
-                        email
-                    ]
-                );
-
-
-            if (
-                existing.rows.length
-            ) {
-
-                return res.status(409).json({
-
-                    success: false,
-
-                    error:
-                        "A user with that username or email already exists."
-
-                });
-
-            }
-
-
-            const passwordHash =
-                await bcrypt.hash(
-                    password,
-                    12
-                );
-
-
-            const result =
-                await pool.query(
-                    `
-
-                        INSERT INTO users
-                        (
-                            username,
-                            email,
-                            password_hash
-                        )
-
-                        VALUES
-                        ($1, $2, $3)
-
-                        RETURNING
-                            id,
-                            username,
-                            email,
-                            created_at
-
-                    `,
-                    [
-                        username,
-                        email,
-                        passwordHash
-                    ]
-                );
-
-
-            const user =
-                result.rows[0];
-
-
-            req.session.userId =
-                user.id;
-
-
-            res.status(201).json({
-
-                success: true,
-
-                user:
-                    sanitizeUser(
-                        user
-                    )
-
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "REGISTER ERROR:",
-                error
-            );
-
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Could not create account.",
-
-                details:
-                    error.message
-
-            });
-
-        }
-
-    }
+    registerUser
 );
 
 
-// ======================================================
-// LOGIN
-// ======================================================
+app.post(
+    "/auth/login",
+    loginUser
+);
 
 app.post(
     "/api/auth/login",
-    async (req, res) => {
-
-        try {
-
-            const identifier =
-                String(
-                    req.body.identifier ||
-                    ""
-                ).trim();
-
-            const password =
-                String(
-                    req.body.password ||
-                    ""
-                );
-
-
-            if (
-                !identifier ||
-                !password
-            ) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Username/email and password are required."
-
-                });
-
-            }
-
-
-            const result =
-                await pool.query(
-                    `
-
-                        SELECT
-                            id,
-                            username,
-                            email,
-                            password_hash,
-                            created_at
-
-                        FROM users
-
-                        WHERE LOWER(username) =
-                              LOWER($1)
-
-                           OR LOWER(email) =
-                              LOWER($1)
-
-                        LIMIT 1
-
-                    `,
-                    [
-                        identifier
-                    ]
-                );
-
-
-            if (
-                !result.rows.length
-            ) {
-
-                return res.status(401).json({
-
-                    success: false,
-
-                    error:
-                        "Invalid username/email or password."
-
-                });
-
-            }
-
-
-            const user =
-                result.rows[0];
-
-
-            const valid =
-                await bcrypt.compare(
-                    password,
-                    user.password_hash
-                );
-
-
-            if (!valid) {
-
-                return res.status(401).json({
-
-                    success: false,
-
-                    error:
-                        "Invalid username/email or password."
-
-                });
-
-            }
-
-
-            req.session.userId =
-                user.id;
-
-
-            res.json({
-
-                success: true,
-
-                user:
-                    sanitizeUser(
-                        user
-                    )
-
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "LOGIN ERROR:",
-                error
-            );
-
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Could not log in.",
-
-                details:
-                    error.message
-
-            });
-
-        }
-
-    }
+    loginUser
 );
 
 
@@ -712,48 +782,52 @@ app.post(
 // LOGOUT
 // ======================================================
 
-app.post(
-    "/api/auth/logout",
-    (req, res) => {
+function logoutUser(req, res) {
 
-        req.session.destroy(
-            error => {
+    req.session.destroy(
+        error => {
 
-                if (error) {
+            if (error) {
 
-                    console.error(
-                        "LOGOUT ERROR:",
-                        error
-                    );
-
-
-                    return res.status(500).json({
-
-                        success: false,
-
-                        error:
-                            "Could not log out."
-
-                    });
-
-                }
-
-
-                res.clearCookie(
-                    "connect.sid"
+                console.error(
+                    "LOGOUT ERROR:",
+                    error
                 );
 
+                return res.status(500).json({
 
-                res.json({
+                    success: false,
 
-                    success: true
+                    error:
+                        "Could not log out."
 
                 });
 
             }
-        );
 
-    }
+            res.clearCookie(
+                "connect.sid"
+            );
+
+            res.json({
+
+                success: true
+
+            });
+
+        }
+    );
+}
+
+
+app.post(
+    "/auth/logout",
+    logoutUser
+);
+
+app.post(
+    "/api/auth/logout",
+    logoutUser
 );
 
 
@@ -761,108 +835,106 @@ app.post(
 // CURRENT USER
 // ======================================================
 
-app.get(
-    "/api/auth/me",
-    async (req, res) => {
+async function currentUser(req, res) {
 
-        try {
+    try {
 
-            if (
-                !req.session?.userId
-            ) {
+        if (!req.session?.userId) {
 
-                return res.json({
-
-                    success: true,
-
-                    loggedIn: false,
-
-                    user: null
-
-                });
-
-            }
-
-
-            const result =
-                await pool.query(
-                    `
-
-                        SELECT
-                            id,
-                            username,
-                            email,
-                            created_at
-
-                        FROM users
-
-                        WHERE id = $1
-
-                        LIMIT 1
-
-                    `,
-                    [
-                        req.session.userId
-                    ]
-                );
-
-
-            if (
-                !result.rows.length
-            ) {
-
-                req.session.destroy(
-                    () => {}
-                );
-
-
-                return res.json({
-
-                    success: true,
-
-                    loggedIn: false,
-
-                    user: null
-
-                });
-
-            }
-
-
-            res.json({
+            return res.json({
 
                 success: true,
 
-                loggedIn: true,
+                loggedIn: false,
 
-                user:
-                    sanitizeUser(
-                        result.rows[0]
-                    )
-
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "ME ERROR:",
-                error
-            );
-
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Could not check login status."
+                user: null
 
             });
 
         }
 
+
+        const result =
+            await pool.query(
+                `
+                    SELECT
+                        id,
+                        username,
+                        email,
+                        created_at
+
+                    FROM users
+
+                    WHERE id = $1
+
+                    LIMIT 1
+                `,
+                [
+                    req.session.userId
+                ]
+            );
+
+
+        if (!result.rows.length) {
+
+            req.session.destroy(
+                () => {}
+            );
+
+            return res.json({
+
+                success: true,
+
+                loggedIn: false,
+
+                user: null
+
+            });
+
+        }
+
+
+        res.json({
+
+            success: true,
+
+            loggedIn: true,
+
+            user:
+                sanitizeUser(
+                    result.rows[0]
+                )
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "ME ERROR:",
+            error
+        );
+
+        res.status(500).json({
+
+            success: false,
+
+            error:
+                "Could not check login status."
+
+        });
+
     }
+}
+
+
+app.get(
+    "/auth/me",
+    currentUser
+);
+
+app.get(
+    "/api/auth/me",
+    currentUser
 );
 
 
@@ -880,7 +952,6 @@ app.get(
             const result =
                 await pool.query(
                     `
-
                         SELECT
                             anime_id,
                             anime_data,
@@ -894,7 +965,6 @@ app.get(
                         WHERE user_id = $1
 
                         ORDER BY saved_at DESC
-
                     `,
                     [
                         req.session.userId
@@ -915,9 +985,7 @@ app.get(
                             row.episode,
 
                         rating:
-                            Number(
-                                row.rating
-                            ),
+                            Number(row.rating),
 
                         savedAt:
                             row.saved_at
@@ -934,14 +1002,12 @@ app.get(
 
             });
 
-
         } catch (error) {
 
             console.error(
                 "MY LIST GET ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -981,7 +1047,6 @@ app.post(
                     "plan"
                 );
 
-
             const episode =
                 Math.max(
                     0,
@@ -989,7 +1054,6 @@ app.post(
                         req.body.episode
                     ) || 0
                 );
-
 
             const rating =
                 Math.min(
@@ -1025,9 +1089,7 @@ app.post(
                     "plan",
                     "watching",
                     "completed"
-                ].includes(
-                    status
-                )
+                ].includes(status)
             ) {
 
                 return res.status(400).json({
@@ -1048,8 +1110,12 @@ app.post(
 
             const totalEpisodes =
                 Number(
+                    anime.episodes
+                ) ||
+                Number(
                     anime.num_episodes
-                ) || 0;
+                ) ||
+                0;
 
 
             if (
@@ -1066,8 +1132,7 @@ app.post(
 
 
             if (
-                status ===
-                    "completed" &&
+                status === "completed" &&
                 totalEpisodes > 0
             ) {
 
@@ -1079,7 +1144,6 @@ app.post(
 
             await pool.query(
                 `
-
                     INSERT INTO anime_list
                     (
                         user_id,
@@ -1124,14 +1188,11 @@ app.post(
 
                         saved_at =
                             NOW()
-
                 `,
                 [
                     req.session.userId,
 
-                    Number(
-                        anime.id
-                    ),
+                    Number(anime.id),
 
                     anime,
 
@@ -1140,7 +1201,6 @@ app.post(
                     finalEpisode,
 
                     rating
-
                 ]
             );
 
@@ -1154,14 +1214,12 @@ app.post(
 
             });
 
-
         } catch (error) {
 
             console.error(
                 "MY LIST SAVE ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -1199,9 +1257,7 @@ app.delete(
 
 
             if (
-                !Number.isFinite(
-                    animeId
-                )
+                !Number.isFinite(animeId)
             ) {
 
                 return res.status(400).json({
@@ -1218,13 +1274,11 @@ app.delete(
 
             await pool.query(
                 `
-
                     DELETE FROM anime_list
 
                     WHERE user_id = $1
 
-                      AND anime_id = $2
-
+                    AND anime_id = $2
                 `,
                 [
                     req.session.userId,
@@ -1242,14 +1296,12 @@ app.delete(
 
             });
 
-
         } catch (error) {
 
             console.error(
                 "MY LIST DELETE ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -1278,8 +1330,7 @@ app.get(
 
             const name =
                 String(
-                    req.query.name ||
-                    ""
+                    req.query.name || ""
                 ).trim();
 
 
@@ -1300,9 +1351,7 @@ app.get(
             const url =
                 "https://api.myanimelist.net/v2/anime" +
 
-                `?q=${encodeURIComponent(
-                    name
-                )}` +
+                `?q=${encodeURIComponent(name)}` +
 
                 "&limit=20" +
 
@@ -1328,15 +1377,17 @@ app.get(
 
 
             const data =
-                await malFetch(
-                    url
-                );
+                await malFetch(url);
 
 
-            res.json(
-                data
-            );
+            res.json({
 
+                success: true,
+
+                data:
+                    normalizeAnimeList(data)
+
+            });
 
         } catch (error) {
 
@@ -1344,7 +1395,6 @@ app.get(
                 "SEARCH ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -1410,15 +1460,17 @@ app.get(
 
 
             const data =
-                await malFetch(
-                    url
-                );
+                await malFetch(url);
 
 
-            res.json(
-                data
-            );
+            res.json({
 
+                success: true,
+
+                data:
+                    normalizeAnimeList(data)
+
+            });
 
         } catch (error) {
 
@@ -1426,7 +1478,6 @@ app.get(
                 "TOP ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -1492,15 +1543,17 @@ app.get(
 
 
             const data =
-                await malFetch(
-                    url
-                );
+                await malFetch(url);
 
 
-            res.json(
-                data
-            );
+            res.json({
 
+                success: true,
+
+                data:
+                    normalizeAnimeList(data)
+
+            });
 
         } catch (error) {
 
@@ -1508,7 +1561,6 @@ app.get(
                 "TRENDING ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -1567,15 +1619,14 @@ app.get(
 
 
             const data =
-                await malFetch(
-                    url
-                );
+                await malFetch(url);
 
 
-            if (
-                !data.data ||
-                !data.data.length
-            ) {
+            const animeList =
+                normalizeAnimeList(data);
+
+
+            if (!animeList.length) {
 
                 throw new Error(
                     "No anime were returned."
@@ -1585,10 +1636,10 @@ app.get(
 
 
             const anime =
-                data.data[
+                animeList[
                     Math.floor(
                         Math.random() *
-                        data.data.length
+                        animeList.length
                     )
                 ];
 
@@ -1597,11 +1648,9 @@ app.get(
 
                 success: true,
 
-                data:
-                    anime
+                data: anime
 
             });
-
 
         } catch (error) {
 
@@ -1609,7 +1658,6 @@ app.get(
                 "RANDOM ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -1642,43 +1690,30 @@ app.get(
             const now =
                 new Date();
 
-
             const year =
                 now.getFullYear();
-
 
             const month =
                 now.getMonth();
 
-
             let season;
 
 
-            if (
-                month <= 2
-            ) {
+            if (month <= 2) {
 
-                season =
-                    "winter";
+                season = "winter";
 
-            } else if (
-                month <= 5
-            ) {
+            } else if (month <= 5) {
 
-                season =
-                    "spring";
+                season = "spring";
 
-            } else if (
-                month <= 8
-            ) {
+            } else if (month <= 8) {
 
-                season =
-                    "summer";
+                season = "summer";
 
             } else {
 
-                season =
-                    "fall";
+                season = "fall";
 
             }
 
@@ -1712,21 +1747,14 @@ app.get(
 
 
             const data =
-                await malFetch(
-                    url
-                );
+                await malFetch(url);
 
 
             const anime =
-                (data.data || [])
-                    .map(
-                        item =>
-                            item?.node ||
-                            item
-                    )
+                normalizeAnimeList(data)
                     .filter(
                         item =>
-                            item?.broadcast
+                            item.broadcast
                     );
 
 
@@ -1734,11 +1762,9 @@ app.get(
 
                 success: true,
 
-                data:
-                    anime
+                data: anime
 
             });
-
 
         } catch (error) {
 
@@ -1746,7 +1772,6 @@ app.get(
                 "SCHEDULE ERROR:",
                 error
             );
-
 
             res.status(500).json({
 
@@ -1767,7 +1792,7 @@ app.get(
 
 
 // ======================================================
-// SERVE MIRAI FRONTEND
+// SERVE FRONTEND
 // ======================================================
 
 const websitePath =
@@ -1783,10 +1808,6 @@ app.use(
     )
 );
 
-
-// ======================================================
-// HOME PAGE
-// ======================================================
 
 app.get(
     "/",
@@ -1815,7 +1836,6 @@ app.use(
             err
         );
 
-
         res.status(500).json({
 
             success: false,
@@ -1830,7 +1850,7 @@ app.use(
 
 
 // ======================================================
-// START SERVER
+// START
 // ======================================================
 
 async function startServer() {
@@ -1838,7 +1858,6 @@ async function startServer() {
     try {
 
         await setupDatabase();
-
 
         app.listen(
             PORT,
@@ -1857,7 +1876,6 @@ async function startServer() {
             "MIRAI STARTUP ERROR:",
             error
         );
-
 
         process.exit(1);
 
