@@ -29,9 +29,6 @@ const searchClear =
 const searchDropdown =
     document.getElementById("searchDropdown");
 
-const trendingPageResults =
-    document.getElementById("trendingPageResults");
-
 const discoverResults =
     document.getElementById("discoverResults");
 
@@ -185,6 +182,7 @@ function getEpisodes(anime) {
             anime?.num_episodes
         );
 
+
     if (
         !episodes ||
         episodes <= 0
@@ -198,6 +196,7 @@ function getEpisodes(anime) {
 
         }
 
+
         if (
             anime?.media_type === "special"
         ) {
@@ -206,9 +205,11 @@ function getEpisodes(anime) {
 
         }
 
+
         return "Episodes unknown";
 
     }
+
 
     return `${episodes} eps`;
 
@@ -222,11 +223,13 @@ function getScore(anime) {
             anime?.mean
         );
 
+
     if (!score) {
 
         return "N/A";
 
     }
+
 
     return score.toFixed(2);
 
@@ -238,6 +241,7 @@ function getType(anime) {
     const type =
         anime?.media_type ||
         "anime";
+
 
     return type
         .replaceAll(
@@ -292,6 +296,7 @@ function getTodayName() {
         "saturday"
     ];
 
+
     return days[
         new Date().getDay()
     ];
@@ -310,15 +315,19 @@ async function apiFetch(url) {
         url
     );
 
+
     const response =
         await fetch(url);
+
 
     console.log(
         "MIRAI API STATUS:",
         response.status
     );
 
+
     let data;
+
 
     try {
 
@@ -333,6 +342,7 @@ async function apiFetch(url) {
 
     }
 
+
     if (
         !response.ok ||
         data.success === false
@@ -345,6 +355,7 @@ async function apiFetch(url) {
         );
 
     }
+
 
     return data;
 
@@ -360,13 +371,23 @@ function createAnimeCard(anime) {
     anime =
         animeData(anime);
 
+
     const card =
         document.createElement(
             "article"
         );
 
+
     card.className =
         "anime-card";
+
+
+    // Blurred version of the anime poster
+    card.style.setProperty(
+        "--anime-background",
+        `url("${getImage(anime)}")`
+    );
+
 
     card.innerHTML = `
 
@@ -422,11 +443,13 @@ function createAnimeCard(anime) {
 
     `;
 
+
     card.addEventListener(
         "click",
         () =>
             openAnime(anime)
     );
+
 
     return card;
 
@@ -434,7 +457,7 @@ function createAnimeCard(anime) {
 
 
 // ======================================================
-// GRID
+// RENDER GRID
 // ======================================================
 
 function renderAnimeGrid(
@@ -449,7 +472,10 @@ function renderAnimeGrid(
 
     }
 
-    container.innerHTML = "";
+
+    container.innerHTML =
+        "";
+
 
     if (
         !animeList ||
@@ -482,6 +508,7 @@ function renderAnimeGrid(
 
     }
 
+
     animeList.forEach(
         anime => {
 
@@ -506,32 +533,68 @@ async function searchAnime() {
     const query =
         searchInput.value.trim();
 
+
+    const activePage =
+        document.querySelector(
+            ".page.active-page"
+        );
+
+
+    const isHome =
+        activePage?.id ===
+        "homePage";
+
+
     if (!query) {
 
-        searchResults.innerHTML = `
+        if (
+            isHome &&
+            searchResults
+        ) {
 
-            <div class="empty-state">
+            searchResults.innerHTML = `
 
-                <div class="empty-icon">
-                    ⌕
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        ⌕
+                    </div>
+
+                    <h3>
+                        Search for an anime
+                    </h3>
+
+                    <p>
+                        Try Naruto, One Piece,
+                        Bleach, or Jujutsu Kaisen.
+                    </p>
+
                 </div>
 
-                <h3>
-                    Search for an anime
-                </h3>
+            `;
 
-                <p>
-                    Try Naruto, One Piece,
-                    Bleach, Jujutsu Kaisen,
-                    or anything else.
-                </p>
 
-            </div>
+            if (searchTitle) {
 
-        `;
+                searchTitle.textContent =
+                    "Find Anime";
 
-        searchTitle.textContent =
-            "Find Anime";
+            }
+
+        }
+
+
+        if (
+            !isHome &&
+            searchDropdown
+        ) {
+
+            searchDropdown.classList.remove(
+                "visible"
+            );
+
+        }
+
 
         return;
 
@@ -543,26 +606,55 @@ async function searchAnime() {
     );
 
 
-    if (searchDropdown) {
+    if (isHome) {
 
-        searchDropdown.classList.remove(
-            "visible"
-        );
+        if (searchTitle) {
+
+            searchTitle.textContent =
+                `Results for "${query}"`;
+
+        }
+
+
+        if (searchResults) {
+
+            searchResults.innerHTML = `
+
+                <div class="loading">
+                    Searching...
+                </div>
+
+            `;
+
+        }
+
+    } else {
+
+        if (searchDropdown) {
+
+            searchDropdown.innerHTML = `
+
+                <div class="search-dropdown-loading">
+
+                    <span class="search-loading-spinner"></span>
+
+                    <span>
+                        Searching for
+                        "${escapeHTML(query)}"...
+                    </span>
+
+                </div>
+
+            `;
+
+
+            searchDropdown.classList.add(
+                "visible"
+            );
+
+        }
 
     }
-
-
-    searchTitle.textContent =
-        `Results for "${query}"`;
-
-
-    searchResults.innerHTML = `
-
-        <div class="loading">
-            Searching...
-        </div>
-
-    `;
 
 
     try {
@@ -578,10 +670,22 @@ async function searchAnime() {
                 .map(animeData);
 
 
-        renderAnimeGrid(
-            searchResults,
+        if (isHome) {
+
+            renderAnimeGrid(
+                searchResults,
+                anime,
+                "No anime matched your search."
+            );
+
+            return;
+
+        }
+
+
+        renderSearchResultsDropdown(
             anime,
-            "No anime matched your search."
+            query
         );
 
 
@@ -593,27 +697,68 @@ async function searchAnime() {
         );
 
 
-        searchResults.innerHTML = `
+        if (isHome) {
 
-            <div class="empty-state">
+            if (searchResults) {
 
-                <div class="empty-icon">
-                    !
-                </div>
+                searchResults.innerHTML = `
 
-                <h3>
-                    Search failed
-                </h3>
+                    <div class="empty-state">
 
-                <p>
-                    ${escapeHTML(
-                        error.message
-                    )}
-                </p>
+                        <div class="empty-icon">
+                            !
+                        </div>
 
-            </div>
+                        <h3>
+                            Search failed
+                        </h3>
 
-        `;
+                        <p>
+                            ${escapeHTML(
+                                error.message
+                            )}
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+        } else {
+
+            if (searchDropdown) {
+
+                searchDropdown.innerHTML = `
+
+                    <div class="search-dropdown-error">
+
+                        <div class="search-dropdown-error-icon">
+                            !
+                        </div>
+
+                        <strong>
+                            Search failed
+                        </strong>
+
+                        <span>
+                            ${escapeHTML(
+                                error.message
+                            )}
+                        </span>
+
+                    </div>
+
+                `;
+
+
+                searchDropdown.classList.add(
+                    "visible"
+                );
+
+            }
+
+        }
 
     }
 
@@ -629,6 +774,7 @@ if (searchInput) {
             clearTimeout(
                 searchTimer
             );
+
 
             searchTimer =
                 setTimeout(
@@ -652,6 +798,7 @@ if (searchInput) {
                     searchTimer
                 );
 
+
                 searchAnime();
 
             }
@@ -669,6 +816,16 @@ if (searchInput) {
         }
     );
 
+
+    searchInput.addEventListener(
+        "click",
+        () => {
+
+            showSearchDropdown();
+
+        }
+    );
+
 }
 
 
@@ -678,7 +835,8 @@ if (searchClear) {
         "click",
         () => {
 
-            searchInput.value = "";
+            searchInput.value =
+                "";
 
             searchInput.focus();
 
@@ -732,6 +890,7 @@ function saveRecentSearch(
 
     }
 
+
     let searches =
         getRecentSearches();
 
@@ -776,16 +935,20 @@ function createSearchSuggestion(
 
     }
 
+
     const button =
         document.createElement(
             "button"
         );
 
+
     button.type =
         "button";
 
+
     button.className =
         "search-suggestion";
+
 
     button.innerHTML = `
 
@@ -794,7 +957,9 @@ function createSearchSuggestion(
         </span>
 
         <span>
-            ${escapeHTML(query)}
+            ${escapeHTML(
+                query
+            )}
         </span>
 
     `;
@@ -807,13 +972,6 @@ function createSearchSuggestion(
             searchInput.value =
                 query;
 
-            saveRecentSearch(
-                query
-            );
-
-            searchDropdown.classList.remove(
-                "visible"
-            );
 
             searchAnime();
 
@@ -845,7 +1003,8 @@ function showSearchDropdown() {
 
     if (
         !activePage ||
-        activePage.id === "homePage"
+        activePage.id ===
+        "homePage"
     ) {
 
         searchDropdown.classList.remove(
@@ -857,11 +1016,25 @@ function showSearchDropdown() {
     }
 
 
+    const query =
+        searchInput.value.trim();
+
+
+    if (query) {
+
+        searchAnime();
+
+        return;
+
+    }
+
+
+    searchDropdown.innerHTML =
+        "";
+
+
     const recent =
         getRecentSearches();
-
-
-    searchDropdown.innerHTML = "";
 
 
     const title =
@@ -869,8 +1042,10 @@ function showSearchDropdown() {
             "div"
         );
 
+
     title.className =
         "search-dropdown-title";
+
 
     title.textContent =
         recent.length
@@ -898,6 +1073,217 @@ function showSearchDropdown() {
 
         }
     );
+
+
+    searchDropdown.classList.add(
+        "visible"
+    );
+
+}
+
+
+function renderSearchResultsDropdown(
+    animeList,
+    query
+) {
+
+    if (!searchDropdown) {
+
+        return;
+
+    }
+
+
+    searchDropdown.innerHTML =
+        "";
+
+
+    const header =
+        document.createElement(
+            "div"
+        );
+
+
+    header.className =
+        "search-dropdown-results-header";
+
+
+    header.innerHTML = `
+
+        <span>
+            RESULTS FOR
+            <strong>
+                "${escapeHTML(
+                    query
+                )}"
+            </strong>
+        </span>
+
+        <small>
+            ${animeList.length} found
+        </small>
+
+    `;
+
+
+    searchDropdown.appendChild(
+        header
+    );
+
+
+    if (
+        animeList.length === 0
+    ) {
+
+        searchDropdown.innerHTML += `
+
+            <div class="search-dropdown-empty">
+
+                <div class="search-dropdown-empty-icon">
+                    ⌕
+                </div>
+
+                <strong>
+                    No anime found
+                </strong>
+
+                <span>
+                    Try a different search.
+                </span>
+
+            </div>
+
+        `;
+
+
+        searchDropdown.classList.add(
+            "visible"
+        );
+
+
+        return;
+
+    }
+
+
+    animeList
+        .slice(
+            0,
+            6
+        )
+        .forEach(
+            anime => {
+
+                const item =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                item.type =
+                    "button";
+
+
+                item.className =
+                    "search-result-item";
+
+
+                item.innerHTML = `
+
+                    <img
+                        src="${escapeHTML(
+                            getImage(anime)
+                        )}"
+                        alt="${escapeHTML(
+                            anime.title ||
+                            "Anime"
+                        )}"
+                    >
+
+                    <div class="search-result-item-info">
+
+                        <strong>
+                            ${escapeHTML(
+                                anime.title ||
+                                "Unknown Anime"
+                            )}
+                        </strong>
+
+                        <div>
+
+                            <span>
+                                ★ ${escapeHTML(
+                                    getScore(anime)
+                                )}
+                            </span>
+
+                            <span>
+                                ${escapeHTML(
+                                    getType(anime)
+                                )}
+                            </span>
+
+                            <span>
+                                ${escapeHTML(
+                                    getEpisodes(anime)
+                                )}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+
+                item.addEventListener(
+                    "click",
+                    () => {
+
+                        searchDropdown.classList.remove(
+                            "visible"
+                        );
+
+
+                        openAnime(
+                            anime
+                        );
+
+                    }
+                );
+
+
+                searchDropdown.appendChild(
+                    item
+                );
+
+            }
+        );
+
+
+    if (
+        animeList.length > 6
+    ) {
+
+        const footer =
+            document.createElement(
+                "div"
+            );
+
+
+        footer.className =
+            "search-dropdown-footer";
+
+
+        footer.textContent =
+            "Showing the first 6 results";
+
+
+        searchDropdown.appendChild(
+            footer
+        );
+
+    }
 
 
     searchDropdown.classList.add(
@@ -936,6 +1322,7 @@ function openAnime(anime) {
 
     currentAnime =
         animeData(anime);
+
 
     if (!currentAnime) {
 
@@ -1032,13 +1419,16 @@ function openAnime(anime) {
             existing.status ||
             "plan";
 
+
         episodeInput.value =
             existing.episode ||
             0;
 
+
         ratingSelect.value =
             existing.rating ||
             0;
+
 
         addListButton.textContent =
             "✓ Update My List";
@@ -1048,11 +1438,14 @@ function openAnime(anime) {
         statusSelect.value =
             "plan";
 
+
         episodeInput.value =
             0;
 
+
         ratingSelect.value =
             0;
+
 
         addListButton.textContent =
             "★ Add to My List";
@@ -1074,15 +1467,25 @@ function openAnime(anime) {
 
 function closeAnime() {
 
+    if (!animeModal) {
+
+        return;
+
+    }
+
+
     animeModal.classList.add(
         "hidden"
     );
+
 
     document.body.classList.remove(
         "modal-open"
     );
 
-    currentAnime = null;
+
+    currentAnime =
+        null;
 
 }
 
@@ -1180,7 +1583,9 @@ if (addListButton) {
                 );
 
 
-            if (index >= 0) {
+            if (
+                index >= 0
+            ) {
 
                 myList[index] =
                     entry;
@@ -1196,7 +1601,9 @@ if (addListButton) {
 
             saveList();
 
+
             renderMyList();
+
 
             renderHomeMyList();
 
@@ -1279,14 +1686,14 @@ function renderHomeMyList() {
                 </h3>
 
                 <p>
-                    Search for an anime
-                    and add it to your list
-                    to see it here.
+                    Search for an anime and add it
+                    to your list to see it here.
                 </p>
 
             </div>
 
         `;
+
 
         return;
 
@@ -1418,6 +1825,7 @@ async function loadDiscover(
             "No anime found for this genre."
         );
 
+
     } catch (error) {
 
         console.error(
@@ -1539,8 +1947,10 @@ function getDateForDay(
     const today =
         new Date();
 
+
     const todayIndex =
         today.getDay();
+
 
     const targetIndex =
         DAYS.findIndex(
@@ -1549,10 +1959,12 @@ function getDateForDay(
                 dayName
         );
 
+
     const result =
         new Date(
             today
         );
+
 
     let difference =
         targetIndex -
@@ -1693,6 +2105,10 @@ function formatTimeLabel(
 }
 
 
+// ======================================================
+// SCHEDULE CARD
+// ======================================================
+
 function createScheduleCard(
     anime
 ) {
@@ -1705,6 +2121,13 @@ function createScheduleCard(
 
     card.className =
         "schedule-anime-card";
+
+
+    // Blurred schedule background
+    card.style.setProperty(
+        "--anime-background",
+        `url("${getImage(anime)}")`
+    );
 
 
     const time =
@@ -1729,7 +2152,6 @@ function createScheduleCard(
             >
 
         </div>
-
 
         <div class="schedule-anime-info">
 
@@ -1889,7 +2311,9 @@ function renderSchedule(
     animeList
 ) {
 
-    if (!scheduleResults) {
+    if (
+        !scheduleResults
+    ) {
 
         return;
 
@@ -1903,16 +2327,11 @@ function renderSchedule(
 
     const selectedAnime =
         animeList.filter(
-            anime => {
-
-                return (
-                    anime?.broadcast
-                        ?.day_of_the_week
-                        ?.toLowerCase() ===
-                    currentScheduleDay
-                );
-
-            }
+            anime =>
+                anime?.broadcast
+                    ?.day_of_the_week
+                    ?.toLowerCase() ===
+                currentScheduleDay
         );
 
 
@@ -1921,11 +2340,7 @@ function renderSchedule(
     ) {
 
         scheduleCount.textContent =
-            `${selectedAnime.length} ${
-                selectedAnime.length === 1
-                    ? "anime"
-                    : "anime"
-            }`;
+            `${selectedAnime.length} anime`;
 
     }
 
@@ -1961,6 +2376,7 @@ function renderSchedule(
             </div>
 
         `;
+
 
         return;
 
@@ -2004,7 +2420,9 @@ function renderSchedule(
 
             groups
                 .get(key)
-                .push(anime);
+                .push(
+                    anime
+                );
 
         }
     );
@@ -2083,14 +2501,13 @@ function renderSchedule(
 
 
             small.textContent =
-                hour === "unknown"
-                    ? "AIRING TIME"
-                    : "AIRING";
+                "AIRING";
 
 
             timeColumn.appendChild(
                 strong
             );
+
 
             timeColumn.appendChild(
                 small
@@ -2148,6 +2565,10 @@ function renderSchedule(
 
 }
 
+
+// ======================================================
+// NEWEST AIRING
+// ======================================================
 
 function createNewestAiring(
     animeList
@@ -2222,6 +2643,7 @@ function createNewestAiring(
             </div>
 
         `;
+
 
         return;
 
@@ -2310,6 +2732,10 @@ function createNewestAiring(
 }
 
 
+// ======================================================
+// LOAD SCHEDULE
+// ======================================================
+
 async function loadSchedule() {
 
     if (
@@ -2353,6 +2779,11 @@ async function loadSchedule() {
 
     try {
 
+        console.log(
+            "MIRAI: Loading schedule..."
+        );
+
+
         const data =
             await apiFetch(
                 `${API}/anime/schedule`
@@ -2362,6 +2793,12 @@ async function loadSchedule() {
         miraiScheduleData =
             (data.data || [])
                 .map(animeData);
+
+
+        console.log(
+            "MIRAI: Schedule anime:",
+            miraiScheduleData.length
+        );
 
 
         renderSchedule(
@@ -2439,6 +2876,10 @@ async function loadSchedule() {
 
 }
 
+
+// ======================================================
+// SCHEDULE DAY BUTTONS
+// ======================================================
 
 document
     .querySelectorAll(
@@ -2562,7 +3003,8 @@ document
 
 
                     if (
-                        page === "my-list"
+                        page ===
+                        "my-list"
                     ) {
 
                         renderMyList();
@@ -2571,7 +3013,8 @@ document
 
 
                     if (
-                        page === "trending"
+                        page ===
+                        "trending"
                     ) {
 
                         loadTrending();
@@ -2580,7 +3023,8 @@ document
 
 
                     if (
-                        page === "schedule"
+                        page ===
+                        "schedule"
                     ) {
 
                         loadSchedule();
@@ -2589,7 +3033,8 @@ document
 
 
                     if (
-                        page === "discover"
+                        page ===
+                        "discover"
                     ) {
 
                         loadDiscover();
@@ -2598,14 +3043,16 @@ document
 
 
                     if (
-                        window.innerWidth <=
-                        800 &&
+                        window.innerWidth <= 800 &&
                         sidebar
                     ) {
 
                         sidebar.classList.remove(
                             "open"
                         );
+
+
+                        updateSidebarState();
 
                     }
 
@@ -2623,7 +3070,9 @@ document
 async function loadTrending() {
 
     if (
-        !trendingPageResults
+        !document.getElementById(
+            "trendingPage"
+        )
     ) {
 
         return;
@@ -2631,7 +3080,37 @@ async function loadTrending() {
     }
 
 
-    trendingPageResults.innerHTML = `
+    if (
+        !document.getElementById(
+            "trendingPage"
+        ).classList.contains(
+            "active-page"
+        )
+    ) {
+
+        // The navigation system will call
+        // this again when needed.
+    }
+
+
+    if (
+        !document.getElementById(
+            "trendingPageResults"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const container =
+        document.getElementById(
+            "trendingPageResults"
+        );
+
+
+    container.innerHTML = `
 
         <div class="loading">
             Loading trending anime...
@@ -2654,7 +3133,7 @@ async function loadTrending() {
 
 
         renderAnimeGrid(
-            trendingPageResults,
+            container,
             anime,
             "No trending anime found."
         );
@@ -2668,7 +3147,7 @@ async function loadTrending() {
         );
 
 
-        trendingPageResults.innerHTML = `
+        container.innerHTML = `
 
             <div class="empty-state">
 
@@ -2784,7 +3263,7 @@ if (
 
 
 // ======================================================
-// BACK TO HOME BUTTONS
+// BACK TO HOME
 // ======================================================
 
 function addBackHomeButtons() {
@@ -2940,21 +3419,25 @@ function updateSidebarState() {
             sidebarToggle
         ) {
 
-            sidebarToggle.textContent =
+            const open =
                 sidebar?.classList.contains(
                     "open"
-                )
+                );
+
+
+            sidebarToggle.textContent =
+                open
                     ? "‹"
                     : "›";
 
+
             sidebarToggle.classList.toggle(
                 "sidebar-open",
-                sidebar?.classList.contains(
-                    "open"
-                )
+                open
             );
 
         }
+
 
         return;
 
@@ -2997,9 +3480,15 @@ if (
                 mobile
             ) {
 
-                sidebar?.classList.toggle(
-                    "open"
-                );
+                if (
+                    sidebar
+                ) {
+
+                    sidebar.classList.toggle(
+                        "open"
+                    );
+
+                }
 
             } else {
 
@@ -3031,6 +3520,7 @@ if (
                 "open"
             );
 
+
             updateSidebarState();
 
         }
@@ -3041,11 +3531,7 @@ if (
 
 window.addEventListener(
     "resize",
-    () => {
-
-        updateSidebarState();
-
-    }
+    updateSidebarState
 );
 
 
