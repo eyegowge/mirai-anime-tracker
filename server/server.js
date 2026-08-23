@@ -5,12 +5,28 @@
 
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
+const path = require("path");
+const dotenv = require("dotenv");
+
+dotenv.config({
+    path: path.join(__dirname, "..", ".env")
+});
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 const MAL_CLIENT_ID = process.env.MAL_CLIENT_ID;
+
+
+// ======================================================
+// CHECK API KEY
+// ======================================================
+
+if (!MAL_CLIENT_ID) {
+    console.error(
+        "ERROR: MAL_CLIENT_ID was not found."
+    );
+}
 
 
 // ======================================================
@@ -22,7 +38,7 @@ app.use(express.json());
 
 
 // ======================================================
-// MAL HELPER
+// MAL API HELPER
 // ======================================================
 
 async function malFetch(url) {
@@ -33,28 +49,41 @@ async function malFetch(url) {
         }
     });
 
-    console.log("MAL STATUS:", response.status);
+    console.log(
+        "MAL STATUS:",
+        response.status
+    );
 
-    const text = await response.text();
+    const text =
+        await response.text();
 
     let data;
 
     try {
-        data = JSON.parse(text);
+
+        data =
+            JSON.parse(text);
+
     } catch {
+
         throw new Error(
             "MyAnimeList returned invalid JSON."
         );
+
     }
 
     if (!response.ok) {
 
-        console.error("MAL ERROR:", data);
+        console.error(
+            "MAL ERROR:",
+            data
+        );
 
         throw new Error(
             data?.message ||
             "MyAnimeList request failed."
         );
+
     }
 
     return data;
@@ -68,15 +97,19 @@ async function malFetch(url) {
 app.get("/api/status", (req, res) => {
 
     res.json({
+
         success: true,
-        message: "MIRAI server is running."
+
+        message:
+            "MIRAI server is running."
+
     });
 
 });
 
 
 // ======================================================
-// SEARCH ANIME
+// SEARCH
 // ======================================================
 
 app.get("/anime/search", async (req, res) => {
@@ -84,13 +117,19 @@ app.get("/anime/search", async (req, res) => {
     try {
 
         const name =
-            String(req.query.name || "").trim();
+            String(
+                req.query.name || ""
+            ).trim();
 
         if (!name) {
 
             return res.status(400).json({
+
                 success: false,
-                error: "Anime name is required."
+
+                error:
+                    "Anime name is required."
+
             });
 
         }
@@ -99,10 +138,24 @@ app.get("/anime/search", async (req, res) => {
             "https://api.myanimelist.net/v2/anime" +
             `?q=${encodeURIComponent(name)}` +
             "&limit=20" +
-            "&fields=id,title,main_picture," +
-            "start_date,end_date,synopsis,mean," +
-            "num_episodes,status,genres,media_type," +
-            "broadcast,source";
+            "&fields=" +
+            "id," +
+            "title," +
+            "main_picture," +
+            "alternative_titles," +
+            "start_date," +
+            "end_date," +
+            "synopsis," +
+            "mean," +
+            "rank," +
+            "popularity," +
+            "num_list_users," +
+            "num_episodes," +
+            "status," +
+            "genres," +
+            "media_type," +
+            "broadcast," +
+            "source";
 
         const data =
             await malFetch(url);
@@ -117,9 +170,15 @@ app.get("/anime/search", async (req, res) => {
         );
 
         res.status(500).json({
+
             success: false,
-            error: "Search failed.",
-            details: error.message
+
+            error:
+                "Search failed.",
+
+            details:
+                error.message
+
         });
 
     }
@@ -137,17 +196,33 @@ app.get("/anime/top", async (req, res) => {
 
         const limit =
             Math.min(
-                Number(req.query.limit) || 50,
+                Number(
+                    req.query.limit
+                ) || 50,
                 100
             );
 
         const url =
             "https://api.myanimelist.net/v2/anime/ranking" +
             `?ranking_type=all&limit=${limit}` +
-            "&fields=id,title,main_picture," +
-            "start_date,end_date,synopsis,mean," +
-            "num_episodes,status,genres,media_type," +
-            "broadcast,source";
+            "&fields=" +
+            "id," +
+            "title," +
+            "main_picture," +
+            "alternative_titles," +
+            "start_date," +
+            "end_date," +
+            "synopsis," +
+            "mean," +
+            "rank," +
+            "popularity," +
+            "num_list_users," +
+            "num_episodes," +
+            "status," +
+            "genres," +
+            "media_type," +
+            "broadcast," +
+            "source";
 
         const data =
             await malFetch(url);
@@ -162,9 +237,15 @@ app.get("/anime/top", async (req, res) => {
         );
 
         res.status(500).json({
+
             success: false,
-            error: "Could not load top anime.",
-            details: error.message
+
+            error:
+                "Could not load top anime.",
+
+            details:
+                error.message
+
         });
 
     }
@@ -182,17 +263,33 @@ app.get("/anime/trending", async (req, res) => {
 
         const limit =
             Math.min(
-                Number(req.query.limit) || 20,
+                Number(
+                    req.query.limit
+                ) || 20,
                 100
             );
 
         const url =
             "https://api.myanimelist.net/v2/anime/ranking" +
             `?ranking_type=bypopularity&limit=${limit}` +
-            "&fields=id,title,main_picture," +
-            "start_date,end_date,synopsis,mean," +
-            "num_episodes,status,genres,media_type," +
-            "broadcast,source";
+            "&fields=" +
+            "id," +
+            "title," +
+            "main_picture," +
+            "alternative_titles," +
+            "start_date," +
+            "end_date," +
+            "synopsis," +
+            "mean," +
+            "rank," +
+            "popularity," +
+            "num_list_users," +
+            "num_episodes," +
+            "status," +
+            "genres," +
+            "media_type," +
+            "broadcast," +
+            "source";
 
         const data =
             await malFetch(url);
@@ -207,9 +304,15 @@ app.get("/anime/trending", async (req, res) => {
         );
 
         res.status(500).json({
+
             success: false,
-            error: "Could not load trending anime.",
-            details: error.message
+
+            error:
+                "Could not load trending anime.",
+
+            details:
+                error.message
+
         });
 
     }
@@ -218,7 +321,7 @@ app.get("/anime/trending", async (req, res) => {
 
 
 // ======================================================
-// RANDOM ANIME
+// RANDOM
 // ======================================================
 
 app.get("/anime/random", async (req, res) => {
@@ -229,10 +332,24 @@ app.get("/anime/random", async (req, res) => {
             "https://api.myanimelist.net/v2/anime/ranking" +
             "?ranking_type=all" +
             "&limit=100" +
-            "&fields=id,title,main_picture," +
-            "start_date,end_date,synopsis,mean," +
-            "num_episodes,status,genres,media_type," +
-            "broadcast,source";
+            "&fields=" +
+            "id," +
+            "title," +
+            "main_picture," +
+            "alternative_titles," +
+            "start_date," +
+            "end_date," +
+            "synopsis," +
+            "mean," +
+            "rank," +
+            "popularity," +
+            "num_list_users," +
+            "num_episodes," +
+            "status," +
+            "genres," +
+            "media_type," +
+            "broadcast," +
+            "source";
 
         const data =
             await malFetch(url);
@@ -257,8 +374,11 @@ app.get("/anime/random", async (req, res) => {
             ];
 
         res.json({
+
             success: true,
+
             data: anime
+
         });
 
     } catch (error) {
@@ -269,9 +389,15 @@ app.get("/anime/random", async (req, res) => {
         );
 
         res.status(500).json({
+
             success: false,
-            error: "Could not find a random anime.",
-            details: error.message
+
+            error:
+                "Could not find a random anime.",
+
+            details:
+                error.message
+
         });
 
     }
@@ -299,23 +425,45 @@ app.get("/anime/schedule", async (req, res) => {
         let season;
 
         if (month <= 2) {
+
             season = "winter";
+
         } else if (month <= 5) {
+
             season = "spring";
+
         } else if (month <= 8) {
+
             season = "summer";
+
         } else {
+
             season = "fall";
+
         }
 
         const url =
             "https://api.myanimelist.net/v2/anime/season" +
             `/${year}/${season}` +
             "?limit=100" +
-            "&fields=id,title,main_picture," +
-            "start_date,end_date,synopsis,mean," +
-            "num_episodes,status,genres,media_type," +
-            "broadcast,source";
+            "&fields=" +
+            "id," +
+            "title," +
+            "main_picture," +
+            "alternative_titles," +
+            "start_date," +
+            "end_date," +
+            "synopsis," +
+            "mean," +
+            "rank," +
+            "popularity," +
+            "num_list_users," +
+            "num_episodes," +
+            "status," +
+            "genres," +
+            "media_type," +
+            "broadcast," +
+            "source";
 
         const data =
             await malFetch(url);
@@ -323,15 +471,18 @@ app.get("/anime/schedule", async (req, res) => {
         const anime =
             (data.data || [])
                 .map(item =>
-                    item.node || item
+                    item?.node || item
                 )
                 .filter(item =>
-                    item.broadcast
+                    item?.broadcast
                 );
 
         res.json({
+
             success: true,
+
             data: anime
+
         });
 
     } catch (error) {
@@ -342,9 +493,15 @@ app.get("/anime/schedule", async (req, res) => {
         );
 
         res.status(500).json({
+
             success: false,
-            error: "Could not load schedule.",
-            details: error.message
+
+            error:
+                "Could not load schedule.",
+
+            details:
+                error.message
+
         });
 
     }
@@ -353,11 +510,41 @@ app.get("/anime/schedule", async (req, res) => {
 
 
 // ======================================================
-// SERVE WEBSITE
+// SERVE MIRAI FRONTEND
 // ======================================================
 
+// server/server.js
+// Website files are one folder above this file.
+
+const websitePath =
+    path.join(
+        __dirname,
+        ".."
+    );
+
 app.use(
-    express.static(__dirname)
+    express.static(
+        websitePath
+    )
+);
+
+
+// ======================================================
+// HOME PAGE
+// ======================================================
+
+app.get(
+    "/",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                websitePath,
+                "index.html"
+            )
+        );
+
+    }
 );
 
 
