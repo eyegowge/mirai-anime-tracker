@@ -382,7 +382,7 @@ function createAnimeCard(anime) {
         "anime-card";
 
 
-    // Blurred version of the anime poster
+    // Blurred version of anime poster
     card.style.setProperty(
         "--anime-background",
         `url("${getImage(anime)}")`
@@ -1318,199 +1318,18 @@ document.addEventListener(
 // MODAL
 // ======================================================
 
-// ======================================================
-// EPISODE INPUT LIMIT
-// ======================================================
+function openAnime(anime) {
 
-if (episodeInput) {
+    currentAnime =
+        animeData(anime);
 
-    episodeInput.addEventListener(
-        "input",
-        () => {
 
-            if (!currentAnime) {
-                return;
-            }
+    if (!currentAnime) {
 
+        return;
 
-            const totalEpisodes =
-                Number(
-                    currentAnime.num_episodes
-                );
+    }
 
-
-            let episode =
-                Number(
-                    episodeInput.value
-                ) || 0;
-
-
-            if (
-                episode < 0
-            ) {
-
-                episode = 0;
-
-            }
-
-
-            if (
-                totalEpisodes > 0 &&
-                episode > totalEpisodes
-            ) {
-
-                episode =
-                    totalEpisodes;
-
-            }
-
-
-            episodeInput.value =
-                episode;
-
-        }
-    );
-
-}// ======================================================
-// EPISODE INPUT LIMIT
-// ======================================================
-
-if (episodeInput) {
-
-    episodeInput.addEventListener(
-        "input",
-        () => {
-
-            if (!currentAnime) {
-                return;
-            }
-
-
-            const totalEpisodes =
-                Number(
-                    currentAnime.num_episodes
-                );
-
-
-            let episode =
-                Number(
-                    episodeInput.value
-                ) || 0;
-
-
-            if (
-                episode < 0
-            ) {
-
-                episode = 0;
-
-            }
-
-
-            if (
-                totalEpisodes > 0 &&
-                episode > totalEpisodes
-            ) {
-
-                episode =
-                    totalEpisodes;
-
-            }
-
-
-            episodeInput.value =
-                episode;
-
-        }
-    );
-
-}
-// ======================================================
-// EPISODE INPUT LIMIT
-// ======================================================
-
-if (episodeInput) {
-
-    episodeInput.addEventListener(
-        "input",
-        () => {
-
-            if (!currentAnime) {
-                return;
-            }
-
-
-            const totalEpisodes =
-                Number(
-                    currentAnime.num_episodes
-                );
-
-
-            let episode =
-                Number(
-                    episodeInput.value
-                ) || 0;
-
-
-            if (
-                episode < 0
-            ) {
-
-                episode = 0;
-
-            }
-
-
-            if (
-                totalEpisodes > 0 &&
-                episode > totalEpisodes
-            ) {
-
-                episode =
-                    totalEpisodes;
-
-            }
-
-
-            episodeInput.value =
-                episode;
-
-        }
-    );
-
-}
-if (statusSelect) {
-
-    statusSelect.addEventListener(
-        "change",
-        () => {
-
-            if (!currentAnime) {
-                return;
-            }
-
-
-            const totalEpisodes =
-                Number(
-                    currentAnime.num_episodes
-                );
-
-
-            if (
-                statusSelect.value ===
-                    "completed" &&
-                totalEpisodes > 0
-            ) {
-
-                episodeInput.value =
-                    totalEpisodes;
-
-            }
-
-        }
-    );
-
-}
 
     modalTitle.textContent =
         currentAnime.title ||
@@ -1584,6 +1403,46 @@ if (statusSelect) {
             .join("");
 
 
+    // ==================================================
+    // EPISODE LIMIT
+    // ==================================================
+
+    const totalEpisodes =
+        Number(
+            currentAnime.num_episodes
+        );
+
+
+    if (episodeInput) {
+
+        if (
+            totalEpisodes > 0
+        ) {
+
+            episodeInput.max =
+                totalEpisodes;
+
+            episodeInput.placeholder =
+                `0 - ${totalEpisodes}`;
+
+        } else {
+
+            episodeInput.removeAttribute(
+                "max"
+            );
+
+            episodeInput.placeholder =
+                "Episodes unknown";
+
+        }
+
+    }
+
+
+    // ==================================================
+    // EXISTING MY LIST ENTRY
+    // ==================================================
+
     const existing =
         myList.find(
             item =>
@@ -1601,9 +1460,26 @@ if (statusSelect) {
             "plan";
 
 
+        let savedEpisode =
+            Number(
+                existing.episode
+            ) || 0;
+
+
+        if (
+            totalEpisodes > 0 &&
+            savedEpisode >
+                totalEpisodes
+        ) {
+
+            savedEpisode =
+                totalEpisodes;
+
+        }
+
+
         episodeInput.value =
-            existing.episode ||
-            0;
+            savedEpisode;
 
 
         ratingSelect.value =
@@ -1645,6 +1521,108 @@ if (statusSelect) {
 
 }
 
+
+// ======================================================
+// EPISODE INPUT LIMIT
+// ======================================================
+
+if (episodeInput) {
+
+    episodeInput.addEventListener(
+        "input",
+        () => {
+
+            if (!currentAnime) {
+
+                return;
+
+            }
+
+
+            const totalEpisodes =
+                Number(
+                    currentAnime.num_episodes
+                );
+
+
+            let episode =
+                Number(
+                    episodeInput.value
+                ) || 0;
+
+
+            if (
+                episode < 0
+            ) {
+
+                episode = 0;
+
+            }
+
+
+            if (
+                totalEpisodes > 0 &&
+                episode > totalEpisodes
+            ) {
+
+                episode =
+                    totalEpisodes;
+
+            }
+
+
+            episodeInput.value =
+                episode;
+
+        }
+    );
+
+}
+
+
+// ======================================================
+// COMPLETED STATUS
+// ======================================================
+
+if (statusSelect) {
+
+    statusSelect.addEventListener(
+        "change",
+        () => {
+
+            if (!currentAnime) {
+
+                return;
+
+            }
+
+
+            const totalEpisodes =
+                Number(
+                    currentAnime.num_episodes
+                );
+
+
+            if (
+                statusSelect.value ===
+                    "completed" &&
+                totalEpisodes > 0
+            ) {
+
+                episodeInput.value =
+                    totalEpisodes;
+
+            }
+
+        }
+    );
+
+}
+
+
+// ======================================================
+// CLOSE MODAL
+// ======================================================
 
 function closeAnime() {
 
@@ -1734,6 +1712,53 @@ if (addListButton) {
             }
 
 
+            const totalEpisodes =
+                Number(
+                    currentAnime.num_episodes
+                );
+
+
+            let episode =
+                Number(
+                    episodeInput.value
+                ) || 0;
+
+
+            if (
+                episode < 0
+            ) {
+
+                episode = 0;
+
+            }
+
+
+            if (
+                totalEpisodes > 0 &&
+                episode > totalEpisodes
+            ) {
+
+                episode =
+                    totalEpisodes;
+
+            }
+
+
+            // Completed anime gets the
+            // full episode count.
+
+            if (
+                statusSelect.value ===
+                    "completed" &&
+                totalEpisodes > 0
+            ) {
+
+                episode =
+                    totalEpisodes;
+
+            }
+
+
             const entry = {
 
                 ...currentAnime,
@@ -1742,9 +1767,7 @@ if (addListButton) {
                     statusSelect.value,
 
                 episode:
-                    Number(
-                        episodeInput.value
-                    ) || 0,
+                    episode,
 
                 rating:
                     Number(
@@ -3250,45 +3273,17 @@ document
 
 async function loadTrending() {
 
-    if (
-        !document.getElementById(
-            "trendingPage"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        !document.getElementById(
-            "trendingPage"
-        ).classList.contains(
-            "active-page"
-        )
-    ) {
-
-        // The navigation system will call
-        // this again when needed.
-    }
-
-
-    if (
-        !document.getElementById(
-            "trendingPageResults"
-        )
-    ) {
-
-        return;
-
-    }
-
-
     const container =
         document.getElementById(
             "trendingPageResults"
         );
+
+
+    if (!container) {
+
+        return;
+
+    }
 
 
     container.innerHTML = `
