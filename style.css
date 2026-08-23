@@ -1,6 +1,6 @@
 /* =========================================================
    MIRAI — ANIME TRACKER
-   Main stylesheet
+   Responsive + Mobile + Schedule
 ========================================================= */
 
 
@@ -19,6 +19,11 @@ html {
 }
 
 body {
+    min-height: 100vh;
+
+    background: #0b0b10;
+    color: #f4f4f7;
+
     font-family:
         Inter,
         -apple-system,
@@ -26,10 +31,11 @@ body {
         "Segoe UI",
         sans-serif;
 
-    background: #0b0b10;
-    color: #f4f4f7;
+    overflow-x: hidden;
+}
 
-    min-height: 100vh;
+body.modal-open {
+    overflow: hidden;
 }
 
 button,
@@ -66,12 +72,12 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #2c2c38;
-    border-radius: 10px;
+    background: #292934;
+    border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #444452;
+    background: #3b3b47;
 }
 
 
@@ -88,6 +94,11 @@ img {
 
     width: 240px;
 
+    display: flex;
+    flex-direction: column;
+
+    padding: 26px 16px;
+
     background:
         linear-gradient(
             180deg,
@@ -95,18 +106,14 @@ img {
             #0d0d13 100%
         );
 
-    border-right: 1px solid #22222c;
+    border-right: 1px solid #20202a;
 
-    display: flex;
-    flex-direction: column;
+    z-index: 1000;
 
-    padding: 28px 18px;
-
-    z-index: 100;
+    transition:
+        width 0.25s ease,
+        transform 0.25s ease;
 }
-
-
-/* LOGO */
 
 .logo {
     display: flex;
@@ -118,6 +125,7 @@ img {
 
     font-size: 22px;
     font-weight: 800;
+
     letter-spacing: 2px;
 }
 
@@ -126,18 +134,16 @@ img {
     font-size: 17px;
 }
 
-
-/* NAV */
-
 .sidebar-nav {
-    margin-top: 42px;
+    margin-top: 40px;
 }
 
 .nav-label {
-    padding: 0 13px;
-    margin-bottom: 12px;
+    margin-bottom: 11px;
 
-    color: #666674;
+    padding: 0 12px;
+
+    color: #656570;
 
     font-size: 10px;
     font-weight: 800;
@@ -149,15 +155,17 @@ img {
     display: flex;
     align-items: center;
 
-    gap: 13px;
+    gap: 12px;
 
-    padding: 12px 13px;
+    width: 100%;
 
     margin-bottom: 5px;
 
+    padding: 12px 13px;
+
     border-radius: 9px;
 
-    color: #8e8e9c;
+    color: #8c8c99;
 
     font-size: 14px;
     font-weight: 600;
@@ -168,8 +176,10 @@ img {
         transform 0.2s ease;
 }
 
-.nav-item span {
+.nav-item > span:first-child {
     width: 20px;
+
+    flex-shrink: 0;
 
     text-align: center;
 
@@ -177,7 +187,7 @@ img {
 }
 
 .nav-item:hover {
-    background: #181820;
+    background: #191920;
     color: #ffffff;
 
     transform: translateX(2px);
@@ -188,13 +198,6 @@ img {
     color: #0b0b10;
 }
 
-.nav-item.active:hover {
-    background: #eeeeef;
-}
-
-
-/* SIDEBAR BOTTOM */
-
 .sidebar-bottom {
     margin-top: auto;
 }
@@ -202,9 +205,9 @@ img {
 .sidebar-line {
     height: 1px;
 
-    background: #22222c;
-
     margin: 0 8px 18px;
+
+    background: #22222b;
 }
 
 .user-placeholder {
@@ -220,33 +223,142 @@ img {
     width: 36px;
     height: 36px;
 
-    border-radius: 50%;
-
-    background: #1b1b24;
-    border: 1px solid #30303b;
-
     display: grid;
     place-items: center;
 
-    color: #858593;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #191922;
+
+    border: 1px solid #30303b;
+
+    color: #888894;
 
     font-weight: 700;
 }
 
-.user-placeholder strong {
+.user-text strong {
     display: block;
 
     font-size: 13px;
 }
 
-.user-placeholder small {
+.user-text small {
     display: block;
 
     margin-top: 2px;
 
-    color: #62626e;
+    color: #62626f;
 
     font-size: 11px;
+}
+
+
+/* =========================================================
+   SIDEBAR TOGGLE
+========================================================= */
+
+.sidebar-toggle {
+    position: fixed;
+
+    top: 28px;
+    left: 222px;
+
+    z-index: 1500;
+
+    width: 36px;
+    height: 36px;
+
+    display: grid;
+    place-items: center;
+
+    border: 1px solid #30303a;
+    border-radius: 50%;
+
+    background: #15151d;
+    color: #ffffff;
+
+    font-size: 24px;
+    line-height: 1;
+
+    box-shadow:
+        0 5px 20px rgba(0, 0, 0, 0.25);
+
+    transition:
+        left 0.25s ease,
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #0b0b10;
+
+    transform: scale(1.05);
+}
+
+
+/* COLLAPSED SIDEBAR */
+
+body.sidebar-collapsed .sidebar {
+    width: 76px;
+}
+
+body.sidebar-collapsed .main {
+    margin-left: 76px;
+}
+
+body.sidebar-collapsed .sidebar-toggle {
+    left: 58px;
+}
+
+body.sidebar-collapsed .sidebar-toggle:hover {
+    transform: rotate(180deg) scale(1.05);
+}
+
+body.sidebar-collapsed .logo {
+    justify-content: center;
+    padding: 0;
+}
+
+body.sidebar-collapsed .logo > span:last-child {
+    display: none;
+}
+
+body.sidebar-collapsed .nav-label {
+    display: none;
+}
+
+body.sidebar-collapsed .nav-item {
+    justify-content: center;
+
+    gap: 0;
+
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.sidebar-collapsed .nav-text {
+    display: none;
+}
+
+body.sidebar-collapsed .nav-item > span:first-child {
+    width: auto;
+}
+
+body.sidebar-collapsed .user-placeholder {
+    justify-content: center;
+
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.sidebar-collapsed .user-text {
+    display: none;
 }
 
 
@@ -255,11 +367,14 @@ img {
 ========================================================= */
 
 .main {
-    margin-left: 240px;
-
     min-height: 100vh;
 
+    margin-left: 240px;
+
     padding: 0 42px;
+
+    transition:
+        margin-left 0.25s ease;
 }
 
 
@@ -268,46 +383,54 @@ img {
 ========================================================= */
 
 .topbar {
+    position: sticky;
+
+    top: 0;
+
+    z-index: 500;
+
     height: 82px;
 
     display: flex;
     align-items: center;
 
-    gap: 30px;
+    gap: 22px;
 
-    border-bottom: 1px solid #1d1d26;
+    border-bottom: 1px solid #1e1e27;
 
-    position: sticky;
-    top: 0;
+    background:
+        rgba(11, 11, 16, 0.90);
 
-    background: rgba(11, 11, 16, 0.92);
-
-    backdrop-filter: blur(15px);
-
-    z-index: 50;
+    backdrop-filter: blur(16px);
 }
 
 .page-heading {
-    min-width: 140px;
+    min-width: 120px;
+
+    color: #d9d9e0;
 
     font-size: 14px;
     font-weight: 700;
-
-    color: #d8d8df;
 }
 
 
-/* SEARCH */
+/* =========================================================
+   SEARCH
+========================================================= */
 
 .search-wrapper {
+    position: relative;
+
     flex: 1;
 
     display: flex;
     justify-content: center;
+
+    min-width: 0;
 }
 
 .search-container {
-    width: min(600px, 100%);
+    width: min(620px, 100%);
 
     height: 44px;
 
@@ -330,14 +453,15 @@ img {
 }
 
 .search-container:focus-within {
-    border-color: #5d5d6b;
+    border-color: #50505c;
 
     box-shadow:
-        0 0 0 3px rgba(255, 255, 255, 0.04);
+        0 0 0 3px rgba(255, 255, 255, 0.035);
 }
 
 .search-icon {
-    color: #72727f;
+    color: #757581;
+
     font-size: 18px;
 }
 
@@ -357,28 +481,28 @@ img {
 }
 
 .search-container input::placeholder {
-    color: #5e5e6a;
+    color: #5c5c68;
 }
 
 .search-clear {
     width: 25px;
     height: 25px;
 
+    display: grid;
+    place-items: center;
+
     border: none;
+    border-radius: 6px;
 
     background: transparent;
 
-    color: #666672;
-
-    border-radius: 5px;
+    color: #777783;
 
     font-size: 18px;
 
     opacity: 0;
 
     pointer-events: none;
-
-    transition: opacity 0.2s ease;
 }
 
 .search-container:focus-within .search-clear {
@@ -399,6 +523,7 @@ img {
     place-items: center;
 
     border: 1px solid #30303a;
+
     border-radius: 5px;
 
     color: #666672;
@@ -407,18 +532,117 @@ img {
 }
 
 
-/* MOBILE MENU */
+/* SEARCH DROPDOWN */
+
+.search-dropdown {
+    position: absolute;
+
+    top: calc(100% + 8px);
+    left: 50%;
+
+    width: min(620px, 100%);
+
+    transform: translateX(-50%);
+
+    display: none;
+
+    padding: 8px;
+
+    background: #12121a;
+
+    border: 1px solid #2b2b36;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.45);
+
+    z-index: 900;
+}
+
+.search-dropdown.visible {
+    display: block;
+}
+
+.search-dropdown-title {
+    padding: 8px 10px 6px;
+
+    color: #686874;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 1.4px;
+}
+
+.search-suggestion {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: #c5c5cd;
+
+    text-align: left;
+
+    font-size: 12px;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.search-suggestion:hover {
+    background: #1d1d26;
+    color: #ffffff;
+}
+
+.search-suggestion-icon {
+    width: 28px;
+    height: 28px;
+
+    display: grid;
+    place-items: center;
+
+    flex-shrink: 0;
+
+    border-radius: 7px;
+
+    background: #1c1c25;
+
+    color: #7e7e8a;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   MOBILE MENU
+========================================================= */
 
 .mobile-menu {
     display: none;
 
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
 
-    border: 1px solid #292934;
-    border-radius: 8px;
+    flex-shrink: 0;
+
+    border: 1px solid #2b2b35;
+
+    border-radius: 9px;
 
     background: #14141c;
+
     color: #ffffff;
 }
 
@@ -430,13 +654,17 @@ img {
 .page {
     display: none;
 
-    padding: 46px 0 70px;
+    padding: 42px 0 70px;
 
-    animation: pageIn 0.25s ease;
+    animation: pageIn 0.2s ease;
 }
 
 .page.active-page {
     display: block;
+}
+
+.page-inner {
+    width: 100%;
 }
 
 @keyframes pageIn {
@@ -451,6 +679,53 @@ img {
         transform: translateY(0);
     }
 
+}
+
+
+/* =========================================================
+   BACK HOME
+========================================================= */
+
+.back-home-button {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 24px;
+
+    padding: 9px 13px;
+
+    border: 1px solid #292934;
+
+    border-radius: 8px;
+
+    background: #14141c;
+
+    color: #94949f;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.back-home-button:hover {
+    background: #1c1c25;
+
+    border-color: #42424e;
+
+    color: #ffffff;
+
+    transform: translateX(-2px);
+}
+
+.back-home-arrow {
+    font-size: 15px;
 }
 
 
@@ -501,7 +776,7 @@ p {
 ========================================================= */
 
 .welcome {
-    min-height: 280px;
+    min-height: 270px;
 
     display: flex;
     align-items: center;
@@ -514,7 +789,7 @@ p {
 }
 
 .welcome-text {
-    max-width: 570px;
+    max-width: 600px;
 
     margin-top: 18px;
 
@@ -527,26 +802,30 @@ p {
 ========================================================= */
 
 .page-header {
-    margin-bottom: 32px;
+    margin-bottom: 30px;
 }
 
 .page-header h1 {
-    margin-bottom: 14px;
+    margin-bottom: 13px;
 }
 
 .page-header p:last-child {
-    max-width: 620px;
+    max-width: 680px;
 
     font-size: 14px;
 }
 
+.schedule-page-header {
+    margin-bottom: 28px;
+}
+
 
 /* =========================================================
-   SECTION
+   SECTIONS
 ========================================================= */
 
 .content-section {
-    margin-top: 50px;
+    margin-top: 48px;
 }
 
 .section-heading {
@@ -554,9 +833,9 @@ p {
     align-items: flex-end;
     justify-content: space-between;
 
-    gap: 20px;
+    gap: 18px;
 
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
 .text-button {
@@ -564,20 +843,16 @@ p {
 
     background: transparent;
 
-    color: #a5a5b0;
+    color: #a4a4b0;
 
     font-size: 12px;
     font-weight: 700;
 
-    transition:
-        color 0.2s ease,
-        transform 0.2s ease;
+    white-space: nowrap;
 }
 
 .text-button:hover {
     color: #ffffff;
-
-    transform: translateX(3px);
 }
 
 
@@ -594,7 +869,7 @@ p {
             minmax(155px, 1fr)
         );
 
-    gap: 20px;
+    gap: 18px;
 }
 
 .large-grid {
@@ -613,13 +888,13 @@ p {
 .anime-card {
     min-width: 0;
 
+    overflow: hidden;
+
     background: #12121a;
 
     border: 1px solid #22222d;
 
     border-radius: 12px;
-
-    overflow: hidden;
 
     cursor: pointer;
 
@@ -632,20 +907,20 @@ p {
 .anime-card:hover {
     transform: translateY(-5px);
 
-    border-color: #3a3a47;
+    border-color: #3b3b47;
 
     box-shadow:
-        0 12px 35px rgba(0, 0, 0, 0.35);
+        0 15px 35px rgba(0, 0, 0, 0.32);
 }
 
 .anime-card-image {
     position: relative;
 
-    aspect-ratio: 2 / 3;
-
     overflow: hidden;
 
-    background: #1a1a23;
+    aspect-ratio: 2 / 3;
+
+    background: #191922;
 }
 
 .anime-card-image img {
@@ -654,7 +929,8 @@ p {
 
     object-fit: cover;
 
-    transition: transform 0.4s ease;
+    transition:
+        transform 0.4s ease;
 }
 
 .anime-card:hover .anime-card-image img {
@@ -669,8 +945,8 @@ p {
     background:
         linear-gradient(
             180deg,
-            transparent 60%,
-            rgba(0, 0, 0, 0.7)
+            transparent 58%,
+            rgba(0, 0, 0, 0.70)
         );
 }
 
@@ -682,9 +958,9 @@ p {
 
     padding: 5px 7px;
 
-    background: rgba(0, 0, 0, 0.72);
-
     border-radius: 5px;
+
+    background: rgba(0, 0, 0, 0.72);
 
     color: #ffffff;
 
@@ -697,21 +973,22 @@ p {
 }
 
 .anime-card-info h3 {
-    overflow: hidden;
+    min-height: 35px;
 
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
 
-    min-height: 35px;
+    overflow: hidden;
 
     font-size: 13px;
 }
 
 .anime-card-meta {
     display: flex;
+    flex-wrap: wrap;
 
-    gap: 8px;
+    gap: 7px;
 
     margin-top: 8px;
 
@@ -723,9 +1000,9 @@ p {
 .anime-card-meta span + span::before {
     content: "•";
 
-    margin-right: 8px;
+    margin-right: 7px;
 
-    color: #3f3f4a;
+    color: #40404b;
 }
 
 
@@ -778,9 +1055,9 @@ p {
 .loading {
     grid-column: 1 / -1;
 
-    padding: 60px 20px;
+    padding: 55px 20px;
 
-    color: #73737f;
+    color: #72727f;
 
     text-align: center;
 
@@ -798,7 +1075,7 @@ p {
 
     gap: 8px;
 
-    margin-bottom: 28px;
+    margin-bottom: 27px;
 }
 
 .list-filter {
@@ -814,15 +1091,11 @@ p {
 
     font-size: 12px;
     font-weight: 700;
-
-    transition:
-        background 0.2s ease,
-        color 0.2s ease,
-        border-color 0.2s ease;
 }
 
 .list-filter:hover {
-    border-color: #3c3c48;
+    border-color: #40404c;
+
     color: #ffffff;
 }
 
@@ -839,22 +1112,15 @@ p {
    SCHEDULE
 ========================================================= */
 
-.schedule-page-header {
-    margin-bottom: 30px;
-}
-
-
-/* DAY SELECTOR */
-
 .schedule-days {
     display: grid;
 
     grid-template-columns:
-        repeat(7, 1fr);
+        repeat(7, minmax(0, 1fr));
 
     gap: 8px;
 
-    margin-bottom: 15px;
+    margin-bottom: 14px;
 }
 
 .schedule-day {
@@ -868,7 +1134,7 @@ p {
 
     gap: 6px;
 
-    border: 1px solid #24242e;
+    border: 1px solid #252530;
 
     border-radius: 10px;
 
@@ -877,18 +1143,18 @@ p {
     color: #777783;
 
     transition:
+        transform 0.2s ease,
         background 0.2s ease,
-        border-color 0.2s ease,
         color 0.2s ease,
-        transform 0.2s ease;
+        border-color 0.2s ease;
 }
 
 .schedule-day:hover {
-    border-color: #41414d;
+    transform: translateY(-2px);
+
+    border-color: #40404c;
 
     color: #ffffff;
-
-    transform: translateY(-2px);
 }
 
 .schedule-day.active {
@@ -899,7 +1165,7 @@ p {
     color: #0b0b10;
 
     box-shadow:
-        0 8px 25px rgba(255, 255, 255, 0.06);
+        0 8px 24px rgba(255, 255, 255, 0.06);
 }
 
 .day-name {
@@ -910,7 +1176,7 @@ p {
 }
 
 .day-date {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 800;
 }
 
@@ -923,9 +1189,9 @@ p {
 
     gap: 13px;
 
-    padding: 15px 17px;
-
     margin-bottom: 42px;
+
+    padding: 15px 17px;
 
     background:
         linear-gradient(
@@ -945,6 +1211,8 @@ p {
 
     display: grid;
     place-items: center;
+
+    flex-shrink: 0;
 
     border-radius: 8px;
 
@@ -970,10 +1238,10 @@ p {
 }
 
 
-/* FEATURED */
+/* NEWEST AIRING */
 
 .schedule-featured {
-    margin-bottom: 55px;
+    margin-bottom: 48px;
 }
 
 .airing-featured-grid {
@@ -982,86 +1250,74 @@ p {
     grid-template-columns:
         repeat(
             auto-fit,
-            minmax(190px, 1fr)
+            minmax(170px, 1fr)
         );
 
     gap: 14px;
 }
 
-.airing-featured-card {
-    position: relative;
-
-    min-height: 250px;
-
+.newest-airing-card {
     overflow: hidden;
 
-    border: 1px solid #272731;
+    background: #12121a;
+
+    border: 1px solid #252530;
 
     border-radius: 12px;
-
-    background: #15151d;
 
     cursor: pointer;
 
     transition:
-        transform 0.25s ease,
-        border-color 0.25s ease;
+        transform 0.22s ease,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease;
 }
 
-.airing-featured-card:hover {
+.newest-airing-card:hover {
     transform: translateY(-4px);
 
-    border-color: #444450;
+    border-color: #3d3d49;
+
+    box-shadow:
+        0 14px 35px rgba(0, 0, 0, 0.30);
 }
 
-.airing-featured-image {
-    position: absolute;
-
-    inset: 0;
-
+.newest-airing-background {
     width: 100%;
-    height: 100%;
 
-    object-fit: cover;
+    aspect-ratio: 2 / 3;
 
-    transition: transform 0.4s ease;
+    background-position: center;
+    background-size: cover;
+
+    border-bottom: 1px solid #22222b;
 }
 
-.airing-featured-card:hover
-.airing-featured-image {
-    transform: scale(1.05);
+.newest-airing-content {
+    padding: 13px;
 }
 
-.airing-featured-overlay {
-    position: absolute;
+.newest-airing-content .eyebrow {
+    margin-bottom: 5px;
 
-    inset: 0;
-
-    background:
-        linear-gradient(
-            180deg,
-            transparent 30%,
-            rgba(0, 0, 0, 0.9)
-        );
+    font-size: 8px;
 }
 
-.airing-featured-content {
-    position: absolute;
+.newest-airing-content h3 {
+    min-height: 35px;
 
-    left: 0;
-    right: 0;
-    bottom: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 
-    padding: 18px;
-}
-
-.airing-featured-content h3 {
-    font-size: 14px;
+    overflow: hidden;
 
     margin-bottom: 10px;
+
+    font-size: 13px;
 }
 
-.airing-featured-tags {
+.newest-airing-tags {
     display: flex;
 
     flex-wrap: wrap;
@@ -1069,84 +1325,72 @@ p {
     gap: 6px;
 }
 
-.airing-featured-tags span {
+.newest-airing-tags span {
     padding: 5px 7px;
 
-    background: rgba(0, 0, 0, 0.6);
-
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #2b2b35;
 
     border-radius: 5px;
 
-    color: #c5c5cc;
+    background: #181820;
+
+    color: #858591;
 
     font-size: 9px;
 }
 
 
-/* TIMELINE */
-
-.schedule-timeline {
-    margin-top: 10px;
-}
+/* DAILY SCHEDULE */
 
 .schedule-count {
-    color: #696974;
+    color: #6b6b77;
 
     font-size: 11px;
     font-weight: 700;
+
+    white-space: nowrap;
 }
-
-
-/* SCHEDULE RESULTS */
 
 #scheduleResults {
     display: flex;
     flex-direction: column;
-
-    gap: 12px;
 }
-
-
-/* TIME GROUP */
 
 .schedule-time-group {
     display: grid;
 
-    grid-template-columns: 80px 1fr;
+    grid-template-columns:
+        90px minmax(0, 1fr);
 
-    gap: 20px;
+    gap: 18px;
 
-    padding: 15px 0;
+    padding: 18px 0;
 
-    border-bottom: 1px solid #1e1e27;
+    border-top: 1px solid #1e1e27;
 }
 
 .schedule-time {
-    color: #777783;
-
-    font-size: 12px;
-    font-weight: 800;
+    padding-top: 4px;
 }
 
 .schedule-time strong {
     display: block;
 
-    color: #ddddE3;
+    color: #d5d5dc;
 
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .schedule-time small {
     display: block;
 
-    margin-top: 3px;
+    margin-top: 4px;
 
-    color: #5f5f6a;
+    color: #62626e;
 
     font-size: 9px;
 
-    text-transform: uppercase;
+    letter-spacing: 0.7px;
 }
 
 .schedule-anime-list {
@@ -1155,57 +1399,55 @@ p {
     grid-template-columns:
         repeat(
             auto-fill,
-            minmax(250px, 1fr)
+            minmax(255px, 1fr)
         );
 
     gap: 10px;
 }
 
-
-/* SCHEDULE CARD */
-
 .schedule-anime-card {
     display: flex;
-
     align-items: center;
 
     gap: 12px;
 
-    padding: 10px;
+    min-width: 0;
+
+    padding: 9px;
 
     background: #12121a;
 
-    border: 1px solid #24242e;
+    border: 1px solid #252530;
 
-    border-radius: 9px;
+    border-radius: 10px;
 
     cursor: pointer;
 
     transition:
+        transform 0.2s ease,
         background 0.2s ease,
-        border-color 0.2s ease,
-        transform 0.2s ease;
+        border-color 0.2s ease;
 }
 
 .schedule-anime-card:hover {
+    transform: translateX(3px);
+
     background: #181820;
 
-    border-color: #3a3a46;
-
-    transform: translateX(3px);
+    border-color: #41414d;
 }
 
 .schedule-anime-image {
-    width: 48px;
-    height: 64px;
+    width: 54px;
+    height: 72px;
 
     flex-shrink: 0;
 
     overflow: hidden;
 
-    border-radius: 6px;
+    border-radius: 7px;
 
-    background: #20202a;
+    background: #1d1d27;
 }
 
 .schedule-anime-image img {
@@ -1220,11 +1462,15 @@ p {
 }
 
 .schedule-anime-info h3 {
-    overflow: hidden;
-
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+
+    overflow: hidden;
+
+    margin-bottom: 8px;
+
+    color: #eeeeF2;
 
     font-size: 12px;
 }
@@ -1234,25 +1480,31 @@ p {
 
     flex-wrap: wrap;
 
-    gap: 7px;
-
-    margin-top: 7px;
+    gap: 6px;
 }
 
 .schedule-anime-meta span {
-    color: #6f6f7a;
+    padding: 4px 6px;
 
-    font-size: 9px;
+    border: 1px solid #2a2a34;
+
+    border-radius: 5px;
+
+    background: #181820;
+
+    color: #71717d;
+
+    font-size: 8px;
 }
 
 .schedule-empty {
     padding: 45px 20px;
 
-    background: #111119;
-
     border: 1px dashed #292934;
 
     border-radius: 12px;
+
+    background: #111119;
 
     text-align: center;
 }
@@ -1264,6 +1516,10 @@ p {
 }
 
 .schedule-empty p {
+    max-width: 480px;
+
+    margin: auto;
+
     font-size: 12px;
 }
 
@@ -1274,7 +1530,6 @@ p {
 
 .discover-controls {
     display: flex;
-
     flex-wrap: wrap;
 
     gap: 8px;
@@ -1300,7 +1555,7 @@ p {
 .discover-button:hover {
     color: #ffffff;
 
-    border-color: #3d3d48;
+    border-color: #40404c;
 }
 
 .discover-button.active {
@@ -1317,7 +1572,7 @@ p {
 ========================================================= */
 
 .random-page {
-    min-height: 600px;
+    min-height: 560px;
 
     display: flex;
     flex-direction: column;
@@ -1350,16 +1605,10 @@ p {
     color: #0b0b10;
 
     font-weight: 800;
-
-    transition:
-        transform 0.2s ease,
-        background 0.2s ease;
 }
 
 .random-button:hover {
     background: #e9e9eb;
-
-    transform: translateY(-2px);
 }
 
 .random-result {
@@ -1378,14 +1627,14 @@ p {
 
     inset: 0;
 
-    z-index: 1000;
+    z-index: 2000;
 
     display: flex;
 
     align-items: center;
     justify-content: center;
 
-    padding: 25px;
+    padding: 20px;
 }
 
 .modal.hidden {
@@ -1397,48 +1646,52 @@ p {
 
     inset: 0;
 
-    background: rgba(0, 0, 0, 0.82);
+    background: rgba(0, 0, 0, 0.83);
 
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(9px);
 }
 
 .modal-content {
     position: relative;
 
-    width: min(850px, 100%);
+    z-index: 2;
+
+    width: min(860px, 100%);
 
     max-height: 90vh;
 
     display: grid;
 
-    grid-template-columns: 280px 1fr;
+    grid-template-columns:
+        280px minmax(0, 1fr);
 
     overflow: hidden;
 
     background: #111119;
 
-    border: 1px solid #30303a;
+    border: 1px solid #30303b;
 
     border-radius: 14px;
 
-    z-index: 2;
-
     box-shadow:
-        0 25px 80px rgba(0, 0, 0, 0.6);
+        0 25px 80px rgba(0, 0, 0, 0.65);
 }
 
 .modal-close {
     position: absolute;
 
-    top: 14px;
-    right: 14px;
-
-    width: 34px;
-    height: 34px;
+    top: 13px;
+    right: 13px;
 
     z-index: 5;
 
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 35px;
+    height: 35px;
+
+    display: grid;
+    place-items: center;
+
+    border: 1px solid rgba(255,255,255,0.15);
 
     border-radius: 8px;
 
@@ -1467,7 +1720,7 @@ p {
 .modal-info {
     overflow-y: auto;
 
-    padding: 42px 32px;
+    padding: 40px 30px;
 }
 
 .modal-info h2 {
@@ -1478,22 +1731,21 @@ p {
 
 .modal-meta {
     display: flex;
-
     flex-wrap: wrap;
 
     gap: 8px;
 
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
 .modal-meta span {
     padding: 6px 8px;
 
-    background: #1b1b24;
-
     border: 1px solid #292934;
 
     border-radius: 5px;
+
+    background: #1b1b24;
 
     color: #a0a0aa;
 
@@ -1512,7 +1764,6 @@ p {
 
 .modal-genres {
     display: flex;
-
     flex-wrap: wrap;
 
     gap: 6px;
@@ -1531,9 +1782,6 @@ p {
 
     font-size: 10px;
 }
-
-
-/* TRACKING */
 
 .tracking-controls {
     display: grid;
@@ -1563,16 +1811,15 @@ p {
 .tracking-controls select,
 .tracking-controls input {
     width: 100%;
-
     height: 38px;
 
     padding: 0 9px;
 
-    outline: none;
-
     border: 1px solid #292934;
 
     border-radius: 6px;
+
+    outline: none;
 
     background: #171720;
 
@@ -1583,7 +1830,6 @@ p {
 
 .add-list-button {
     width: 100%;
-
     height: 42px;
 
     border: none;
@@ -1601,10 +1847,6 @@ p {
 
 .add-list-button:hover {
     background: #e7e7e9;
-}
-
-body.modal-open {
-    overflow: hidden;
 }
 
 
@@ -1640,36 +1882,61 @@ footer small {
 
 
 /* =========================================================
-   RESPONSIVE
+   TABLET
 ========================================================= */
 
-@media (max-width: 1000px) {
+@media (max-width: 1050px) {
 
     .sidebar {
-        width: 205px;
+        width: 210px;
     }
 
     .main {
-        margin-left: 205px;
+        margin-left: 210px;
 
         padding: 0 28px;
     }
 
-    .schedule-days {
+    .sidebar-toggle {
+        left: 192px;
+    }
+
+    body.sidebar-collapsed .sidebar-toggle {
+        left: 58px;
+    }
+
+    .anime-grid {
         grid-template-columns:
-            repeat(4, 1fr);
+            repeat(
+                auto-fill,
+                minmax(145px, 1fr)
+            );
+    }
+
+    .schedule-anime-list {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
     }
 
 }
 
 
-@media (max-width: 750px) {
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 800px) {
 
     .sidebar {
+        width: min(280px, 82vw);
+
         transform: translateX(-100%);
 
-        transition:
-            transform 0.25s ease;
+        box-shadow:
+            15px 0 40px rgba(0,0,0,0.35);
     }
 
     .sidebar.open {
@@ -1679,36 +1946,75 @@ footer small {
     .main {
         margin-left: 0;
 
-        padding: 0 18px;
+        padding: 0 20px;
     }
 
     .mobile-menu {
-        display: block;
+        display: grid;
+        place-items: center;
+    }
+
+    .sidebar-toggle {
+        top: 84px;
+        left: 10px;
+
+        width: 34px;
+        height: 34px;
+
+        font-size: 21px;
+    }
+
+    .sidebar-toggle.sidebar-open {
+        left: calc(
+            min(82vw, 280px) - 46px
+        );
     }
 
     .topbar {
-        gap: 12px;
+        height: 72px;
+
+        gap: 10px;
     }
 
     .page-heading {
-        min-width: auto;
+        display: none;
+    }
+
+    .search-wrapper {
+        width: 100%;
+    }
+
+    .search-dropdown {
+        position: fixed;
+
+        top: 70px;
+        left: 10px;
+        right: 10px;
+
+        width: auto;
+
+        transform: none;
     }
 
     .page {
-        padding-top: 30px;
+        padding-top: 28px;
     }
 
     .welcome {
-        min-height: 230px;
+        min-height: 235px;
     }
 
     .schedule-days {
         grid-template-columns:
-            repeat(4, 1fr);
+            repeat(
+                4,
+                minmax(0, 1fr)
+            );
     }
 
     .schedule-time-group {
-        grid-template-columns: 1fr;
+        grid-template-columns:
+            70px minmax(0, 1fr);
 
         gap: 12px;
     }
@@ -1726,8 +2032,9 @@ footer small {
     }
 
     .modal-image {
-        min-height: 300px;
-        max-height: 350px;
+        min-height: 280px;
+
+        max-height: 330px;
     }
 
     .modal-info {
@@ -1739,21 +2046,25 @@ footer small {
 }
 
 
-@media (max-width: 500px) {
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 560px) {
 
     .main {
-        padding: 0 13px;
+        padding: 0 14px;
     }
 
     .topbar {
-        height: 70px;
+        height: 68px;
+    }
+
+    .search-container {
+        height: 42px;
     }
 
     .search-shortcut {
-        display: none;
-    }
-
-    .page-heading {
         display: none;
     }
 
@@ -1761,11 +2072,30 @@ footer small {
         font-size: 34px;
     }
 
+    h2 {
+        font-size: 20px;
+    }
+
+    .welcome {
+        min-height: 220px;
+    }
+
+    .welcome-text {
+        font-size: 13px;
+    }
+
+    .content-section {
+        margin-top: 38px;
+    }
+
     .anime-grid {
         grid-template-columns:
-            repeat(2, 1fr);
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
 
-        gap: 12px;
+        gap: 11px;
     }
 
     .anime-card-info {
@@ -1773,39 +2103,186 @@ footer small {
     }
 
     .anime-card-info h3 {
+        min-height: 31px;
+
         font-size: 11px;
     }
 
     .anime-card-meta {
+        font-size: 8px;
+    }
+
+    .anime-card-rating {
+        right: 6px;
+        bottom: 6px;
+
+        padding: 4px 6px;
+
         font-size: 9px;
+    }
+
+    .back-home-button {
+        margin-bottom: 18px;
+
+        padding: 8px 11px;
+
+        font-size: 10px;
     }
 
     .schedule-days {
         grid-template-columns:
-            repeat(4, 1fr);
+            repeat(
+                4,
+                minmax(0, 1fr)
+            );
 
         gap: 6px;
     }
 
     .schedule-day {
         min-height: 58px;
+
+        border-radius: 9px;
+    }
+
+    .day-name {
+        font-size: 8px;
     }
 
     .day-date {
         font-size: 14px;
     }
 
-    .airing-featured-grid {
-        grid-template-columns:
-            repeat(2, 1fr);
+    .selected-date {
+        margin-bottom: 30px;
+
+        padding: 12px;
     }
 
-    .airing-featured-card {
-        min-height: 220px;
+    .selected-date-icon {
+        width: 36px;
+        height: 36px;
+
+        font-size: 16px;
+    }
+
+    .selected-date strong {
+        font-size: 12px;
+    }
+
+    .selected-date span:last-child {
+        font-size: 10px;
+    }
+
+    .airing-featured-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+
+        gap: 9px;
+    }
+
+    .newest-airing-card {
+        border-radius: 9px;
+    }
+
+    .newest-airing-content {
+        padding: 9px;
+    }
+
+    .newest-airing-content h3 {
+        min-height: 31px;
+
+        font-size: 10px;
+    }
+
+    .newest-airing-tags span {
+        padding: 4px 5px;
+
+        font-size: 7px;
+    }
+
+    .schedule-time-group {
+        grid-template-columns: 1fr;
+
+        gap: 8px;
+
+        padding: 14px 0;
+    }
+
+    .schedule-time {
+        padding-top: 0;
+    }
+
+    .schedule-anime-card {
+        gap: 10px;
+
+        padding: 8px;
+    }
+
+    .schedule-anime-image {
+        width: 46px;
+        height: 62px;
+    }
+
+    .schedule-anime-info h3 {
+        font-size: 11px;
+    }
+
+    .schedule-anime-meta span {
+        font-size: 7px;
+    }
+
+    .modal {
+        padding: 10px;
+    }
+
+    .modal-content {
+        border-radius: 12px;
+    }
+
+    .modal-image {
+        min-height: 250px;
+        max-height: 300px;
+    }
+
+    .modal-info h2 {
+        font-size: 24px;
     }
 
     .tracking-controls {
         grid-template-columns: 1fr;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+========================================================= */
+
+@media (max-width: 380px) {
+
+    .main {
+        padding: 0 10px;
+    }
+
+    .schedule-days {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+    .airing-featured-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .anime-grid {
+        gap: 9px;
     }
 
 }

@@ -12,7 +12,9 @@
 
 <body>
 
-    <!-- SIDEBAR -->
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
 
     <aside class="sidebar" id="sidebar">
 
@@ -27,32 +29,32 @@
 
             <a href="#" class="nav-item active" data-page="home">
                 <span>⌂</span>
-                Home
+                <span class="nav-text">Home</span>
             </a>
 
             <a href="#" class="nav-item" data-page="my-list">
                 <span>▣</span>
-                My List
+                <span class="nav-text">My List</span>
             </a>
 
             <a href="#" class="nav-item" data-page="trending">
                 <span>↗</span>
-                Trending
+                <span class="nav-text">Trending</span>
             </a>
 
             <a href="#" class="nav-item" data-page="schedule">
                 <span>◷</span>
-                Schedule
+                <span class="nav-text">Schedule</span>
             </a>
 
             <a href="#" class="nav-item" data-page="discover">
                 <span>⌕</span>
-                Discover
+                <span class="nav-text">Discover</span>
             </a>
 
             <a href="#" class="nav-item" data-page="random">
                 <span>✦</span>
-                Random
+                <span class="nav-text">Random</span>
             </a>
 
         </nav>
@@ -67,7 +69,7 @@
                     ?
                 </div>
 
-                <div>
+                <div class="user-text">
                     <strong>Guest</strong>
                     <small>Login later</small>
                 </div>
@@ -79,18 +81,35 @@
     </aside>
 
 
-    <!-- MAIN -->
+    <!-- SIDEBAR ARROW -->
+
+    <button
+        class="sidebar-toggle"
+        id="sidebarToggle"
+        type="button"
+        aria-label="Toggle sidebar"
+        title="Toggle sidebar">
+        ‹
+    </button>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
 
     <main class="main">
 
-        <!-- TOP BAR -->
+        <!-- =================================================
+             TOP BAR
+        ================================================== -->
 
         <header class="topbar">
 
             <button
                 class="mobile-menu"
                 id="mobileMenu"
-                type="button">
+                type="button"
+                aria-label="Open menu">
                 ☰
             </button>
 
@@ -102,7 +121,9 @@
 
                 <div class="search-container">
 
-                    <span class="search-icon">⌕</span>
+                    <span class="search-icon">
+                        ⌕
+                    </span>
 
                     <input
                         type="text"
@@ -113,12 +134,23 @@
                     <button
                         class="search-clear"
                         id="searchClear"
-                        type="button">
+                        type="button"
+                        aria-label="Clear search">
                         ×
                     </button>
 
-                    <span class="search-shortcut">/</span>
+                    <span class="search-shortcut">
+                        /
+                    </span>
 
+                </div>
+
+
+                <!-- SEARCH DROPDOWN -->
+
+                <div
+                    class="search-dropdown"
+                    id="searchDropdown">
                 </div>
 
             </div>
@@ -126,9 +158,13 @@
         </header>
 
 
-        <!-- HOME -->
+        <!-- =================================================
+             HOME
+        ================================================== -->
 
-        <section class="page active-page" id="homePage">
+        <section
+            class="page active-page"
+            id="homePage">
 
             <div class="welcome">
 
@@ -154,7 +190,9 @@
 
             <!-- SEARCH -->
 
-            <section class="content-section" id="searchSection">
+            <section
+                class="content-section"
+                id="searchSection">
 
                 <div class="section-heading">
 
@@ -172,7 +210,9 @@
 
                 </div>
 
-                <div class="anime-grid" id="searchResults">
+                <div
+                    class="anime-grid"
+                    id="searchResults">
 
                     <div class="empty-state">
 
@@ -250,435 +290,436 @@
         </section>
 
 
-        <!-- MY LIST PAGE -->
+        <!-- =================================================
+             MY LIST
+        ================================================== -->
 
-        <section class="page" id="my-listPage">
+        <section
+            class="page"
+            id="my-listPage">
 
-            <div class="page-header">
+            <div class="page-inner">
 
-                <p class="eyebrow">
-                    YOUR COLLECTION
-                </p>
+                <div class="page-header">
 
-                <h1>
-                    My List
-                </h1>
+                    <p class="eyebrow">
+                        YOUR COLLECTION
+                    </p>
 
-                <p>
-                    Keep track of the anime you want to watch,
-                    are watching, or have finished.
-                </p>
+                    <h1>
+                        My List
+                    </h1>
 
-            </div>
-
-            <div class="list-filters">
-
-                <button
-                    class="list-filter active"
-                    data-status="all"
-                    type="button">
-                    All
-                </button>
-
-                <button
-                    class="list-filter"
-                    data-status="watching"
-                    type="button">
-                    Watching
-                </button>
-
-                <button
-                    class="list-filter"
-                    data-status="plan"
-                    type="button">
-                    Plan to Watch
-                </button>
-
-                <button
-                    class="list-filter"
-                    data-status="completed"
-                    type="button">
-                    Completed
-                </button>
-
-            </div>
-
-            <div
-                class="anime-grid"
-                id="myListResults">
-            </div>
-
-        </section>
-
-
-        <!-- TRENDING -->
-
-        <section class="page" id="trendingPage">
-
-            <div class="page-header">
-
-                <p class="eyebrow">
-                    POPULAR
-                </p>
-
-                <h1>
-                    Trending Anime
-                </h1>
-
-                <p>
-                    See what anime are currently popular.
-                </p>
-
-            </div>
-
-            <div
-                class="anime-grid large-grid"
-                id="trendingPageResults">
-
-                <div class="loading">
-                    Loading trending anime...
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- SCHEDULE -->
-
-        <section class="page" id="schedulePage">
-
-            <div class="page-header schedule-page-header">
-
-                <p class="eyebrow">
-                    AIRING NOW
-                </p>
-
-                <h1>
-                    Anime Schedule
-                </h1>
-
-                <p>
-                    See what's airing throughout the week.
-                </p>
-
-            </div>
-
-
-            <!-- DAY SELECTOR -->
-
-            <div class="schedule-days" id="scheduleDays">
-
-                <button
-                    class="schedule-day"
-                    data-day="sunday"
-                    type="button">
-
-                    <span class="day-name">
-                        SUN
-                    </span>
-
-                    <span
-                        class="day-date"
-                        id="date-sunday">
-                    </span>
-
-                </button>
-
-                <button
-                    class="schedule-day"
-                    data-day="monday"
-                    type="button">
-
-                    <span class="day-name">
-                        MON
-                    </span>
-
-                    <span
-                        class="day-date"
-                        id="date-monday">
-                    </span>
-
-                </button>
-
-                <button
-                    class="schedule-day"
-                    data-day="tuesday"
-                    type="button">
-
-                    <span class="day-name">
-                        TUE
-                    </span>
-
-                    <span
-                        class="day-date"
-                        id="date-tuesday">
-                    </span>
-
-                </button>
-
-                <button
-                    class="schedule-day"
-                    data-day="wednesday"
-                    type="button">
-
-                    <span class="day-name">
-                        WED
-                    </span>
-
-                    <span
-                        class="day-date"
-                        id="date-wednesday">
-                    </span>
-
-                </button>
-
-                <button
-                    class="schedule-day"
-                    data-day="thursday"
-                    type="button">
-
-                    <span class="day-name">
-                        THU
-                    </span>
-
-                    <span
-                        class="day-date"
-                        id="date-thursday">
-                    </span>
-
-                </button>
-
-                <button
-                    class="schedule-day"
-                    data-day="friday"
-                    type="button">
-
-                    <span class="day-name">
-                        FRI
-                    </span>
-
-                    <span
-                        class="day-date"
-                        id="date-friday">
-                    </span>
-
-                </button>
-
-                <button
-                    class="schedule-day"
-                    data-day="saturday"
-                    type="button">
-
-                    <span class="day-name">
-                        SAT
-                    </span>
-
-                    <span
-                        class="day-date"
-                        id="date-saturday">
-                    </span>
-
-                </button>
-
-            </div>
-
-
-            <!-- SELECTED DAY -->
-
-            <div class="selected-date" id="selectedScheduleDate">
-
-                <div class="selected-date-icon">
-                    ◷
-                </div>
-
-                <div>
-
-                    <strong id="selectedDayName">
-                        Sunday
-                    </strong>
-
-                    <span id="selectedFullDate">
-                        Loading date...
-                    </span>
+                    <p>
+                        Keep track of the anime you want to watch,
+                        are watching, or have finished.
+                    </p>
 
                 </div>
 
-            </div>
+                <div class="list-filters">
 
+                    <button
+                        class="list-filter active"
+                        data-status="all"
+                        type="button">
+                        All
+                    </button>
 
-            <!-- NEWEST AIRING -->
+                    <button
+                        class="list-filter"
+                        data-status="watching"
+                        type="button">
+                        Watching
+                    </button>
 
-            <section class="schedule-featured">
+                    <button
+                        class="list-filter"
+                        data-status="plan"
+                        type="button">
+                        Plan to Watch
+                    </button>
 
-                <div class="section-heading">
-
-                    <div>
-
-                        <p class="eyebrow">
-                            FRESH FROM THE SEASON
-                        </p>
-
-                        <h2>
-                            Newest Airing
-                        </h2>
-
-                    </div>
+                    <button
+                        class="list-filter"
+                        data-status="completed"
+                        type="button">
+                        Completed
+                    </button>
 
                 </div>
 
                 <div
-                    class="airing-featured-grid"
-                    id="newestAiringResults">
+                    class="anime-grid"
+                    id="myListResults">
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             TRENDING
+        ================================================== -->
+
+        <section
+            class="page"
+            id="trendingPage">
+
+            <div class="page-inner">
+
+                <div class="page-header">
+
+                    <p class="eyebrow">
+                        POPULAR
+                    </p>
+
+                    <h1>
+                        Trending Anime
+                    </h1>
+
+                    <p>
+                        See what anime are currently popular.
+                    </p>
+
+                </div>
+
+                <div
+                    class="anime-grid large-grid"
+                    id="trendingPageResults">
 
                     <div class="loading">
-                        Loading newest episodes...
+                        Loading trending anime...
                     </div>
 
                 </div>
 
-            </section>
+            </div>
+
+        </section>
 
 
-            <!-- SCHEDULE LIST -->
+        <!-- =================================================
+             SCHEDULE
+        ================================================== -->
 
-            <section class="schedule-timeline">
+        <section
+            class="page"
+            id="schedulePage">
 
-                <div class="section-heading">
+            <div class="page-inner">
+
+                <div class="page-header schedule-page-header">
+
+                    <p class="eyebrow">
+                        AIRING NOW
+                    </p>
+
+                    <h1>
+                        Anime Schedule
+                    </h1>
+
+                    <p>
+                        See what's airing throughout the week.
+                    </p>
+
+                </div>
+
+
+                <!-- DAY SELECTOR -->
+
+                <div
+                    class="schedule-days"
+                    id="scheduleDays">
+
+                    <button
+                        class="schedule-day"
+                        data-day="sunday"
+                        type="button">
+
+                        <span class="day-name">
+                            SUN
+                        </span>
+
+                        <span
+                            class="day-date"
+                            id="date-sunday">
+                        </span>
+
+                    </button>
+
+                    <button
+                        class="schedule-day"
+                        data-day="monday"
+                        type="button">
+
+                        <span class="day-name">
+                            MON
+                        </span>
+
+                        <span
+                            class="day-date"
+                            id="date-monday">
+                        </span>
+
+                    </button>
+
+                    <button
+                        class="schedule-day"
+                        data-day="tuesday"
+                        type="button">
+
+                        <span class="day-name">
+                            TUE
+                        </span>
+
+                        <span
+                            class="day-date"
+                            id="date-tuesday">
+                        </span>
+
+                    </button>
+
+                    <button
+                        class="schedule-day"
+                        data-day="wednesday"
+                        type="button">
+
+                        <span class="day-name">
+                            WED
+                        </span>
+
+                        <span
+                            class="day-date"
+                            id="date-wednesday">
+                        </span>
+
+                    </button>
+
+                    <button
+                        class="schedule-day"
+                        data-day="thursday"
+                        type="button">
+
+                        <span class="day-name">
+                            THU
+                        </span>
+
+                        <span
+                            class="day-date"
+                            id="date-thursday">
+                        </span>
+
+                    </button>
+
+                    <button
+                        class="schedule-day"
+                        data-day="friday"
+                        type="button">
+
+                        <span class="day-name">
+                            FRI
+                        </span>
+
+                        <span
+                            class="day-date"
+                            id="date-friday">
+                        </span>
+
+                    </button>
+
+                    <button
+                        class="schedule-day"
+                        data-day="saturday"
+                        type="button">
+
+                        <span class="day-name">
+                            SAT
+                        </span>
+
+                        <span
+                            class="day-date"
+                            id="date-saturday">
+                        </span>
+
+                    </button>
+
+                </div>
+
+
+                <!-- SELECTED DAY -->
+
+                <div
+                    class="selected-date"
+                    id="selectedScheduleDate">
+
+                    <div class="selected-date-icon">
+                        ◷
+                    </div>
 
                     <div>
 
-                        <p class="eyebrow">
-                            DAILY SCHEDULE
-                        </p>
+                        <strong id="selectedDayName">
+                            Sunday
+                        </strong>
 
-                        <h2 id="scheduleHeading">
-                            Sunday's Anime
-                        </h2>
+                        <span id="selectedFullDate">
+                            Loading date...
+                        </span>
 
-                    </div>
-
-                    <span
-                        class="schedule-count"
-                        id="scheduleCount">
-                        0 anime
-                    </span>
-
-                </div>
-
-                <div id="scheduleResults">
-
-                    <div class="loading">
-                        Loading weekly schedule...
                     </div>
 
                 </div>
 
-            </section>
 
-        </section>
+                <!-- NEWEST AIRING -->
+
+                <section class="schedule-featured">
+
+                    <div class="section-heading">
+
+                        <div>
+
+                            <p class="eyebrow">
+                                FRESH FROM THE SEASON
+                            </p>
+
+                            <h2>
+                                Newest Airing
+                            </h2>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="airing-featured-grid"
+                        id="newestAiringResults">
+
+                        <div class="loading">
+                            Loading newest episodes...
+                        </div>
+
+                    </div>
+
+                </section>
 
 
-        <!-- DISCOVER -->
+                <!-- DAILY SCHEDULE -->
 
-        <section class="page" id="discoverPage">
+                <section class="schedule-timeline">
 
-            <div class="page-header">
+                    <div class="section-heading">
 
-                <p class="eyebrow">
-                    EXPLORE
-                </p>
+                        <div>
 
-                <h1>
-                    Discover
-                </h1>
+                            <p class="eyebrow">
+                                DAILY SCHEDULE
+                            </p>
 
-                <p>
-                    Find something new to add to your list.
-                </p>
+                            <h2 id="scheduleHeading">
+                                Sunday's Anime
+                            </h2>
 
-            </div>
+                        </div>
 
-            <div class="discover-controls">
+                        <span
+                            class="schedule-count"
+                            id="scheduleCount">
+                            0 anime
+                        </span>
 
-                <button
-                    class="discover-button active"
-                    data-genre="all"
-                    type="button">
-                    All
-                </button>
+                    </div>
 
-                <button
-                    class="discover-button"
-                    data-genre="action"
-                    type="button">
-                    Action
-                </button>
+                    <div id="scheduleResults">
 
-                <button
-                    class="discover-button"
-                    data-genre="comedy"
-                    type="button">
-                    Comedy
-                </button>
+                        <div class="loading">
+                            Loading weekly schedule...
+                        </div>
 
-                <button
-                    class="discover-button"
-                    data-genre="romance"
-                    type="button">
-                    Romance
-                </button>
+                    </div>
 
-                <button
-                    class="discover-button"
-                    data-genre="fantasy"
-                    type="button">
-                    Fantasy
-                </button>
-
-            </div>
-
-            <div
-                class="anime-grid"
-                id="discoverResults">
-
-                <div class="loading">
-                    Loading...
-                </div>
+                </section>
 
             </div>
 
         </section>
 
 
-        <!-- RANDOM -->
+        <!-- =================================================
+             DISCOVER
+        ================================================== -->
 
-        <section class="page" id="randomPage">
+        <section
+            class="page"
+            id="discoverPage">
 
-            <div class="random-page">
+            <div class="page-inner">
 
-                <p class="eyebrow">
-                    NEED SOMETHING NEW?
-                </p>
+                <div class="page-header">
 
-                <h1>
-                    Pick something for me.
-                </h1>
+                    <p class="eyebrow">
+                        EXPLORE
+                    </p>
 
-                <p>
-                    Let MIRAI choose a random anime for you.
-                </p>
+                    <h1>
+                        Discover
+                    </h1>
 
-                <button
-                    class="random-button"
-                    id="randomButton"
-                    type="button">
-                    ✦ Give me an anime
-                </button>
+                    <p>
+                        Find something new to add to your list.
+                    </p>
+
+                </div>
+
+                <div class="discover-controls">
+
+                    <button
+                        class="discover-button active"
+                        data-genre="all"
+                        type="button">
+                        All
+                    </button>
+
+                    <button
+                        class="discover-button"
+                        data-genre="action"
+                        type="button">
+                        Action
+                    </button>
+
+                    <button
+                        class="discover-button"
+                        data-genre="comedy"
+                        type="button">
+                        Comedy
+                    </button>
+
+                    <button
+                        class="discover-button"
+                        data-genre="romance"
+                        type="button">
+                        Romance
+                    </button>
+
+                    <button
+                        class="discover-button"
+                        data-genre="fantasy"
+                        type="button">
+                        Fantasy
+                    </button>
+
+                </div>
 
                 <div
-                    id="randomResult"
-                    class="random-result">
+                    class="anime-grid"
+                    id="discoverResults">
+
+                    <div class="loading">
+                        Loading...
+                    </div>
+
                 </div>
 
             </div>
@@ -686,7 +727,52 @@
         </section>
 
 
-        <!-- MODAL -->
+        <!-- =================================================
+             RANDOM
+        ================================================== -->
+
+        <section
+            class="page"
+            id="randomPage">
+
+            <div class="page-inner">
+
+                <div class="random-page">
+
+                    <p class="eyebrow">
+                        NEED SOMETHING NEW?
+                    </p>
+
+                    <h1>
+                        Pick something for me.
+                    </h1>
+
+                    <p>
+                        Let MIRAI choose a random anime for you.
+                    </p>
+
+                    <button
+                        class="random-button"
+                        id="randomButton"
+                        type="button">
+                        ✦ Give me an anime
+                    </button>
+
+                    <div
+                        id="randomResult"
+                        class="random-result">
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MODAL
+        ================================================== -->
 
         <div
             class="modal hidden"
@@ -821,7 +907,9 @@
         </div>
 
 
-        <!-- FOOTER -->
+        <!-- =================================================
+             FOOTER
+        ================================================== -->
 
         <footer>
 
@@ -838,6 +926,7 @@
         </footer>
 
     </main>
+
 
     <script src="script.js"></script>
 
