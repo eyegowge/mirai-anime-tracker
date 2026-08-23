@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MIRAI — Anime Tracker</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="logo">
+            <span class="logo-star">★</span>
+            <span>MIRAI</span>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <p class="nav-label">MENU</p>
+
+            <a href="#" class="nav-item active" data-page="home">
+                <span>⌂</span>
+                Home
+            </a>
+
+            <a href="#" class="nav-item" data-page="my-list">
+                <span>▣</span>
+                My List
+            </a>
+
+            <a href="#" class="nav-item" data-page="trending">
+                <span>↗</span>
+                Trending
+            </a>
+
+            <a href="#" class="nav-item" data-page="schedule">
+                <span>◷</span>
+                Schedule
+            </a>
+
+            <a href="#" class="nav-item" data-page="discover">
+                <span>⌕</span>
+                Discover
+            </a>
+
+            <a href="#" class="nav-item" data-page="random">
+                <span>✦</span>
+                Random
+            </a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-line"></div>
+
+            <div class="user-placeholder">
+
+                <div class="user-avatar">
+                    ?
+                </div>
+
+                <div>
+                    <strong>Guest</strong>
+                    <small>Login later</small>
+                </div>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main">
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <button
+                class="mobile-menu"
+                id="mobileMenu"
+                type="button">
+                ☰
+            </button>
+
+            <div class="page-heading">
+                <span id="pageTitle">Home</span>
+            </div>
+
+            <div class="search-wrapper">
+
+                <div class="search-container">
+
+                    <span class="search-icon">⌕</span>
+
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Search anime..."
+                        autocomplete="off">
+
+                    <button
+                        class="search-clear"
+                        id="searchClear"
+                        type="button">
+                        ×
+                    </button>
+
+                    <span class="search-shortcut">/</span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- HOME -->
+
+        <section class="page active-page" id="homePage">
+
+            <div class="welcome">
+
+                <div>
+
+                    <p class="eyebrow">
+                        YOUR ANIME SPACE
+                    </p>
+
+                    <h1>
+                        Welcome to <span>MIRAI</span>.
+                    </h1>
+
+                    <p class="welcome-text">
+                        Search for anime, build your list,
+                        and keep track of everything you're watching.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- SEARCH -->
+
+            <section class="content-section" id="searchSection">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            SEARCH
+                        </p>
+
+                        <h2 id="searchTitle">
+                            Find Anime
+                        </h2>
+
+                    </div>
+
+                </div>
+
+                <div class="anime-grid" id="searchResults">
+
+                    <div class="empty-state">
+
+                        <div class="empty-icon">
+                            ⌕
+                        </div>
+
+                        <h3>
+                            Search for an anime
+                        </h3>
+
+                        <p>
+                            Try Naruto, One Piece, Bleach,
+                            or Jujutsu Kaisen.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- MY LIST -->
+
+            <section class="content-section">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            YOUR COLLECTION
+                        </p>
+
+                        <h2>
+                            My List
+                        </h2>
+
+                    </div>
+
+                    <button
+                        class="text-button"
+                        id="homeMyListButton"
+                        type="button">
+                        View all →
+                    </button>
+
+                </div>
+
+                <div
+                    class="anime-grid"
+                    id="homeMyListResults">
+
+                    <div class="empty-state">
+
+                        <div class="empty-icon">
+                            ☆
+                        </div>
+
+                        <h3>
+                            Your list is empty
+                        </h3>
+
+                        <p>
+                            Add an anime to see it here.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- MY LIST PAGE -->
+
+        <section class="page" id="my-listPage">
+
+            <div class="page-header">
+
+                <p class="eyebrow">
+                    YOUR COLLECTION
+                </p>
+
+                <h1>
+                    My List
+                </h1>
+
+                <p>
+                    Keep track of the anime you want to watch,
+                    are watching, or have finished.
+                </p>
+
+            </div>
+
+            <div class="list-filters">
+
+                <button
+                    class="list-filter active"
+                    data-status="all"
+                    type="button">
+                    All
+                </button>
+
+                <button
+                    class="list-filter"
+                    data-status="watching"
+                    type="button">
+                    Watching
+                </button>
+
+                <button
+                    class="list-filter"
+                    data-status="plan"
+                    type="button">
+                    Plan to Watch
+                </button>
+
+                <button
+                    class="list-filter"
+                    data-status="completed"
+                    type="button">
+                    Completed
+                </button>
+
+            </div>
+
+            <div
+                class="anime-grid"
+                id="myListResults">
+            </div>
+
+        </section>
+
+
+        <!-- TRENDING -->
+
+        <section class="page" id="trendingPage">
+
+            <div class="page-header">
+
+                <p class="eyebrow">
+                    POPULAR
+                </p>
+
+                <h1>
+                    Trending Anime
+                </h1>
+
+                <p>
+                    See what anime are currently popular.
+                </p>
+
+            </div>
+
+            <div
+                class="anime-grid large-grid"
+                id="trendingPageResults">
+
+                <div class="loading">
+                    Loading trending anime...
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- SCHEDULE -->
+
+        <section class="page" id="schedulePage">
+
+            <div class="page-header schedule-page-header">
+
+                <p class="eyebrow">
+                    AIRING NOW
+                </p>
+
+                <h1>
+                    Anime Schedule
+                </h1>
+
+                <p>
+                    See what's airing throughout the week.
+                </p>
+
+            </div>
+
+
+            <!-- DAY SELECTOR -->
+
+            <div class="schedule-days" id="scheduleDays">
+
+                <button
+                    class="schedule-day"
+                    data-day="sunday"
+                    type="button">
+
+                    <span class="day-name">
+                        SUN
+                    </span>
+
+                    <span
+                        class="day-date"
+                        id="date-sunday">
+                    </span>
+
+                </button>
+
+                <button
+                    class="schedule-day"
+                    data-day="monday"
+                    type="button">
+
+                    <span class="day-name">
+                        MON
+                    </span>
+
+                    <span
+                        class="day-date"
+                        id="date-monday">
+                    </span>
+
+                </button>
+
+                <button
+                    class="schedule-day"
+                    data-day="tuesday"
+                    type="button">
+
+                    <span class="day-name">
+                        TUE
+                    </span>
+
+                    <span
+                        class="day-date"
+                        id="date-tuesday">
+                    </span>
+
+                </button>
+
+                <button
+                    class="schedule-day"
+                    data-day="wednesday"
+                    type="button">
+
+                    <span class="day-name">
+                        WED
+                    </span>
+
+                    <span
+                        class="day-date"
+                        id="date-wednesday">
+                    </span>
+
+                </button>
+
+                <button
+                    class="schedule-day"
+                    data-day="thursday"
+                    type="button">
+
+                    <span class="day-name">
+                        THU
+                    </span>
+
+                    <span
+                        class="day-date"
+                        id="date-thursday">
+                    </span>
+
+                </button>
+
+                <button
+                    class="schedule-day"
+                    data-day="friday"
+                    type="button">
+
+                    <span class="day-name">
+                        FRI
+                    </span>
+
+                    <span
+                        class="day-date"
+                        id="date-friday">
+                    </span>
+
+                </button>
+
+                <button
+                    class="schedule-day"
+                    data-day="saturday"
+                    type="button">
+
+                    <span class="day-name">
+                        SAT
+                    </span>
+
+                    <span
+                        class="day-date"
+                        id="date-saturday">
+                    </span>
+
+                </button>
+
+            </div>
+
+
+            <!-- SELECTED DAY -->
+
+            <div class="selected-date" id="selectedScheduleDate">
+
+                <div class="selected-date-icon">
+                    ◷
+                </div>
+
+                <div>
+
+                    <strong id="selectedDayName">
+                        Sunday
+                    </strong>
+
+                    <span id="selectedFullDate">
+                        Loading date...
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- NEWEST AIRING -->
+
+            <section class="schedule-featured">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            FRESH FROM THE SEASON
+                        </p>
+
+                        <h2>
+                            Newest Airing
+                        </h2>
+
+                    </div>
+
+                </div>
+
+                <div
+                    class="airing-featured-grid"
+                    id="newestAiringResults">
+
+                    <div class="loading">
+                        Loading newest episodes...
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- SCHEDULE LIST -->
+
+            <section class="schedule-timeline">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            DAILY SCHEDULE
+                        </p>
+
+                        <h2 id="scheduleHeading">
+                            Sunday's Anime
+                        </h2>
+
+                    </div>
+
+                    <span
+                        class="schedule-count"
+                        id="scheduleCount">
+                        0 anime
+                    </span>
+
+                </div>
+
+                <div id="scheduleResults">
+
+                    <div class="loading">
+                        Loading weekly schedule...
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- DISCOVER -->
+
+        <section class="page" id="discoverPage">
+
+            <div class="page-header">
+
+                <p class="eyebrow">
+                    EXPLORE
+                </p>
+
+                <h1>
+                    Discover
+                </h1>
+
+                <p>
+                    Find something new to add to your list.
+                </p>
+
+            </div>
+
+            <div class="discover-controls">
+
+                <button
+                    class="discover-button active"
+                    data-genre="all"
+                    type="button">
+                    All
+                </button>
+
+                <button
+                    class="discover-button"
+                    data-genre="action"
+                    type="button">
+                    Action
+                </button>
+
+                <button
+                    class="discover-button"
+                    data-genre="comedy"
+                    type="button">
+                    Comedy
+                </button>
+
+                <button
+                    class="discover-button"
+                    data-genre="romance"
+                    type="button">
+                    Romance
+                </button>
+
+                <button
+                    class="discover-button"
+                    data-genre="fantasy"
+                    type="button">
+                    Fantasy
+                </button>
+
+            </div>
+
+            <div
+                class="anime-grid"
+                id="discoverResults">
+
+                <div class="loading">
+                    Loading...
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- RANDOM -->
+
+        <section class="page" id="randomPage">
+
+            <div class="random-page">
+
+                <p class="eyebrow">
+                    NEED SOMETHING NEW?
+                </p>
+
+                <h1>
+                    Pick something for me.
+                </h1>
+
+                <p>
+                    Let MIRAI choose a random anime for you.
+                </p>
+
+                <button
+                    class="random-button"
+                    id="randomButton"
+                    type="button">
+                    ✦ Give me an anime
+                </button>
+
+                <div
+                    id="randomResult"
+                    class="random-result">
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- MODAL -->
+
+        <div
+            class="modal hidden"
+            id="animeModal">
+
+            <div
+                class="modal-backdrop"
+                id="modalBackdrop">
+            </div>
+
+            <div class="modal-content">
+
+                <button
+                    class="modal-close"
+                    id="modalClose"
+                    type="button">
+                    ×
+                </button>
+
+                <div
+                    class="modal-image"
+                    id="modalImage">
+                </div>
+
+                <div class="modal-info">
+
+                    <p
+                        class="eyebrow"
+                        id="modalType">
+                        ANIME
+                    </p>
+
+                    <h2 id="modalTitle">
+                        Anime Title
+                    </h2>
+
+                    <div
+                        class="modal-meta"
+                        id="modalMeta">
+                    </div>
+
+                    <p
+                        class="modal-description"
+                        id="modalDescription">
+                    </p>
+
+                    <div
+                        class="modal-genres"
+                        id="modalGenres">
+                    </div>
+
+                    <div class="tracking-controls">
+
+                        <label>
+
+                            <span>
+                                Status
+                            </span>
+
+                            <select id="statusSelect">
+
+                                <option value="plan">
+                                    Plan to Watch
+                                </option>
+
+                                <option value="watching">
+                                    Watching
+                                </option>
+
+                                <option value="completed">
+                                    Completed
+                                </option>
+
+                            </select>
+
+                        </label>
+
+                        <label>
+
+                            <span>
+                                Episode
+                            </span>
+
+                            <input
+                                type="number"
+                                id="episodeInput"
+                                min="0"
+                                value="0">
+
+                        </label>
+
+                        <label>
+
+                            <span>
+                                My Rating
+                            </span>
+
+                            <select id="ratingSelect">
+
+                                <option value="0">
+                                    No rating
+                                </option>
+
+                                <option value="1">1 / 10</option>
+                                <option value="2">2 / 10</option>
+                                <option value="3">3 / 10</option>
+                                <option value="4">4 / 10</option>
+                                <option value="5">5 / 10</option>
+                                <option value="6">6 / 10</option>
+                                <option value="7">7 / 10</option>
+                                <option value="8">8 / 10</option>
+                                <option value="9">9 / 10</option>
+                                <option value="10">10 / 10</option>
+
+                            </select>
+
+                        </label>
+
+                    </div>
+
+                    <button
+                        class="add-list-button"
+                        id="addListButton"
+                        type="button">
+                        ★ Add to My List
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <footer>
+
+            <span class="footer-star">
+                ★
+            </span>
+
+            MIRAI
+
+            <small>
+                Anime tracking made simple.
+            </small>
+
+        </footer>
+
+    </main>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
