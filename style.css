@@ -53,13 +53,10 @@ button {
     display: none !important;
 }
 
-/* APP */
 
-.app {
-    min-height: 100vh;
-}
-
-/* SIDEBAR */
+/* =====================================================
+   SIDEBAR
+===================================================== */
 
 .sidebar {
     width: var(--sidebar-width);
@@ -87,8 +84,7 @@ button {
     display: grid;
     place-items: center;
     color: var(--accent-2);
-    font-size: 20px;
-    transform: rotate(45deg);
+    font-size: 25px;
 }
 
 .brand-name {
@@ -141,7 +137,7 @@ button {
 .nav-icon {
     width: 20px;
     text-align: center;
-    font-size: 20px;
+    font-size: 19px;
     color: var(--muted-2);
 }
 
@@ -238,13 +234,10 @@ button {
     text-overflow: ellipsis;
 }
 
-/* MOBILE HEADER */
 
-.mobile-header {
-    display: none;
-}
-
-/* MAIN */
+/* =====================================================
+   MAIN
+===================================================== */
 
 .main {
     margin-left: var(--sidebar-width);
@@ -262,14 +255,21 @@ button {
     display: block;
 }
 
-/* HERO */
+
+/* =====================================================
+   HERO
+===================================================== */
 
 .hero {
     min-height: 390px;
     border: 1px solid var(--border);
     border-radius: 22px;
     background:
-        radial-gradient(circle at 80% 20%, rgba(139,92,246,0.2), transparent 30%),
+        radial-gradient(
+            circle at 80% 20%,
+            rgba(139,92,246,0.2),
+            transparent 30%
+        ),
         linear-gradient(135deg, #11131c, #0c0e15);
     padding: 55px;
     display: flex;
@@ -343,6 +343,12 @@ button {
     transform: translateY(-1px);
 }
 
+.primary-button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+}
+
 .secondary-button {
     background: var(--surface-3);
     color: var(--text);
@@ -370,7 +376,6 @@ button {
     place-items: center;
     color: var(--accent-2);
     font-size: 70px;
-    transform: rotate(45deg);
     opacity: 0.5;
 }
 
@@ -389,7 +394,10 @@ button {
     transform: rotate(-35deg) scaleX(0.55);
 }
 
-/* SECTIONS */
+
+/* =====================================================
+   SECTIONS
+===================================================== */
 
 .section-header {
     margin: 55px 0 22px;
@@ -398,8 +406,7 @@ button {
     align-items: flex-end;
 }
 
-.section-header h2,
-.page-heading h1 {
+.section-header h2 {
     font-size: 27px;
     margin-top: 7px;
 }
@@ -415,11 +422,37 @@ button {
     color: white;
 }
 
-/* ANIME GRID */
+
+/* =====================================================
+   PAGE HEADING
+===================================================== */
+
+.page-heading {
+    padding: 20px 0 30px;
+}
+
+.page-heading h1 {
+    font-size: 32px;
+    margin-top: 7px;
+}
+
+.page-heading p:last-child {
+    color: var(--muted);
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+
+/* =====================================================
+   ANIME GRID
+===================================================== */
 
 .anime-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(155px, 1fr)
+    );
     gap: 20px;
 }
 
@@ -490,7 +523,10 @@ button {
     margin-top: 7px;
 }
 
-/* LOADING */
+
+/* =====================================================
+   LOADING
+===================================================== */
 
 .loading {
     min-height: 180px;
@@ -519,19 +555,10 @@ button {
     }
 }
 
-/* PAGE HEADING */
 
-.page-heading {
-    padding: 20px 0 30px;
-}
-
-.page-heading p {
-    color: var(--muted);
-    margin-top: 8px;
-    font-size: 13px;
-}
-
-/* SEARCH */
+/* =====================================================
+   SEARCH
+===================================================== */
 
 .search-form {
     display: flex;
@@ -575,7 +602,10 @@ button {
     margin-bottom: 15px;
 }
 
-/* SCHEDULE */
+
+/* =====================================================
+   SCHEDULE
+===================================================== */
 
 .schedule-tabs {
     display: flex;
@@ -602,7 +632,10 @@ button {
     border-color: var(--accent);
 }
 
-/* MODALS */
+
+/* =====================================================
+   MODALS
+===================================================== */
 
 .modal-overlay {
     position: fixed;
@@ -649,7 +682,10 @@ button {
     background: rgba(255,255,255,0.13);
 }
 
-/* ANIME MODAL */
+
+/* =====================================================
+   ANIME MODAL
+===================================================== */
 
 .anime-modal-content {
     display: flex;
@@ -663,6 +699,7 @@ button {
     object-fit: cover;
     border-radius: 10px;
     flex-shrink: 0;
+    background: var(--surface-2);
 }
 
 .modal-anime-info {
@@ -691,9 +728,13 @@ button {
     display: flex;
     gap: 9px;
     margin-top: 25px;
+    flex-wrap: wrap;
 }
 
-/* RATING */
+
+/* =====================================================
+   RATING
+===================================================== */
 
 .rating-modal {
     width: 420px;
@@ -706,7 +747,7 @@ button {
     margin-top: 8px;
 }
 
-.rating-header p {
+.rating-header p:last-child {
     color: var(--muted);
     margin-top: 7px;
     font-size: 13px;
@@ -742,7 +783,10 @@ button {
     width: 100%;
 }
 
-/* ACCOUNT */
+
+/* =====================================================
+   ACCOUNT
+===================================================== */
 
 .account-modal {
     width: 430px;
@@ -774,7 +818,7 @@ button {
     margin-top: 7px;
 }
 
-.account-heading p {
+.account-heading p:last-child {
     color: var(--muted);
     font-size: 12px;
     margin-top: 7px;
@@ -852,13 +896,10 @@ button {
     color: white;
 }
 
-/* MY LIST */
 
-.list-heading {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-}
+/* =====================================================
+   MY LIST
+===================================================== */
 
 .empty-list {
     border: 1px dashed rgba(255,255,255,0.1);
@@ -884,7 +925,50 @@ button {
     margin-bottom: 20px;
 }
 
-/* TOAST */
+#myListContent .anime-grid {
+    margin-top: 20px;
+}
+
+
+/* =====================================================
+   RANDOM
+===================================================== */
+
+.random-page {
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+.random-page h1 {
+    font-size: clamp(32px, 5vw, 55px);
+    margin: 12px 0;
+}
+
+.random-page p {
+    color: var(--muted);
+}
+
+.random-button {
+    margin-top: 28px;
+    padding: 14px 22px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+}
+
+.random-button:hover {
+    background: var(--accent-dark);
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
 
 .toast {
     position: fixed;
@@ -916,7 +1000,39 @@ button {
     border-color: rgba(239,68,68,0.3);
 }
 
-/* MOBILE */
+
+/* =====================================================
+   FOOTER
+===================================================== */
+
+footer {
+    margin-left: var(--sidebar-width);
+    padding: 25px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
+}
+
+.footer-symbol {
+    color: var(--accent-2);
+    margin-right: 5px;
+}
+
+footer small {
+    display: block;
+    margin-top: 5px;
+    color: var(--muted-2);
+}
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+.mobile-header {
+    display: none;
+}
 
 @media (max-width: 800px) {
 
@@ -971,6 +1087,10 @@ button {
     .main {
         margin-left: 0;
         padding: 20px 15px 50px;
+    }
+
+    footer {
+        margin-left: 0;
     }
 
     .hero {
@@ -1029,15 +1149,11 @@ button {
         font-size: 29px;
     }
 
-    .list-heading {
-        align-items: flex-start;
+    .modal-actions {
         flex-direction: column;
-        gap: 15px;
     }
-}
 
-@media (min-width: 801px) {
-    .mobile-header {
-        display: none;
+    .modal-actions button {
+        width: 100%;
     }
 }

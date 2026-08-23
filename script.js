@@ -1,12 +1,13 @@
 /* =========================================================
    MIRAI ANIME TRACKER
-   ========================================================= */
+========================================================= */
 
 const API_BASE = "";
 
+
 /* =========================================================
    STATE
-   ========================================================= */
+========================================================= */
 
 let currentUser = null;
 let currentAnime = null;
@@ -16,46 +17,78 @@ let myList = JSON.parse(
     localStorage.getItem("mirai_my_list") || "[]"
 );
 
+let scheduleData = {};
+
+
 /* =========================================================
    DOM
-   ========================================================= */
+========================================================= */
 
 const pages = {
     home: document.getElementById("homePage"),
     search: document.getElementById("searchPage"),
+    trending: document.getElementById("trendingPage"),
     schedule: document.getElementById("schedulePage"),
-    "my-list": document.getElementById("myListPage")
+    "my-list": document.getElementById("myListPage"),
+    discover: document.getElementById("discoverPage"),
+    random: document.getElementById("randomPage")
 };
 
-const navItems = document.querySelectorAll(".nav-item");
+const navItems =
+    document.querySelectorAll(".nav-item");
 
-const accountModal = document.getElementById("accountModal");
-const animeModal = document.getElementById("animeModal");
-const ratingModal = document.getElementById("ratingModal");
+const accountModal =
+    document.getElementById("accountModal");
 
-const loginContainer = document.getElementById("loginContainer");
-const registerContainer = document.getElementById("registerContainer");
+const animeModal =
+    document.getElementById("animeModal");
 
-const loginForm = document.getElementById("loginForm");
-const registerForm = document.getElementById("registerForm");
+const ratingModal =
+    document.getElementById("ratingModal");
 
-const loginError = document.getElementById("loginError");
-const registerError = document.getElementById("registerError");
+const loginContainer =
+    document.getElementById("loginContainer");
 
-const loggedOutAccount = document.getElementById("loggedOutAccount");
-const loggedInAccount = document.getElementById("loggedInAccount");
+const registerContainer =
+    document.getElementById("registerContainer");
 
-const sidebarUsername = document.getElementById("sidebarUsername");
-const userAvatar = document.getElementById("userAvatar");
+const loginForm =
+    document.getElementById("loginForm");
+
+const registerForm =
+    document.getElementById("registerForm");
+
+const loginError =
+    document.getElementById("loginError");
+
+const registerError =
+    document.getElementById("registerError");
+
+const loggedOutAccount =
+    document.getElementById("loggedOutAccount");
+
+const loggedInAccount =
+    document.getElementById("loggedInAccount");
+
+const sidebarUsername =
+    document.getElementById("sidebarUsername");
+
+const userAvatar =
+    document.getElementById("userAvatar");
+
 
 /* =========================================================
    PAGE NAVIGATION
-   ========================================================= */
+========================================================= */
 
 function showPage(pageName) {
 
     Object.values(pages).forEach(page => {
-        page.classList.remove("active-page");
+
+        if (page) {
+            page.classList.remove("active-page");
+        }
+
     });
 
     if (pages[pageName]) {
@@ -63,13 +96,20 @@ function showPage(pageName) {
     }
 
     navItems.forEach(item => {
+
         item.classList.toggle(
             "active",
             item.dataset.page === pageName
         );
+
     });
 
-    document.getElementById("sidebar").classList.remove("open");
+    const sidebar =
+        document.getElementById("sidebar");
+
+    if (sidebar) {
+        sidebar.classList.remove("open");
+    }
 
     window.scrollTo({
         top: 0,
@@ -79,19 +119,36 @@ function showPage(pageName) {
     if (pageName === "my-list") {
         renderMyList();
     }
+
+    if (pageName === "trending") {
+        loadTrending();
+    }
+
+    if (pageName === "schedule") {
+        loadSchedule("monday");
+    }
+
 }
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
 navItems.forEach(item => {
 
     item.addEventListener("click", () => {
+
         showPage(item.dataset.page);
+
     });
 
 });
 
+
 /* =========================================================
    MOBILE MENU
-   ========================================================= */
+========================================================= */
 
 document
     .getElementById("mobileMenuBtn")
@@ -103,99 +160,140 @@ document
 
     });
 
+
 document
     .getElementById("mobileAccountBtn")
     .addEventListener("click", () => {
 
         if (currentUser) {
+
             showPage("my-list");
+
         } else {
+
             openLogin();
+
         }
 
     });
 
+
 /* =========================================================
-   HERO BUTTONS
-   ========================================================= */
+   HERO
+========================================================= */
 
 document
     .getElementById("heroSearchBtn")
     .addEventListener("click", () => {
+
         showPage("search");
-        document.getElementById("searchInput").focus();
+
+        document
+            .getElementById("searchInput")
+            .focus();
+
     });
+
 
 document
     .getElementById("homeSearchBtn")
     .addEventListener("click", () => {
+
         showPage("search");
-        document.getElementById("searchInput").focus();
+
+        document
+            .getElementById("searchInput")
+            .focus();
+
     });
+
 
 document
     .getElementById("heroListBtn")
     .addEventListener("click", () => {
+
         showPage("my-list");
+
     });
+
 
 document
     .getElementById("listLoginBtn")
     .addEventListener("click", openLogin);
 
+
 /* =========================================================
    ACCOUNT MODAL
-   ========================================================= */
+========================================================= */
 
 function openAccountModal() {
+
     accountModal.classList.add("open");
+
     document.body.style.overflow = "hidden";
+
 }
 
+
 function closeAccountModal() {
+
     accountModal.classList.remove("open");
+
     document.body.style.overflow = "";
+
 }
+
 
 function openLogin() {
 
     clearAccountErrors();
 
     loginContainer.classList.remove("hidden");
+
     registerContainer.classList.add("hidden");
 
     openAccountModal();
+
 }
+
 
 function openRegister() {
 
     clearAccountErrors();
 
     loginContainer.classList.add("hidden");
+
     registerContainer.classList.remove("hidden");
 
     openAccountModal();
+
 }
+
 
 document
     .getElementById("sidebarLoginBtn")
     .addEventListener("click", openLogin);
 
+
 document
     .getElementById("sidebarSignupBtn")
     .addEventListener("click", openRegister);
+
 
 document
     .getElementById("showRegisterBtn")
     .addEventListener("click", openRegister);
 
+
 document
     .getElementById("showLoginBtn")
     .addEventListener("click", openLogin);
 
+
 document
     .getElementById("accountModalClose")
     .addEventListener("click", closeAccountModal);
+
 
 accountModal.addEventListener("click", event => {
 
@@ -205,16 +303,19 @@ accountModal.addEventListener("click", event => {
 
 });
 
+
 /* =========================================================
    ACCOUNT ERRORS
-   ========================================================= */
+========================================================= */
 
 function showError(element, message) {
 
     element.textContent = message;
+
     element.classList.add("show");
 
 }
+
 
 function clearAccountErrors() {
 
@@ -226,9 +327,10 @@ function clearAccountErrors() {
 
 }
 
+
 /* =========================================================
    LOGIN
-   ========================================================= */
+========================================================= */
 
 loginForm.addEventListener("submit", async event => {
 
@@ -237,22 +339,32 @@ loginForm.addEventListener("submit", async event => {
     clearAccountErrors();
 
     const email =
-        document.getElementById("loginEmail").value.trim();
+        document
+            .getElementById("loginEmail")
+            .value
+            .trim();
 
     const password =
-        document.getElementById("loginPassword").value;
+        document
+            .getElementById("loginPassword")
+            .value;
 
     if (!email || !password) {
+
         showError(
             loginError,
             "Please enter your email and password."
         );
+
         return;
+
     }
 
-    const button = loginForm.querySelector("button");
+    const button =
+        loginForm.querySelector("button");
 
-    const originalText = button.textContent;
+    const originalText =
+        button.textContent;
 
     button.disabled = true;
     button.textContent = "Logging in...";
@@ -277,7 +389,10 @@ loginForm.addEventListener("submit", async event => {
             }
         );
 
-        const data = await response.json().catch(() => ({}));
+        const data =
+            await response
+                .json()
+                .catch(() => ({}));
 
         if (!response.ok) {
 
@@ -301,7 +416,9 @@ loginForm.addEventListener("submit", async event => {
         loginForm.reset();
 
         showToast(
-            `Welcome back, ${currentUser.username || "User"}!`,
+            `Welcome back, ${
+                currentUser.username || "User"
+            }!`,
             "success"
         );
 
@@ -309,7 +426,8 @@ loginForm.addEventListener("submit", async event => {
 
         showError(
             loginError,
-            error.message || "Unable to log in."
+            error.message ||
+            "Unable to log in."
         );
 
     } finally {
@@ -320,134 +438,160 @@ loginForm.addEventListener("submit", async event => {
     }
 
 });
+
 
 /* =========================================================
    REGISTER
-   ========================================================= */
+========================================================= */
 
-registerForm.addEventListener("submit", async event => {
+registerForm.addEventListener(
+    "submit",
+    async event => {
 
-    event.preventDefault();
+        event.preventDefault();
 
-    clearAccountErrors();
+        clearAccountErrors();
 
-    const username =
-        document.getElementById("registerUsername").value.trim();
+        const username =
+            document
+                .getElementById("registerUsername")
+                .value
+                .trim();
 
-    const email =
-        document.getElementById("registerEmail").value.trim();
+        const email =
+            document
+                .getElementById("registerEmail")
+                .value
+                .trim();
 
-    const password =
-        document.getElementById("registerPassword").value;
+        const password =
+            document
+                .getElementById("registerPassword")
+                .value;
 
-    const confirmPassword =
-        document.getElementById("registerConfirmPassword").value;
+        const confirmPassword =
+            document
+                .getElementById(
+                    "registerConfirmPassword"
+                )
+                .value;
 
-    if (username.length < 3) {
+        if (username.length < 3) {
 
-        showError(
-            registerError,
-            "Username must contain at least 3 characters."
-        );
-
-        return;
-    }
-
-    if (password.length < 6) {
-
-        showError(
-            registerError,
-            "Password must contain at least 6 characters."
-        );
-
-        return;
-    }
-
-    if (password !== confirmPassword) {
-
-        showError(
-            registerError,
-            "Passwords do not match."
-        );
-
-        return;
-    }
-
-    const button = registerForm.querySelector("button");
-
-    const originalText = button.textContent;
-
-    button.disabled = true;
-    button.textContent = "Creating account...";
-
-    try {
-
-        const response = await fetch(
-            `${API_BASE}/auth/register`,
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type": "application/json"
-                },
-
-                credentials: "include",
-
-                body: JSON.stringify({
-                    username,
-                    email,
-                    password
-                })
-            }
-        );
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.message ||
-                data.error ||
-                "Unable to create account."
+            showError(
+                registerError,
+                "Username must contain at least 3 characters."
             );
+
+            return;
 
         }
 
-        currentUser =
-            data.user ||
-            data.account ||
-            data;
+        if (password.length < 6) {
 
-        updateAccountUI();
+            showError(
+                registerError,
+                "Password must contain at least 6 characters."
+            );
 
-        closeAccountModal();
+            return;
 
-        registerForm.reset();
+        }
 
-        showToast(
-            "Your MIRAI account has been created!",
-            "success"
-        );
+        if (password !== confirmPassword) {
 
-    } catch (error) {
+            showError(
+                registerError,
+                "Passwords do not match."
+            );
 
-        showError(
-            registerError,
-            error.message || "Unable to create account."
-        );
+            return;
 
-    } finally {
+        }
 
-        button.disabled = false;
-        button.textContent = originalText;
+        const button =
+            registerForm.querySelector("button");
+
+        const originalText =
+            button.textContent;
+
+        button.disabled = true;
+        button.textContent = "Creating account...";
+
+        try {
+
+            const response = await fetch(
+                `${API_BASE}/auth/register`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    credentials: "include",
+
+                    body: JSON.stringify({
+                        username,
+                        email,
+                        password
+                    })
+                }
+            );
+
+            const data =
+                await response
+                    .json()
+                    .catch(() => ({}));
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.message ||
+                    data.error ||
+                    "Unable to create account."
+                );
+
+            }
+
+            currentUser =
+                data.user ||
+                data.account ||
+                data;
+
+            updateAccountUI();
+
+            closeAccountModal();
+
+            registerForm.reset();
+
+            showToast(
+                "Your MIRAI account has been created!",
+                "success"
+            );
+
+        } catch (error) {
+
+            showError(
+                registerError,
+                error.message ||
+                "Unable to create account."
+            );
+
+        } finally {
+
+            button.disabled = false;
+            button.textContent = originalText;
+
+        }
 
     }
+);
 
-});
 
 /* =========================================================
    LOGOUT
-   ========================================================= */
+========================================================= */
 
 document
     .getElementById("logoutBtn")
@@ -464,22 +608,30 @@ document
             );
 
         } catch (error) {
-            console.log("Logout request failed:", error);
+
+            console.log(
+                "Logout request failed:",
+                error
+            );
+
         }
 
         currentUser = null;
 
         updateAccountUI();
 
-        showToast("You have been logged out.");
+        showToast(
+            "You have been logged out."
+        );
 
         showPage("home");
 
     });
 
+
 /* =========================================================
    SESSION CHECK
-   ========================================================= */
+========================================================= */
 
 async function checkSession() {
 
@@ -494,12 +646,17 @@ async function checkSession() {
         );
 
         if (!response.ok) {
+
             currentUser = null;
+
             updateAccountUI();
+
             return;
+
         }
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         currentUser =
             data.user ||
@@ -508,10 +665,14 @@ async function checkSession() {
 
         if (
             !currentUser ||
-            (!currentUser.username &&
-             !currentUser.email)
+            (
+                !currentUser.username &&
+                !currentUser.email
+            )
         ) {
+
             currentUser = null;
+
         }
 
         updateAccountUI();
@@ -524,22 +685,29 @@ async function checkSession() {
         );
 
         currentUser = null;
+
         updateAccountUI();
 
     }
 
 }
 
+
 /* =========================================================
    ACCOUNT UI
-   ========================================================= */
+========================================================= */
 
 function updateAccountUI() {
 
     if (currentUser) {
 
-        loggedOutAccount.classList.add("hidden");
-        loggedInAccount.classList.remove("hidden");
+        loggedOutAccount
+            .classList
+            .add("hidden");
+
+        loggedInAccount
+            .classList
+            .remove("hidden");
 
         const username =
             currentUser.username ||
@@ -547,14 +715,13 @@ function updateAccountUI() {
             currentUser.email?.split("@")[0] ||
             "User";
 
-        sidebarUsername.textContent = username;
+        sidebarUsername.textContent =
+            username;
 
         userAvatar.textContent =
-            username.charAt(0).toUpperCase();
-
-        document
-            .getElementById("listLoginBtn")
-            .classList.add("hidden");
+            username
+                .charAt(0)
+                .toUpperCase();
 
         document
             .getElementById("listSubtitle")
@@ -563,12 +730,13 @@ function updateAccountUI() {
 
     } else {
 
-        loggedOutAccount.classList.remove("hidden");
-        loggedInAccount.classList.add("hidden");
+        loggedOutAccount
+            .classList
+            .remove("hidden");
 
-        document
-            .getElementById("listLoginBtn")
-            .classList.remove("hidden");
+        loggedInAccount
+            .classList
+            .add("hidden");
 
         document
             .getElementById("listSubtitle")
@@ -581,25 +749,32 @@ function updateAccountUI() {
 
 }
 
+
 /* =========================================================
    ANIME API
-   ========================================================= */
+========================================================= */
 
 async function fetchAnime(url) {
 
-    const response = await fetch(url);
+    const response =
+        await fetch(url);
 
     if (!response.ok) {
-        throw new Error("Anime API request failed.");
+
+        throw new Error(
+            "Anime API request failed."
+        );
+
     }
 
     return await response.json();
 
 }
 
+
 /* =========================================================
-   POPULAR ANIME
-   ========================================================= */
+   POPULAR
+========================================================= */
 
 async function loadPopularAnime() {
 
@@ -608,9 +783,8 @@ async function loadPopularAnime() {
 
     try {
 
-        const data = await fetchAnime(
-            "/anime/top"
-        );
+        const data =
+            await fetchAnime("/anime/top");
 
         const anime =
             data.data ||
@@ -627,7 +801,9 @@ async function loadPopularAnime() {
 
         grid.innerHTML = `
             <div class="loading">
-                <span>Unable to load anime.</span>
+                <span>
+                    Unable to load anime.
+                </span>
             </div>
         `;
 
@@ -637,124 +813,220 @@ async function loadPopularAnime() {
 
 }
 
+
 /* =========================================================
-   SEARCH
-   ========================================================= */
+   TRENDING
+========================================================= */
 
-document
-    .getElementById("searchForm")
-    .addEventListener("submit", async event => {
+async function loadTrending() {
 
-        event.preventDefault();
+    const grid =
+        document.getElementById("trendingGrid");
 
-        const input =
-            document.getElementById("searchInput");
+    if (!grid) return;
 
-        const grid =
-            document.getElementById("searchGrid");
+    grid.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <span>
+                Loading trending anime...
+            </span>
+        </div>
+    `;
 
-        const status =
-            document.getElementById("searchStatus");
+    try {
 
-        const query = input.value.trim();
+        const data =
+            await fetchAnime("/anime/top");
 
-        if (!query) {
-            status.textContent =
-                "Enter an anime name to search.";
-            return;
-        }
+        const anime =
+            data.data ||
+            data.results ||
+            data.anime ||
+            [];
 
-        status.textContent =
-            "Searching...";
+        renderAnimeGrid(
+            grid,
+            anime.slice(0, 24)
+        );
+
+    } catch (error) {
 
         grid.innerHTML = `
             <div class="loading">
-                <div class="spinner"></div>
-                <span>Searching anime...</span>
+                <span>
+                    Unable to load trending anime.
+                </span>
             </div>
         `;
 
-        try {
+        console.error(error);
 
-            const data = await fetchAnime(
-                `/anime/search?name=${encodeURIComponent(query)}`
-            );
+    }
 
-            const anime =
-                data.data ||
-                data.results ||
-                data.anime ||
-                [];
+}
 
-            if (!anime.length) {
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+document
+    .getElementById("searchForm")
+    .addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+            const input =
+                document.getElementById(
+                    "searchInput"
+                );
+
+            const grid =
+                document.getElementById(
+                    "searchGrid"
+                );
+
+            const status =
+                document.getElementById(
+                    "searchStatus"
+                );
+
+            const query =
+                input.value.trim();
+
+            if (!query) {
 
                 status.textContent =
-                    "No anime found.";
-
-                grid.innerHTML = "";
+                    "Enter an anime name to search.";
 
                 return;
+
             }
 
             status.textContent =
-                `${anime.length} result${anime.length === 1 ? "" : "s"} found.`;
+                "Searching...";
 
-            renderAnimeGrid(grid, anime);
+            grid.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>
+                        Searching anime...
+                    </span>
+                </div>
+            `;
 
-        } catch (error) {
+            try {
 
-            status.textContent =
-                "Search failed. Please try again.";
+                const data =
+                    await fetchAnime(
+                        `/anime/search?name=${encodeURIComponent(query)}`
+                    );
 
-            grid.innerHTML = "";
+                const anime =
+                    data.data ||
+                    data.results ||
+                    data.anime ||
+                    [];
 
-            console.error(error);
+                if (!anime.length) {
+
+                    status.textContent =
+                        "No anime found.";
+
+                    grid.innerHTML = "";
+
+                    return;
+
+                }
+
+                status.textContent =
+                    `${anime.length} result${
+                        anime.length === 1
+                            ? ""
+                            : "s"
+                    } found.`;
+
+                renderAnimeGrid(
+                    grid,
+                    anime
+                );
+
+            } catch (error) {
+
+                status.textContent =
+                    "Search failed. Please try again.";
+
+                grid.innerHTML = "";
+
+                console.error(error);
+
+            }
 
         }
+    );
 
-    });
 
 /* =========================================================
    ANIME GRID
-   ========================================================= */
+========================================================= */
 
-function renderAnimeGrid(grid, animeList) {
+function renderAnimeGrid(
+    grid,
+    animeList
+) {
 
     if (!animeList.length) {
 
         grid.innerHTML = `
             <div class="loading">
-                <span>No anime available.</span>
+                <span>
+                    No anime available.
+                </span>
             </div>
         `;
 
         return;
+
     }
 
-    grid.innerHTML = animeList
-        .map(animeCard)
-        .join("");
+    grid.innerHTML =
+        animeList
+            .map(animeCard)
+            .join("");
 
     grid
         .querySelectorAll(".anime-card")
         .forEach(card => {
 
-            card.addEventListener("click", () => {
+            card.addEventListener(
+                "click",
+                () => {
 
-                const index =
-                    Number(card.dataset.index);
+                    const index =
+                        Number(
+                            card.dataset.index
+                        );
 
-                const anime = animeList[index];
+                    const anime =
+                        animeList[index];
 
-                openAnimeModal(anime);
+                    openAnimeModal(anime);
 
-            });
+                }
+            );
 
         });
 
 }
 
-function animeCard(anime, index) {
+
+function animeCard(
+    anime,
+    index
+) {
 
     const image =
         anime.images?.jpg?.large_image_url ||
@@ -774,8 +1046,8 @@ function animeCard(anime, index) {
         "N/A";
 
     const episodes =
-        anime.episodes ||
-        anime.episode_count ||
+        anime.episodes ??
+        anime.episode_count ??
         "?";
 
     return `
@@ -791,6 +1063,7 @@ function animeCard(anime, index) {
                     src="${escapeHTML(image)}"
                     alt="${escapeHTML(title)}"
                     loading="lazy"
+                    onerror="this.style.display='none'"
                 >
 
                 <div class="score-badge">
@@ -806,7 +1079,8 @@ function animeCard(anime, index) {
                 </div>
 
                 <div class="anime-card-meta">
-                    ${escapeHTML(String(episodes))} episodes
+                    ${escapeHTML(String(episodes))}
+                    episodes
                 </div>
 
             </div>
@@ -816,9 +1090,10 @@ function animeCard(anime, index) {
 
 }
 
+
 /* =========================================================
    ANIME MODAL
-   ========================================================= */
+========================================================= */
 
 function openAnimeModal(anime) {
 
@@ -842,8 +1117,8 @@ function openAnimeModal(anime) {
         "N/A";
 
     const episodes =
-        anime.episodes ||
-        anime.episode_count ||
+        anime.episodes ??
+        anime.episode_count ??
         "?";
 
     const type =
@@ -855,13 +1130,13 @@ function openAnimeModal(anime) {
         anime.description ||
         "No synopsis available.";
 
-    document.getElementById(
-        "modalAnimeImage"
-    ).src = image;
+    const imageElement =
+        document.getElementById(
+            "modalAnimeImage"
+        );
 
-    document.getElementById(
-        "modalAnimeImage"
-    ).alt = title;
+    imageElement.src = image;
+    imageElement.alt = title;
 
     document.getElementById(
         "modalAnimeTitle"
@@ -869,7 +1144,8 @@ function openAnimeModal(anime) {
 
     document.getElementById(
         "modalAnimeType"
-    ).textContent = String(type).toUpperCase();
+    ).textContent =
+        String(type).toUpperCase();
 
     document.getElementById(
         "modalAnimeMeta"
@@ -884,9 +1160,11 @@ function openAnimeModal(anime) {
 
     animeModal.classList.add("open");
 
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow =
+        "hidden";
 
 }
+
 
 function closeAnimeModal() {
 
@@ -896,21 +1174,30 @@ function closeAnimeModal() {
 
 }
 
+
 document
     .getElementById("animeModalClose")
-    .addEventListener("click", closeAnimeModal);
+    .addEventListener(
+        "click",
+        closeAnimeModal
+    );
 
-animeModal.addEventListener("click", event => {
 
-    if (event.target === animeModal) {
-        closeAnimeModal();
+animeModal.addEventListener(
+    "click",
+    event => {
+
+        if (event.target === animeModal) {
+            closeAnimeModal();
+        }
+
     }
+);
 
-});
 
 /* =========================================================
    MY LIST
-   ========================================================= */
+========================================================= */
 
 function getAnimeId(anime) {
 
@@ -923,87 +1210,109 @@ function getAnimeId(anime) {
 
 }
 
+
 function isInList(anime) {
 
-    const id = getAnimeId(anime);
+    const id =
+        getAnimeId(anime);
 
     return myList.some(
-        item => getAnimeId(item) === id
+        item =>
+            getAnimeId(item) === id
     );
 
 }
 
+
 function updateModalListButton() {
 
     const button =
-        document.getElementById("modalListButton");
+        document.getElementById(
+            "modalListButton"
+        );
 
     if (!currentAnime) return;
 
     if (isInList(currentAnime)) {
 
-        button.textContent = "✓ In My List";
+        button.textContent =
+            "✓ In My List";
 
     } else {
 
-        button.textContent = "+ Add to My List";
+        button.textContent =
+            "+ Add to My List";
 
     }
 
 }
 
+
 document
     .getElementById("modalListButton")
-    .addEventListener("click", () => {
+    .addEventListener(
+        "click",
+        () => {
 
-        if (!currentUser) {
+            if (!currentUser) {
 
-            closeAnimeModal();
-            openLogin();
+                closeAnimeModal();
 
-            showToast(
-                "Log in to add anime to your list.",
-                "error"
-            );
+                openLogin();
 
-            return;
+                showToast(
+                    "Log in to add anime to your list.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+            if (!currentAnime) return;
+
+            const id =
+                getAnimeId(currentAnime);
+
+            const existingIndex =
+                myList.findIndex(
+                    item =>
+                        getAnimeId(item) === id
+                );
+
+            if (existingIndex !== -1) {
+
+                myList.splice(
+                    existingIndex,
+                    1
+                );
+
+                showToast(
+                    "Removed from My List."
+                );
+
+            } else {
+
+                myList.push(
+                    currentAnime
+                );
+
+                showToast(
+                    "Added to My List!",
+                    "success"
+                );
+
+            }
+
+            saveLocalList();
+
+            updateModalListButton();
+
+            renderMyList();
+
         }
+    );
 
-        if (!currentAnime) return;
-
-        const id = getAnimeId(currentAnime);
-
-        const existingIndex =
-            myList.findIndex(
-                item => getAnimeId(item) === id
-            );
-
-        if (existingIndex !== -1) {
-
-            myList.splice(existingIndex, 1);
-
-            showToast(
-                "Removed from My List."
-            );
-
-        } else {
-
-            myList.push(currentAnime);
-
-            showToast(
-                "Added to My List!",
-                "success"
-            );
-
-        }
-
-        saveLocalList();
-
-        updateModalListButton();
-
-        renderMyList();
-
-    });
 
 function saveLocalList() {
 
@@ -1014,54 +1323,57 @@ function saveLocalList() {
 
 }
 
+
 function renderMyList() {
 
     const container =
-        document.getElementById("myListContent");
+        document.getElementById(
+            "myListContent"
+        );
+
+    const loginBox =
+        document.getElementById(
+            "myListLogin"
+        );
 
     if (!currentUser) {
 
-        container.innerHTML = `
-            <div class="empty-list">
+        loginBox.classList.remove(
+            "hidden"
+        );
 
-                <div class="empty-list-icon">◆</div>
-
-                <h3>Your list is waiting for you</h3>
-
-                <p>
-                    Log in to start building your personal
-                    anime collection.
-                </p>
-
-                <button
-                    class="primary-button"
-                    onclick="openLogin()"
-                >
-                    Log In
-                </button>
-
-            </div>
-        `;
+        container.innerHTML = "";
 
         return;
+
     }
+
+    loginBox.classList.add(
+        "hidden"
+    );
 
     if (!myList.length) {
 
         container.innerHTML = `
             <div class="empty-list">
 
-                <div class="empty-list-icon">◆</div>
+                <div class="empty-list-icon">
+                    ◒
+                </div>
 
-                <h3>Your list is empty</h3>
+                <h3>
+                    Your list is empty
+                </h3>
 
                 <p>
-                    Search for an anime and add it to your collection.
+                    Search for an anime and
+                    add it to your collection.
                 </p>
 
                 <button
                     class="primary-button"
-                    onclick="showPage('search')"
+                    id="findAnimeButton"
+                    type="button"
                 >
                     Find Anime
                 </button>
@@ -1069,7 +1381,15 @@ function renderMyList() {
             </div>
         `;
 
+        document
+            .getElementById("findAnimeButton")
+            .addEventListener(
+                "click",
+                () => showPage("search")
+            );
+
         return;
+
     }
 
     container.innerHTML = `
@@ -1082,87 +1402,69 @@ function renderMyList() {
         .querySelectorAll(".anime-card")
         .forEach(card => {
 
-            card.addEventListener("click", () => {
+            card.addEventListener(
+                "click",
+                () => {
 
-                const anime =
-                    myList[Number(card.dataset.index)];
+                    const anime =
+                        myList[
+                            Number(
+                                card.dataset.index
+                            )
+                        ];
 
-                openAnimeModal(anime);
+                    openAnimeModal(anime);
 
-            });
+                }
+            );
 
         });
 
 }
 
+
 /* =========================================================
    RATING
-   ========================================================= */
+========================================================= */
 
 document
     .getElementById("modalRateButton")
-    .addEventListener("click", () => {
+    .addEventListener(
+        "click",
+        () => {
 
-        if (!currentUser) {
+            if (!currentUser) {
 
-            closeAnimeModal();
-            openLogin();
+                closeAnimeModal();
 
-            showToast(
-                "Log in to rate anime.",
-                "error"
-            );
+                openLogin();
 
-            return;
+                showToast(
+                    "Log in to rate anime.",
+                    "error"
+                );
 
-        }
+                return;
 
-        if (!currentAnime) return;
+            }
 
-        document.getElementById(
-            "ratingAnimeTitle"
-        ).textContent =
-            currentAnime.title ||
-            currentAnime.name ||
-            "Anime";
+            if (!currentAnime) return;
 
-        currentRating = 0;
+            document.getElementById(
+                "ratingAnimeTitle"
+            ).textContent =
+                currentAnime.title ||
+                currentAnime.name ||
+                "Anime";
 
-        document
-            .querySelectorAll(".stars button")
-            .forEach(star => {
-                star.classList.remove("selected");
-            });
-
-        document.getElementById(
-            "ratingValue"
-        ).textContent =
-            "Select a rating";
-
-        closeAnimeModal();
-
-        ratingModal.classList.add("open");
-
-        document.body.style.overflow = "hidden";
-
-    });
-
-document
-    .querySelectorAll(".stars button")
-    .forEach(star => {
-
-        star.addEventListener("click", () => {
-
-            currentRating =
-                Number(star.dataset.rating);
+            currentRating = 0;
 
             document
                 .querySelectorAll(".stars button")
-                .forEach(item => {
+                .forEach(star => {
 
-                    item.classList.toggle(
-                        "selected",
-                        Number(item.dataset.rating) <= currentRating
+                    star.classList.remove(
+                        "selected"
                     );
 
                 });
@@ -1170,70 +1472,143 @@ document
             document.getElementById(
                 "ratingValue"
             ).textContent =
-                `${currentRating} / 5`;
+                "Select a rating";
 
-        });
+            closeAnimeModal();
+
+            ratingModal.classList.add(
+                "open"
+            );
+
+            document.body.style.overflow =
+                "hidden";
+
+        }
+    );
+
+
+document
+    .querySelectorAll(".stars button")
+    .forEach(star => {
+
+        star.addEventListener(
+            "click",
+            () => {
+
+                currentRating =
+                    Number(
+                        star.dataset.rating
+                    );
+
+                document
+                    .querySelectorAll(
+                        ".stars button"
+                    )
+                    .forEach(item => {
+
+                        item.classList.toggle(
+                            "selected",
+                            Number(
+                                item.dataset.rating
+                            ) <= currentRating
+                        );
+
+                    });
+
+                document.getElementById(
+                    "ratingValue"
+                ).textContent =
+                    `${currentRating} / 5`;
+
+            }
+        );
 
     });
+
 
 document
     .getElementById("submitRating")
-    .addEventListener("click", () => {
+    .addEventListener(
+        "click",
+        () => {
 
-        if (!currentRating) {
+            if (!currentRating) {
+
+                showToast(
+                    "Please select a rating.",
+                    "error"
+                );
+
+                return;
+
+            }
 
             showToast(
-                "Please select a rating.",
-                "error"
+                `Rated ${currentRating}/5!`,
+                "success"
             );
 
-            return;
+            closeRatingModal();
+
         }
+    );
 
-        showToast(
-            `Rated ${currentRating}/5!`,
-            "success"
-        );
-
-        closeRatingModal();
-
-    });
 
 function closeRatingModal() {
 
-    ratingModal.classList.remove("open");
+    ratingModal.classList.remove(
+        "open"
+    );
 
     document.body.style.overflow = "";
 
 }
 
+
 document
     .getElementById("ratingModalClose")
-    .addEventListener("click", closeRatingModal);
+    .addEventListener(
+        "click",
+        closeRatingModal
+    );
 
-ratingModal.addEventListener("click", event => {
 
-    if (event.target === ratingModal) {
-        closeRatingModal();
+ratingModal.addEventListener(
+    "click",
+    event => {
+
+        if (event.target === ratingModal) {
+            closeRatingModal();
+        }
+
     }
+);
 
-});
 
 /* =========================================================
    SCHEDULE
-   ========================================================= */
+========================================================= */
 
-let scheduleData = {};
-
-async function loadSchedule(day = "monday") {
+async function loadSchedule(
+    day = "monday"
+) {
 
     const grid =
-        document.getElementById("scheduleGrid");
+        document.getElementById(
+            "scheduleGrid"
+        );
+
+    if (!grid) return;
 
     grid.innerHTML = `
         <div class="loading">
+
             <div class="spinner"></div>
-            <span>Loading ${day} schedule...</span>
+
+            <span>
+                Loading ${day} schedule...
+            </span>
+
         </div>
     `;
 
@@ -1241,9 +1616,10 @@ async function loadSchedule(day = "monday") {
 
         if (!scheduleData[day]) {
 
-            const data = await fetchAnime(
-                `/anime/schedule?day=${day}`
-            );
+            const data =
+                await fetchAnime(
+                    `/anime/schedule?day=${day}`
+                );
 
             scheduleData[day] =
                 data.data ||
@@ -1274,36 +1650,119 @@ async function loadSchedule(day = "monday") {
 
 }
 
+
 document
     .querySelectorAll(".schedule-tab")
     .forEach(tab => {
 
-        tab.addEventListener("click", () => {
+        tab.addEventListener(
+            "click",
+            () => {
 
-            document
-                .querySelectorAll(".schedule-tab")
-                .forEach(item => {
-                    item.classList.remove("active");
-                });
+                document
+                    .querySelectorAll(
+                        ".schedule-tab"
+                    )
+                    .forEach(item => {
 
-            tab.classList.add("active");
+                        item.classList.remove(
+                            "active"
+                        );
 
-            loadSchedule(tab.dataset.day);
+                    });
 
-        });
+                tab.classList.add(
+                    "active"
+                );
+
+                loadSchedule(
+                    tab.dataset.day
+                );
+
+            }
+        );
 
     });
 
+
+/* =========================================================
+   RANDOM
+========================================================= */
+
+document
+    .getElementById("randomButton")
+    .addEventListener(
+        "click",
+        async () => {
+
+            const result =
+                document.getElementById(
+                    "randomResult"
+                );
+
+            result.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>
+                        Finding an anime...
+                    </span>
+                </div>
+            `;
+
+            try {
+
+                const data =
+                    await fetchAnime(
+                        "/anime/random"
+                    );
+
+                const anime =
+                    data.data ||
+                    data.anime ||
+                    data;
+
+                if (!anime) {
+                    throw new Error(
+                        "No anime returned."
+                    );
+                }
+
+                result.innerHTML = "";
+
+                openAnimeModal(anime);
+
+            } catch (error) {
+
+                result.innerHTML = "";
+
+                showToast(
+                    "Unable to find a random anime.",
+                    "error"
+                );
+
+                console.error(error);
+
+            }
+
+        }
+    );
+
+
 /* =========================================================
    TOAST
-   ========================================================= */
+========================================================= */
 
 let toastTimeout;
 
-function showToast(message, type = "") {
+function showToast(
+    message,
+    type = ""
+) {
 
     const toast =
-        document.getElementById("toast");
+        document.getElementById(
+            "toast"
+        );
 
     toast.textContent = message;
 
@@ -1314,53 +1773,86 @@ function showToast(message, type = "") {
     }
 
     requestAnimationFrame(() => {
+
         toast.classList.add("show");
+
     });
 
     clearTimeout(toastTimeout);
 
-    toastTimeout = setTimeout(() => {
-        toast.classList.remove("show");
-    }, 3000);
+    toastTimeout =
+        setTimeout(() => {
+
+            toast.classList.remove(
+                "show"
+            );
+
+        }, 3000);
 
 }
 
+
 /* =========================================================
    ESCAPE HTML
-   ========================================================= */
+========================================================= */
 
 function escapeHTML(value) {
 
-    if (value === null || value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
         return "";
     }
 
     return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 
 }
 
+
 /* =========================================================
-   GLOBAL MODAL ESCAPE
-   ========================================================= */
+   ESCAPE MODALS
+========================================================= */
 
-document.addEventListener("keydown", event => {
+document.addEventListener(
+    "keydown",
+    event => {
 
-    if (event.key !== "Escape") return;
+        if (event.key !== "Escape") {
+            return;
+        }
 
-    closeAccountModal();
-    closeAnimeModal();
-    closeRatingModal();
+        closeAccountModal();
+        closeAnimeModal();
+        closeRatingModal();
 
-});
+    }
+);
+
 
 /* =========================================================
    STARTUP
-   ========================================================= */
+========================================================= */
 
 async function initializeMIRAI() {
 
@@ -1373,5 +1865,6 @@ async function initializeMIRAI() {
     loadSchedule("monday");
 
 }
+
 
 initializeMIRAI();
