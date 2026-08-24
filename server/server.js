@@ -49,7 +49,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve the frontend (index.html, style.css, script.js) from /public
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "..", "public")));
 
 
 // ============================================================
@@ -413,11 +413,9 @@ function getCurrentSeason() {
 // ============================================================
 
 app.get("*", function (req, res) {
-
     res.sendFile(
-        path.join(__dirname, "public", "index.html")
+        path.join(__dirname, "..", "public", "index.html")
     );
-
 });
 
 
