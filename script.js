@@ -13,9 +13,7 @@ let currentUser = null;
 let currentAnime = null;
 let currentRating = 0;
 
-let myList = JSON.parse(
-    localStorage.getItem("mirai_my_list") || "[]"
-);
+let myList = [];
 
 let scheduleData = {};
 
@@ -157,9 +155,12 @@ if (mobileMenuBtn) {
 
     mobileMenuBtn.addEventListener("click", () => {
 
-        document
-            .getElementById("sidebar")
-            .classList.toggle("open");
+        const sidebar =
+            document.getElementById("sidebar");
+
+        if (sidebar) {
+            sidebar.classList.toggle("open");
+        }
 
     });
 
@@ -201,9 +202,12 @@ if (heroSearchBtn) {
 
         showPage("search");
 
-        document
-            .getElementById("searchInput")
-            .focus();
+        const input =
+            document.getElementById("searchInput");
+
+        if (input) {
+            input.focus();
+        }
 
     });
 
@@ -219,9 +223,12 @@ if (homeSearchBtn) {
 
         showPage("search");
 
-        document
-            .getElementById("searchInput")
-            .focus();
+        const input =
+            document.getElementById("searchInput");
+
+        if (input) {
+            input.focus();
+        }
 
     });
 
@@ -261,6 +268,8 @@ if (listLoginBtn) {
 
 function openAccountModal() {
 
+    if (!accountModal) return;
+
     accountModal.classList.add("open");
 
     document.body.style.overflow = "hidden";
@@ -269,6 +278,8 @@ function openAccountModal() {
 
 
 function closeAccountModal() {
+
+    if (!accountModal) return;
 
     accountModal.classList.remove("open");
 
@@ -281,9 +292,13 @@ function openLogin() {
 
     clearAccountErrors();
 
-    loginContainer.classList.remove("hidden");
+    if (loginContainer) {
+        loginContainer.classList.remove("hidden");
+    }
 
-    registerContainer.classList.add("hidden");
+    if (registerContainer) {
+        registerContainer.classList.add("hidden");
+    }
 
     openAccountModal();
 
@@ -294,9 +309,13 @@ function openRegister() {
 
     clearAccountErrors();
 
-    loginContainer.classList.add("hidden");
+    if (loginContainer) {
+        loginContainer.classList.add("hidden");
+    }
 
-    registerContainer.classList.remove("hidden");
+    if (registerContainer) {
+        registerContainer.classList.remove("hidden");
+    }
 
     openAccountModal();
 
@@ -387,6 +406,8 @@ if (accountModal) {
 
 function showError(element, message) {
 
+    if (!element) return;
+
     element.textContent = message;
 
     element.classList.add("show");
@@ -396,11 +417,21 @@ function showError(element, message) {
 
 function clearAccountErrors() {
 
-    loginError.textContent = "";
-    registerError.textContent = "";
+    if (loginError) {
 
-    loginError.classList.remove("show");
-    registerError.classList.remove("show");
+        loginError.textContent = "";
+
+        loginError.classList.remove("show");
+
+    }
+
+    if (registerError) {
+
+        registerError.textContent = "";
+
+        registerError.classList.remove("show");
+
+    }
 
 }
 
@@ -417,7 +448,7 @@ if (loginForm) {
 
         clearAccountErrors();
 
-        const email =
+        const identifier =
             document
                 .getElementById("loginEmail")
                 .value
@@ -428,11 +459,11 @@ if (loginForm) {
                 .getElementById("loginPassword")
                 .value;
 
-        if (!email || !password) {
+        if (!identifier || !password) {
 
             showError(
                 loginError,
-                "Please enter your email and password."
+                "Please enter your username/email and password."
             );
 
             return;
@@ -450,23 +481,24 @@ if (loginForm) {
 
         try {
 
-            const response = await fetch(
-                `${API_BASE}/auth/login`,
-                {
-                    method: "POST",
+            const response =
+                await fetch(
+                    `${API_BASE}/auth/login`,
+                    {
+                        method: "POST",
 
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
 
-                    credentials: "include",
+                        credentials: "include",
 
-                    body: JSON.stringify({
-                        email,
-                        password
-                    })
-                }
-            );
+                        body: JSON.stringify({
+                            identifier,
+                            password
+                        })
+                    }
+                );
 
             const data =
                 await response
@@ -478,7 +510,7 @@ if (loginForm) {
                 throw new Error(
                     data.message ||
                     data.error ||
-                    "Incorrect email or password."
+                    "Incorrect username/email or password."
                 );
 
             }
@@ -486,9 +518,19 @@ if (loginForm) {
             currentUser =
                 data.user ||
                 data.account ||
-                data;
+                null;
+
+            if (!currentUser) {
+
+                throw new Error(
+                    "Login succeeded but no user account was returned."
+                );
+
+            }
 
             updateAccountUI();
+
+            await loadMyListFromServer();
 
             closeAccountModal();
 
@@ -502,6 +544,11 @@ if (loginForm) {
             );
 
         } catch (error) {
+
+            console.error(
+                "LOGIN ERROR:",
+                error
+            );
 
             showError(
                 loginError,
@@ -570,6 +617,28 @@ if (registerForm) {
 
             }
 
+            if (username.length > 30) {
+
+                showError(
+                    registerError,
+                    "Username must be 30 characters or fewer."
+                );
+
+                return;
+
+            }
+
+            if (!email.includes("@")) {
+
+                showError(
+                    registerError,
+                    "Please enter a valid email address."
+                );
+
+                return;
+
+            }
+
             if (password.length < 6) {
 
                 showError(
@@ -603,24 +672,25 @@ if (registerForm) {
 
             try {
 
-                const response = await fetch(
-                    `${API_BASE}/auth/register`,
-                    {
-                        method: "POST",
+                const response =
+                    await fetch(
+                        `${API_BASE}/auth/register`,
+                        {
+                            method: "POST",
 
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
 
-                        credentials: "include",
+                            credentials: "include",
 
-                        body: JSON.stringify({
-                            username,
-                            email,
-                            password
-                        })
-                    }
-                );
+                            body: JSON.stringify({
+                                username,
+                                email,
+                                password
+                            })
+                        }
+                    );
 
                 const data =
                     await response
@@ -640,7 +710,17 @@ if (registerForm) {
                 currentUser =
                     data.user ||
                     data.account ||
-                    data;
+                    null;
+
+                if (!currentUser) {
+
+                    throw new Error(
+                        "Account was created but no user account was returned."
+                    );
+
+                }
+
+                myList = [];
 
                 updateAccountUI();
 
@@ -654,6 +734,11 @@ if (registerForm) {
                 );
 
             } catch (error) {
+
+                console.error(
+                    "REGISTER ERROR:",
+                    error
+                );
 
                 showError(
                     registerError,
@@ -687,17 +772,27 @@ if (logoutBtn) {
 
         try {
 
-            await fetch(
-                `${API_BASE}/auth/logout`,
-                {
-                    method: "POST",
-                    credentials: "include"
-                }
-            );
+            const response =
+                await fetch(
+                    `${API_BASE}/auth/logout`,
+                    {
+                        method: "POST",
+                        credentials: "include"
+                    }
+                );
+
+            if (!response.ok) {
+
+                console.warn(
+                    "Logout returned:",
+                    response.status
+                );
+
+            }
 
         } catch (error) {
 
-            console.log(
+            console.error(
                 "Logout request failed:",
                 error
             );
@@ -705,6 +800,8 @@ if (logoutBtn) {
         }
 
         currentUser = null;
+
+        myList = [];
 
         updateAccountUI();
 
@@ -727,17 +824,21 @@ async function checkSession() {
 
     try {
 
-        const response = await fetch(
-            `${API_BASE}/auth/me`,
-            {
-                method: "GET",
-                credentials: "include"
-            }
-        );
+        const response =
+            await fetch(
+                `${API_BASE}/auth/me`,
+                {
+                    method: "GET",
+                    credentials: "include",
+                    cache: "no-store"
+                }
+            );
 
         if (!response.ok) {
 
             currentUser = null;
+
+            myList = [];
 
             updateAccountUI();
 
@@ -748,33 +849,38 @@ async function checkSession() {
         const data =
             await response.json();
 
-        currentUser =
-            data.user ||
-            data.account ||
-            data;
-
         if (
-            !currentUser ||
-            (
-                !currentUser.username &&
-                !currentUser.email
-            )
+            data.loggedIn &&
+            data.user
         ) {
+
+            currentUser =
+                data.user;
+
+            updateAccountUI();
+
+            await loadMyListFromServer();
+
+        } else {
 
             currentUser = null;
 
-        }
+            myList = [];
 
-        updateAccountUI();
+            updateAccountUI();
+
+        }
 
     } catch (error) {
 
-        console.log(
+        console.error(
             "Session check failed:",
-            error.message
+            error
         );
 
         currentUser = null;
+
+        myList = [];
 
         updateAccountUI();
 
@@ -791,13 +897,21 @@ function updateAccountUI() {
 
     if (currentUser) {
 
-        loggedOutAccount
-            .classList
-            .add("hidden");
+        if (loggedOutAccount) {
 
-        loggedInAccount
-            .classList
-            .remove("hidden");
+            loggedOutAccount
+                .classList
+                .add("hidden");
+
+        }
+
+        if (loggedInAccount) {
+
+            loggedInAccount
+                .classList
+                .remove("hidden");
+
+        }
 
         const username =
             currentUser.username ||
@@ -805,13 +919,21 @@ function updateAccountUI() {
             currentUser.email?.split("@")[0] ||
             "User";
 
-        sidebarUsername.textContent =
-            username;
+        if (sidebarUsername) {
 
-        userAvatar.textContent =
-            username
-                .charAt(0)
-                .toUpperCase();
+            sidebarUsername.textContent =
+                username;
+
+        }
+
+        if (userAvatar) {
+
+            userAvatar.textContent =
+                username
+                    .charAt(0)
+                    .toUpperCase();
+
+        }
 
         const listSubtitle =
             document.getElementById(
@@ -827,13 +949,21 @@ function updateAccountUI() {
 
     } else {
 
-        loggedOutAccount
-            .classList
-            .remove("hidden");
+        if (loggedOutAccount) {
 
-        loggedInAccount
-            .classList
-            .add("hidden");
+            loggedOutAccount
+                .classList
+                .remove("hidden");
+
+        }
+
+        if (loggedInAccount) {
+
+            loggedInAccount
+                .classList
+                .add("hidden");
+
+        }
 
         const listSubtitle =
             document.getElementById(
@@ -855,6 +985,78 @@ function updateAccountUI() {
 
 
 /* =========================================================
+   LOAD USER'S LIST FROM DATABASE
+========================================================= */
+
+async function loadMyListFromServer() {
+
+    if (!currentUser) {
+
+        myList = [];
+
+        renderMyList();
+
+        return;
+
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}/api/my-list`,
+                {
+                    method: "GET",
+                    credentials: "include",
+                    cache: "no-store"
+                }
+            );
+
+        const data =
+            await response
+                .json()
+                .catch(() => ({}));
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                "Could not load your list."
+            );
+
+        }
+
+        myList =
+            normalizeAnimeList(
+                data.data ||
+                []
+            );
+
+        renderMyList();
+
+    } catch (error) {
+
+        console.error(
+            "LOAD MY LIST ERROR:",
+            error
+        );
+
+        myList = [];
+
+        renderMyList();
+
+        showToast(
+            "Could not load your anime list.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
    ANIME API
 ========================================================= */
 
@@ -863,15 +1065,22 @@ async function fetchAnime(url) {
     const response =
         await fetch(url);
 
+    const data =
+        await response
+            .json()
+            .catch(() => ({}));
+
     if (!response.ok) {
 
         throw new Error(
+            data.error ||
+            data.message ||
             "Anime API request failed."
         );
 
     }
 
-    return await response.json();
+    return data;
 
 }
 
@@ -879,24 +1088,6 @@ async function fetchAnime(url) {
 /* =========================================================
    MAL ANIME NORMALIZER
 ========================================================= */
-
-/*
-    MAL responses often look like:
-
-    {
-        node: {
-            id: 5114,
-            title: "Fullmetal Alchemist: Brotherhood",
-            main_picture: {
-                medium: "...",
-                large: "..."
-            }
-        }
-    }
-
-    This function converts MAL's format into the
-    format MIRAI uses internally.
-*/
 
 function normalizeAnime(anime) {
 
@@ -911,6 +1102,12 @@ function normalizeAnime(anime) {
     return {
 
         ...anime,
+
+        id:
+            node.id ||
+            anime.id ||
+            anime.mal_id ||
+            anime.anime_id,
 
         mal_id:
             node.id ||
@@ -931,6 +1128,13 @@ function normalizeAnime(anime) {
             anime.image ||
             anime.images?.jpg?.large_image_url ||
             anime.images?.jpg?.image_url ||
+            "",
+
+        image:
+            node.main_picture?.large ||
+            node.main_picture?.medium ||
+            anime.image ||
+            anime.image_url ||
             "",
 
         score:
@@ -1047,7 +1251,7 @@ async function loadTrending() {
     try {
 
         const data =
-            await fetchAnime("/anime/top");
+            await fetchAnime("/anime/trending");
 
         const anime =
             normalizeAnimeList(
@@ -1314,11 +1518,13 @@ function animeCard(
                 </div>
 
                 <div class="anime-card-meta">
+
                     ${
                         episodes === "?"
                             ? "Episodes unknown"
                             : `${escapeHTML(String(episodes))} episodes`
                     }
+
                 </div>
 
             </div>
@@ -1378,11 +1584,15 @@ function openAnimeModal(anime) {
             "modalAnimeImage"
         );
 
-    imageElement.src =
-        image;
+    if (imageElement) {
 
-    imageElement.alt =
-        title;
+        imageElement.src =
+            image;
+
+        imageElement.alt =
+            title;
+
+    }
 
     document.getElementById(
         "modalAnimeTitle"
@@ -1415,6 +1625,8 @@ function openAnimeModal(anime) {
 
 
 function closeAnimeModal() {
+
+    if (!animeModal) return;
 
     animeModal.classList.remove("open");
 
@@ -1465,7 +1677,8 @@ function getAnimeId(anime) {
 
     return (
         normalized?.mal_id ||
-        normalized?.title
+        normalized?.id ||
+        null
     );
 
 }
@@ -1476,9 +1689,14 @@ function isInList(anime) {
     const id =
         getAnimeId(anime);
 
+    if (!id) {
+        return false;
+    }
+
     return myList.some(
         item =>
-            getAnimeId(item) === id
+            Number(getAnimeId(item)) ===
+            Number(id)
     );
 
 }
@@ -1510,6 +1728,10 @@ function updateModalListButton() {
 }
 
 
+/* =========================================================
+   ADD / REMOVE FROM MY LIST
+========================================================= */
+
 const modalListButton =
     document.getElementById(
         "modalListButton"
@@ -1519,7 +1741,7 @@ if (modalListButton) {
 
     modalListButton.addEventListener(
         "click",
-        () => {
+        async () => {
 
             if (!currentUser) {
 
@@ -1538,44 +1760,145 @@ if (modalListButton) {
 
             if (!currentAnime) return;
 
-            const id =
+            const animeId =
                 getAnimeId(currentAnime);
 
-            const existingIndex =
-                myList.findIndex(
-                    item =>
-                        getAnimeId(item) === id
-                );
-
-            if (existingIndex !== -1) {
-
-                myList.splice(
-                    existingIndex,
-                    1
-                );
+            if (!animeId) {
 
                 showToast(
-                    "Removed from My List."
+                    "This anime has an invalid MAL ID.",
+                    "error"
                 );
 
-            } else {
-
-                myList.push(
-                    normalizeAnime(currentAnime)
-                );
-
-                showToast(
-                    "Added to My List!",
-                    "success"
-                );
+                return;
 
             }
 
-            saveLocalList();
+            const alreadyInList =
+                isInList(currentAnime);
 
-            updateModalListButton();
+            modalListButton.disabled = true;
 
-            renderMyList();
+            try {
+
+                if (alreadyInList) {
+
+                    const response =
+                        await fetch(
+                            `${API_BASE}/api/my-list/${animeId}`,
+                            {
+                                method: "DELETE",
+                                credentials: "include"
+                            }
+                        );
+
+                    const data =
+                        await response
+                            .json()
+                            .catch(() => ({}));
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data.error ||
+                            "Could not remove anime."
+                        );
+
+                    }
+
+                    myList =
+                        myList.filter(
+                            item =>
+                                Number(
+                                    getAnimeId(item)
+                                ) !== Number(animeId)
+                        );
+
+                    showToast(
+                        "Removed from My List."
+                    );
+
+                } else {
+
+                    const response =
+                        await fetch(
+                            `${API_BASE}/api/my-list`,
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                credentials: "include",
+
+                                body:
+                                    JSON.stringify({
+                                        anime:
+                                            currentAnime,
+
+                                        status:
+                                            "plan",
+
+                                        episode:
+                                            0,
+
+                                        rating:
+                                            0
+                                    })
+                            }
+                        );
+
+                    const data =
+                        await response
+                            .json()
+                            .catch(() => ({}));
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data.error ||
+                            "Could not save anime."
+                        );
+
+                    }
+
+                    myList.push(
+                        normalizeAnime(
+                            currentAnime
+                        )
+                    );
+
+                    showToast(
+                        "Added to My List!",
+                        "success"
+                    );
+
+                }
+
+                updateModalListButton();
+
+                renderMyList();
+
+            } catch (error) {
+
+                console.error(
+                    "MY LIST ERROR:",
+                    error
+                );
+
+                showToast(
+                    error.message ||
+                    "Could not update your list.",
+                    "error"
+                );
+
+            } finally {
+
+                modalListButton.disabled = false;
+
+            }
 
         }
     );
@@ -1583,15 +1906,9 @@ if (modalListButton) {
 }
 
 
-function saveLocalList() {
-
-    localStorage.setItem(
-        "mirai_my_list",
-        JSON.stringify(myList)
-    );
-
-}
-
+/* =========================================================
+   MY LIST RENDER
+========================================================= */
 
 function renderMyList() {
 
@@ -1654,12 +1971,19 @@ function renderMyList() {
             </div>
         `;
 
-        document
-            .getElementById("findAnimeButton")
-            .addEventListener(
+        const button =
+            document.getElementById(
+                "findAnimeButton"
+            );
+
+        if (button) {
+
+            button.addEventListener(
                 "click",
                 () => showPage("search")
             );
+
+        }
 
         return;
 
@@ -1841,6 +2165,8 @@ if (submitRating) {
 
 
 function closeRatingModal() {
+
+    if (!ratingModal) return;
 
     ratingModal.classList.remove(
         "open"
@@ -2130,26 +2456,11 @@ function escapeHTML(value) {
     }
 
     return String(value)
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 
 }
 
@@ -2179,6 +2490,15 @@ document.addEventListener(
 ========================================================= */
 
 async function initializeMIRAI() {
+
+    /*
+        We check the server FIRST.
+
+        The database now controls the user's
+        login and anime list.
+
+        Nothing important relies on localStorage.
+    */
 
     updateAccountUI();
 
