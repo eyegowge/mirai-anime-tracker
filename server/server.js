@@ -18,7 +18,8 @@ dotenv.config({
 
 const app = express();
 
-const PORT = process.env.PORT || 3000;
+const PORT =
+    process.env.PORT || 3000;
 
 const MAL_CLIENT_ID =
     process.env.MAL_CLIENT_ID;
@@ -27,25 +28,31 @@ const DATABASE_URL =
     process.env.DATABASE_URL;
 
 
-// ======================================================
-// ENVIRONMENT CHECK
-// ======================================================
+/* ======================================================
+   ENVIRONMENT CHECK
+====================================================== */
 
 if (!MAL_CLIENT_ID) {
-    console.error("ERROR: MAL_CLIENT_ID was not found.");
+    console.error(
+        "ERROR: MAL_CLIENT_ID was not found."
+    );
 }
 
 if (!DATABASE_URL) {
-    console.error("ERROR: DATABASE_URL was not found.");
+    console.error(
+        "ERROR: DATABASE_URL was not found."
+    );
 }
 
 
-// ======================================================
-// DATABASE
-// ======================================================
+/* ======================================================
+   DATABASE
+====================================================== */
 
 const pool = new Pool({
-    connectionString: DATABASE_URL,
+
+    connectionString:
+        DATABASE_URL,
 
     ssl:
         process.env.NODE_ENV === "production"
@@ -53,18 +60,24 @@ const pool = new Pool({
                 rejectUnauthorized: false
             }
             : false
+
 });
 
 
-// ======================================================
-// DATABASE SETUP
-// ======================================================
+/* ======================================================
+   DATABASE SETUP
+====================================================== */
 
 async function setupDatabase() {
 
     if (!DATABASE_URL) {
-        throw new Error("DATABASE_URL is missing.");
+
+        throw new Error(
+            "DATABASE_URL is missing."
+        );
+
     }
+
 
     await pool.query(`
 
@@ -131,40 +144,56 @@ async function setupDatabase() {
 
     `);
 
-    console.log("MIRAI database ready.");
+
+    console.log(
+        "MIRAI database ready."
+    );
+
 }
 
 
-// ======================================================
-// MIDDLEWARE
-// ======================================================
+/* ======================================================
+   MIDDLEWARE
+====================================================== */
 
 app.use(
     cors({
+
         origin: true,
+
         credentials: true
+
     })
 );
+
 
 app.use(
     express.json({
+
         limit: "2mb"
+
     })
 );
 
 
-// ======================================================
-// SESSIONS
-// ======================================================
+/* ======================================================
+   SESSIONS
+====================================================== */
 
 app.use(
     session({
 
         store:
             new pgSession({
+
                 pool,
-                tableName: "user_sessions",
-                createTableIfMissing: true
+
+                tableName:
+                    "user_sessions",
+
+                createTableIfMissing:
+                    true
+
             }),
 
         secret:
@@ -197,32 +226,45 @@ app.use(
 );
 
 
-// ======================================================
-// MAL API
-// ======================================================
+/* ======================================================
+   MAL API
+====================================================== */
 
 async function malFetch(url) {
 
-    const response = await fetch(url, {
+    const response =
+        await fetch(
+            url,
+            {
 
-        headers: {
-            "X-MAL-CLIENT-ID": MAL_CLIENT_ID
-        }
+                headers: {
 
-    });
+                    "X-MAL-CLIENT-ID":
+                        MAL_CLIENT_ID
+
+                }
+
+            }
+        );
+
 
     console.log(
         "MAL STATUS:",
         response.status
     );
 
-    const text = await response.text();
+
+    const text =
+        await response.text();
+
 
     let data;
 
+
     try {
 
-        data = JSON.parse(text);
+        data =
+            JSON.parse(text);
 
     } catch {
 
@@ -231,6 +273,7 @@ async function malFetch(url) {
         );
 
     }
+
 
     if (!response.ok) {
 
@@ -246,13 +289,15 @@ async function malFetch(url) {
 
     }
 
+
     return data;
+
 }
 
 
-// ======================================================
-// NORMALIZE MAL ANIME
-// ======================================================
+/* ======================================================
+   NORMALIZE MAL ANIME
+====================================================== */
 
 function normalizeAnime(item) {
 
@@ -260,12 +305,16 @@ function normalizeAnime(item) {
         item?.node ||
         item;
 
+
     if (!anime) {
         return null;
     }
 
+
     const picture =
-        anime.main_picture || {};
+        anime.main_picture ||
+        {};
+
 
     return {
 
@@ -350,6 +399,7 @@ function normalizeAnime(item) {
             null
 
     };
+
 }
 
 
@@ -362,11 +412,15 @@ function normalizeAnimeList(data) {
 }
 
 
-// ======================================================
-// AUTH HELPERS
-// ======================================================
+/* ======================================================
+   AUTH HELPERS
+====================================================== */
 
-function requireAuth(req, res, next) {
+function requireAuth(
+    req,
+    res,
+    next
+) {
 
     if (
         !req.session ||
@@ -384,7 +438,9 @@ function requireAuth(req, res, next) {
 
     }
 
+
     next();
+
 }
 
 
@@ -392,7 +448,8 @@ function sanitizeUser(user) {
 
     return {
 
-        id: user.id,
+        id:
+            user.id,
 
         username:
             user.username,
@@ -404,12 +461,13 @@ function sanitizeUser(user) {
             user.created_at
 
     };
+
 }
 
 
-// ======================================================
-// SERVER STATUS
-// ======================================================
+/* ======================================================
+   SERVER STATUS
+====================================================== */
 
 app.get(
     "/api/status",
@@ -433,11 +491,14 @@ app.get(
 );
 
 
-// ======================================================
-// AUTH
-// ======================================================
+/* ======================================================
+   AUTH — REGISTER
+====================================================== */
 
-async function registerUser(req, res) {
+async function registerUser(
+    req,
+    res
+) {
 
     try {
 
@@ -446,11 +507,14 @@ async function registerUser(req, res) {
                 req.body.username || ""
             ).trim();
 
+
         const email =
             String(
                 req.body.email || ""
-            ).trim()
-            .toLowerCase();
+            )
+                .trim()
+                .toLowerCase();
+
 
         const password =
             String(
@@ -510,7 +574,9 @@ async function registerUser(req, res) {
         const existing =
             await pool.query(
                 `
+
                     SELECT id
+
                     FROM users
 
                     WHERE LOWER(username) =
@@ -520,6 +586,7 @@ async function registerUser(req, res) {
                           LOWER($2)
 
                     LIMIT 1
+
                 `,
                 [
                     username,
@@ -552,6 +619,7 @@ async function registerUser(req, res) {
         const result =
             await pool.query(
                 `
+
                     INSERT INTO users
                     (
                         username,
@@ -560,13 +628,18 @@ async function registerUser(req, res) {
                     )
 
                     VALUES
-                    ($1, $2, $3)
+                    (
+                        $1,
+                        $2,
+                        $3
+                    )
 
                     RETURNING
                         id,
                         username,
                         email,
                         created_at
+
                 `,
                 [
                     username,
@@ -600,6 +673,7 @@ async function registerUser(req, res) {
             error
         );
 
+
         res.status(500).json({
 
             success: false,
@@ -613,10 +687,18 @@ async function registerUser(req, res) {
         });
 
     }
+
 }
 
 
-async function loginUser(req, res) {
+/* ======================================================
+   AUTH — LOGIN
+====================================================== */
+
+async function loginUser(
+    req,
+    res
+) {
 
     try {
 
@@ -626,6 +708,7 @@ async function loginUser(req, res) {
                 req.body.email ||
                 ""
             ).trim();
+
 
         const password =
             String(
@@ -654,6 +737,7 @@ async function loginUser(req, res) {
         const result =
             await pool.query(
                 `
+
                     SELECT
                         id,
                         username,
@@ -670,6 +754,7 @@ async function loginUser(req, res) {
                           LOWER($1)
 
                     LIMIT 1
+
                 `,
                 [
                     identifier
@@ -736,6 +821,7 @@ async function loginUser(req, res) {
             error
         );
 
+
         res.status(500).json({
 
             success: false,
@@ -749,12 +835,13 @@ async function loginUser(req, res) {
         });
 
     }
+
 }
 
 
-// IMPORTANT:
-// These routes support BOTH the old frontend paths
-// and the /api paths.
+/* ======================================================
+   AUTH ROUTES
+====================================================== */
 
 app.post(
     "/auth/register",
@@ -778,11 +865,14 @@ app.post(
 );
 
 
-// ======================================================
-// LOGOUT
-// ======================================================
+/* ======================================================
+   LOGOUT
+====================================================== */
 
-function logoutUser(req, res) {
+function logoutUser(
+    req,
+    res
+) {
 
     req.session.destroy(
         error => {
@@ -805,9 +895,11 @@ function logoutUser(req, res) {
 
             }
 
+
             res.clearCookie(
                 "connect.sid"
             );
+
 
             res.json({
 
@@ -817,6 +909,7 @@ function logoutUser(req, res) {
 
         }
     );
+
 }
 
 
@@ -831,11 +924,14 @@ app.post(
 );
 
 
-// ======================================================
-// CURRENT USER
-// ======================================================
+/* ======================================================
+   CURRENT USER
+====================================================== */
 
-async function currentUser(req, res) {
+async function currentUser(
+    req,
+    res
+) {
 
     try {
 
@@ -857,6 +953,7 @@ async function currentUser(req, res) {
         const result =
             await pool.query(
                 `
+
                     SELECT
                         id,
                         username,
@@ -868,6 +965,7 @@ async function currentUser(req, res) {
                     WHERE id = $1
 
                     LIMIT 1
+
                 `,
                 [
                     req.session.userId
@@ -880,6 +978,7 @@ async function currentUser(req, res) {
             req.session.destroy(
                 () => {}
             );
+
 
             return res.json({
 
@@ -914,6 +1013,7 @@ async function currentUser(req, res) {
             error
         );
 
+
         res.status(500).json({
 
             success: false,
@@ -924,6 +1024,7 @@ async function currentUser(req, res) {
         });
 
     }
+
 }
 
 
@@ -938,9 +1039,9 @@ app.get(
 );
 
 
-// ======================================================
-// MY LIST — GET
-// ======================================================
+/* ======================================================
+   MY LIST — GET
+====================================================== */
 
 app.get(
     "/api/my-list",
@@ -952,6 +1053,7 @@ app.get(
             const result =
                 await pool.query(
                     `
+
                         SELECT
                             anime_id,
                             anime_data,
@@ -965,6 +1067,7 @@ app.get(
                         WHERE user_id = $1
 
                         ORDER BY saved_at DESC
+
                     `,
                     [
                         req.session.userId
@@ -977,6 +1080,12 @@ app.get(
                     row => ({
 
                         ...row.anime_data,
+
+                        id:
+                            row.anime_id,
+
+                        mal_id:
+                            row.anime_id,
 
                         status:
                             row.status,
@@ -998,7 +1107,8 @@ app.get(
 
                 success: true,
 
-                data: list
+                data:
+                    list
 
             });
 
@@ -1008,6 +1118,7 @@ app.get(
                 "MY LIST GET ERROR:",
                 error
             );
+
 
             res.status(500).json({
 
@@ -1027,9 +1138,9 @@ app.get(
 );
 
 
-// ======================================================
-// MY LIST — ADD / UPDATE
-// ======================================================
+/* ======================================================
+   MY LIST — ADD / UPDATE
+====================================================== */
 
 app.post(
     "/api/my-list",
@@ -1041,35 +1152,13 @@ app.post(
             const anime =
                 req.body.anime;
 
-            const status =
-                String(
-                    req.body.status ||
-                    "plan"
-                );
-
-            const episode =
-                Math.max(
-                    0,
-                    Number(
-                        req.body.episode
-                    ) || 0
-                );
-
-            const rating =
-                Math.min(
-                    10,
-                    Math.max(
-                        0,
-                        Number(
-                            req.body.rating
-                        ) || 0
-                    )
-                );
-
 
             if (
                 !anime ||
-                !anime.id
+                (
+                    !anime.id &&
+                    !anime.mal_id
+                )
             ) {
 
                 return res.status(400).json({
@@ -1082,6 +1171,61 @@ app.post(
                 });
 
             }
+
+
+            const animeId =
+                Number(
+                    anime.id ||
+                    anime.mal_id
+                );
+
+
+            if (
+                !Number.isFinite(animeId)
+            ) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        "Invalid anime ID."
+
+                });
+
+            }
+
+
+            const status =
+                String(
+                    req.body.status ||
+                    "plan"
+                );
+
+
+            const episode =
+                Math.max(
+                    0,
+                    Number(
+                        req.body.episode
+                    ) || 0
+                );
+
+
+            /*
+                MIRAI uses a 1–5 star rating.
+            */
+
+            const rating =
+                Math.min(
+                    5,
+                    Math.max(
+                        0,
+                        Number(
+                            req.body.rating
+                        ) || 0
+                    )
+                );
 
 
             if (
@@ -1142,8 +1286,22 @@ app.post(
             }
 
 
+            const animeData = {
+
+                ...anime,
+
+                id:
+                    animeId,
+
+                mal_id:
+                    animeId
+
+            };
+
+
             await pool.query(
                 `
+
                     INSERT INTO anime_list
                     (
                         user_id,
@@ -1188,19 +1346,22 @@ app.post(
 
                         saved_at =
                             NOW()
+
                 `,
                 [
+
                     req.session.userId,
 
-                    Number(anime.id),
+                    animeId,
 
-                    anime,
+                    animeData,
 
                     status,
 
                     finalEpisode,
 
                     rating
+
                 ]
             );
 
@@ -1221,6 +1382,7 @@ app.post(
                 error
             );
 
+
             res.status(500).json({
 
                 success: false,
@@ -1239,9 +1401,9 @@ app.post(
 );
 
 
-// ======================================================
-// MY LIST — DELETE
-// ======================================================
+/* ======================================================
+   MY LIST — DELETE
+====================================================== */
 
 app.delete(
     "/api/my-list/:animeId",
@@ -1274,11 +1436,13 @@ app.delete(
 
             await pool.query(
                 `
+
                     DELETE FROM anime_list
 
                     WHERE user_id = $1
 
                     AND anime_id = $2
+
                 `,
                 [
                     req.session.userId,
@@ -1303,6 +1467,7 @@ app.delete(
                 error
             );
 
+
             res.status(500).json({
 
                 success: false,
@@ -1318,9 +1483,9 @@ app.delete(
 );
 
 
-// ======================================================
-// SEARCH
-// ======================================================
+/* ======================================================
+   SEARCH
+====================================================== */
 
 app.get(
     "/anime/search",
@@ -1396,6 +1561,7 @@ app.get(
                 error
             );
 
+
             res.status(500).json({
 
                 success: false,
@@ -1414,9 +1580,9 @@ app.get(
 );
 
 
-// ======================================================
-// TOP ANIME
-// ======================================================
+/* ======================================================
+   TOP ANIME
+====================================================== */
 
 app.get(
     "/anime/top",
@@ -1479,6 +1645,7 @@ app.get(
                 error
             );
 
+
             res.status(500).json({
 
                 success: false,
@@ -1497,9 +1664,9 @@ app.get(
 );
 
 
-// ======================================================
-// TRENDING
-// ======================================================
+/* ======================================================
+   TRENDING
+====================================================== */
 
 app.get(
     "/anime/trending",
@@ -1562,6 +1729,7 @@ app.get(
                 error
             );
 
+
             res.status(500).json({
 
                 success: false,
@@ -1580,9 +1748,9 @@ app.get(
 );
 
 
-// ======================================================
-// RANDOM
-// ======================================================
+/* ======================================================
+   RANDOM
+====================================================== */
 
 app.get(
     "/anime/random",
@@ -1648,7 +1816,8 @@ app.get(
 
                 success: true,
 
-                data: anime
+                data:
+                    anime
 
             });
 
@@ -1658,6 +1827,7 @@ app.get(
                 "RANDOM ERROR:",
                 error
             );
+
 
             res.status(500).json({
 
@@ -1677,9 +1847,9 @@ app.get(
 );
 
 
-// ======================================================
-// SCHEDULE
-// ======================================================
+/* ======================================================
+   SCHEDULE
+====================================================== */
 
 app.get(
     "/anime/schedule",
@@ -1690,30 +1860,37 @@ app.get(
             const now =
                 new Date();
 
+
             const year =
                 now.getFullYear();
 
+
             const month =
                 now.getMonth();
+
 
             let season;
 
 
             if (month <= 2) {
 
-                season = "winter";
+                season =
+                    "winter";
 
             } else if (month <= 5) {
 
-                season = "spring";
+                season =
+                    "spring";
 
             } else if (month <= 8) {
 
-                season = "summer";
+                season =
+                    "summer";
 
             } else {
 
-                season = "fall";
+                season =
+                    "fall";
 
             }
 
@@ -1762,7 +1939,8 @@ app.get(
 
                 success: true,
 
-                data: anime
+                data:
+                    anime
 
             });
 
@@ -1772,6 +1950,7 @@ app.get(
                 "SCHEDULE ERROR:",
                 error
             );
+
 
             res.status(500).json({
 
@@ -1791,9 +1970,9 @@ app.get(
 );
 
 
-// ======================================================
-// SERVE FRONTEND
-// ======================================================
+/* ======================================================
+   SERVE FRONTEND
+====================================================== */
 
 const websitePath =
     path.join(
@@ -1824,9 +2003,9 @@ app.get(
 );
 
 
-// ======================================================
-// ERROR HANDLER
-// ======================================================
+/* ======================================================
+   ERROR HANDLER
+====================================================== */
 
 app.use(
     (err, req, res, next) => {
@@ -1835,6 +2014,7 @@ app.use(
             "SERVER ERROR:",
             err
         );
+
 
         res.status(500).json({
 
@@ -1849,15 +2029,16 @@ app.use(
 );
 
 
-// ======================================================
-// START
-// ======================================================
+/* ======================================================
+   START
+====================================================== */
 
 async function startServer() {
 
     try {
 
         await setupDatabase();
+
 
         app.listen(
             PORT,
@@ -1876,6 +2057,7 @@ async function startServer() {
             "MIRAI STARTUP ERROR:",
             error
         );
+
 
         process.exit(1);
 
