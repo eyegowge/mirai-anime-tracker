@@ -1,6 +1,6 @@
 // ======================================================
 // MIRAI ANIME TRACKER
-// COMPLETE BACKEND SERVER
+// COMPLETE BACKEND SERVER — 2026
 // ======================================================
 
 const express = require("express");
@@ -13,113 +13,65 @@ const pgSession = require("connect-pg-simple")(session);
 const { Pool } = require("pg");
 
 
-/* ======================================================
-   ENVIRONMENT
-====================================================== */
+// ======================================================
+// ENVIRONMENT
+// ======================================================
 
 dotenv.config({
-    path: path.join(
-        __dirname,
-        "..",
-        ".env"
-    )
+    path: path.join(__dirname, "..", ".env")
 });
-
 
 const app = express();
 
-
-const PORT =
-    process.env.PORT ||
-    3000;
-
-
-const MAL_CLIENT_ID =
-    process.env.MAL_CLIENT_ID;
+const PORT = process.env.PORT || 3000;
+const MAL_CLIENT_ID = process.env.MAL_CLIENT_ID;
+const DATABASE_URL = process.env.DATABASE_URL;
+const SESSION_SECRET = process.env.SESSION_SECRET;
 
 
-const DATABASE_URL =
-    process.env.DATABASE_URL;
-
-
-const SESSION_SECRET =
-    process.env.SESSION_SECRET;
-
-
-/* ======================================================
-   ENVIRONMENT CHECK
-====================================================== */
+// ======================================================
+// ENVIRONMENT CHECK
+// ======================================================
 
 if (!MAL_CLIENT_ID) {
-
-    console.error(
-        "ERROR: MAL_CLIENT_ID was not found."
-    );
-
+    console.error("ERROR: MAL_CLIENT_ID was not found.");
 }
-
 
 if (!DATABASE_URL) {
-
-    console.error(
-        "ERROR: DATABASE_URL was not found."
-    );
-
+    console.error("ERROR: DATABASE_URL was not found.");
 }
-
 
 if (!SESSION_SECRET) {
-
-    console.error(
-        "ERROR: SESSION_SECRET was not found."
-    );
-
+    console.error("ERROR: SESSION_SECRET was not found.");
 }
 
 
-/* ======================================================
-   DATABASE
-====================================================== */
+// ======================================================
+// DATABASE
+// ======================================================
 
-const pool =
-    new Pool({
+const pool = new Pool({
+    connectionString: DATABASE_URL,
 
-        connectionString:
-            DATABASE_URL,
-
-        ssl:
-            process.env.NODE_ENV ===
-            "production"
-
-                ? {
-                    rejectUnauthorized:
-                        false
-                }
-
-                : false
-
-    });
+    ssl:
+        process.env.NODE_ENV === "production"
+            ? { rejectUnauthorized: false }
+            : false
+});
 
 
-/* ======================================================
-   DATABASE SETUP
-====================================================== */
+// ======================================================
+// DATABASE SETUP
+// ======================================================
 
 async function setupDatabase() {
 
     if (!DATABASE_URL) {
-
-        throw new Error(
-            "DATABASE_URL is missing."
-        );
-
+        throw new Error("DATABASE_URL is missing.");
     }
 
-
     await pool.query(`
-
         CREATE TABLE IF NOT EXISTS users (
-
             id SERIAL PRIMARY KEY,
 
             username VARCHAR(30)
@@ -136,16 +88,12 @@ async function setupDatabase() {
             created_at TIMESTAMPTZ
                 NOT NULL
                 DEFAULT NOW()
-
         );
-
     `);
 
 
     await pool.query(`
-
         CREATE TABLE IF NOT EXISTS anime_list (
-
             id SERIAL PRIMARY KEY,
 
             user_id INTEGER
@@ -167,7 +115,7 @@ async function setupDatabase() {
                 NOT NULL
                 DEFAULT 0,
 
-            rating NUMERIC(3,1)
+            rating NUMERIC(4,1)
                 NOT NULL
                 DEFAULT 0,
 
@@ -175,124 +123,84 @@ async function setupDatabase() {
                 NOT NULL
                 DEFAULT NOW(),
 
-            UNIQUE(
-                user_id,
-                anime_id
-            )
-
+            UNIQUE(user_id, anime_id)
         );
+    `);
 
+
+    await pool.query(`
+        CREATE INDEX IF NOT EXISTS anime_list_user_id_idx
+        ON anime_list(user_id);
+    `);
+
+
+    await pool.query(`
+        CREATE INDEX IF NOT EXISTS anime_list_saved_at_idx
+        ON anime_list(saved_at DESC);
     `);
 
 
     /*
-       Older versions of the project may already have
-       an anime_list table.
+        Existing installations use the same table.
 
-       These indexes improve lookups without changing
-       existing user data.
+        We deliberately do not recreate it so existing
+        anime lists remain intact.
     */
 
-    await pool.query(`
-
-        CREATE INDEX IF NOT EXISTS
-        anime_list_user_id_idx
-
-        ON anime_list(user_id);
-
-    `);
-
-
-    await pool.query(`
-
-        CREATE INDEX IF NOT EXISTS
-        anime_list_saved_at_idx
-
-        ON anime_list(saved_at DESC);
-
-    `);
-
-
-    console.log(
-        "MIRAI database ready."
-    );
-
+    console.log("MIRAI database ready.");
 }
 
 
-/* ======================================================
-   MIDDLEWARE
-====================================================== */
+// ======================================================
+// MIDDLEWARE
+// ======================================================
 
-app.set(
-    "trust proxy",
-    1
-);
-
+app.set("trust proxy", 1);
 
 app.use(
     cors({
-
         origin: true,
-
         credentials: true
-
     })
 );
-
 
 app.use(
     express.json({
-        limit:
-            "2mb"
+        limit: "2mb"
     })
 );
 
 
-/* ======================================================
-   SESSIONS
-====================================================== */
+// ======================================================
+// SESSIONS
+// ======================================================
 
 app.use(
     session({
 
-        store:
-            new pgSession({
-
-                pool,
-
-                tableName:
-                    "user_sessions",
-
-                createTableIfMissing:
-                    true
-
-            }),
+        store: new pgSession({
+            pool,
+            tableName: "user_sessions",
+            createTableIfMissing: true
+        }),
 
         secret:
             SESSION_SECRET ||
             "development-secret-change-me",
 
-        resave:
-            false,
+        resave: false,
 
-        saveUninitialized:
-            false,
+        saveUninitialized: false,
 
-        proxy:
-            true,
+        proxy: true,
 
         cookie: {
-
-            httpOnly:
-                true,
+            httpOnly: true,
 
             secure:
-                process.env.NODE_ENV ===
-                "production",
+                process.env.NODE_ENV === "production",
 
-            sameSite:
-                "lax",
+            sameSite: "lax",
 
             maxAge:
                 1000 *
@@ -300,74 +208,46 @@ app.use(
                 60 *
                 24 *
                 30
-
         }
-
     })
 );
 
 
-/* ======================================================
-   MAL API
-====================================================== */
+// ======================================================
+// MAL API
+// ======================================================
 
-async function malFetch(
-    url
-) {
+async function malFetch(url) {
 
     if (!MAL_CLIENT_ID) {
-
         throw new Error(
             "MAL_CLIENT_ID is not configured."
         );
-
     }
 
-
-    const response =
-        await fetch(
-            url,
-            {
-
-                headers: {
-
-                    "X-MAL-CLIENT-ID":
-                        MAL_CLIENT_ID
-
-                }
-
-            }
-        );
-
+    const response = await fetch(url, {
+        headers: {
+            "X-MAL-CLIENT-ID":
+                MAL_CLIENT_ID
+        }
+    });
 
     console.log(
         "MAL STATUS:",
         response.status
     );
 
-
-    const text =
-        await response.text();
-
+    const text = await response.text();
 
     let data;
 
-
     try {
-
-        data =
-            JSON.parse(
-                text
-            );
-
+        data = JSON.parse(text);
     } catch {
-
         throw new Error(
             "MyAnimeList returned invalid JSON."
         );
-
     }
-
 
     if (!response.ok) {
 
@@ -376,42 +256,33 @@ async function malFetch(
             data
         );
 
-
         throw new Error(
             data?.message ||
             "MyAnimeList request failed."
         );
-
     }
 
-
     return data;
-
 }
 
 
-/* ======================================================
-   NORMALIZE MAL ANIME
-====================================================== */
+// ======================================================
+// NORMALIZE MAL ANIME
+// ======================================================
 
-function normalizeAnime(
-    item
-) {
+function normalizeAnime(item) {
 
     const anime =
         item?.node ||
         item;
 
-
     if (!anime) {
         return null;
     }
 
-
     const picture =
         anime.main_picture ||
         {};
-
 
     return {
 
@@ -494,37 +365,26 @@ function normalizeAnime(
         alternative_titles:
             anime.alternative_titles ||
             null
-
     };
-
 }
 
 
-function normalizeAnimeList(
-    data
-) {
+function normalizeAnimeList(data) {
 
     return (
         data?.data ||
         []
     )
-        .map(
-            normalizeAnime
-        )
+        .map(normalizeAnime)
         .filter(Boolean);
-
 }
 
 
-/* ======================================================
-   AUTH HELPERS
-====================================================== */
+// ======================================================
+// AUTH HELPERS
+// ======================================================
 
-function requireAuth(
-    req,
-    res,
-    next
-) {
+function requireAuth(req, res, next) {
 
     if (
         !req.session ||
@@ -532,49 +392,71 @@ function requireAuth(
     ) {
 
         return res.status(401).json({
-
-            success:
-                false,
-
-            error:
-                "You must be logged in."
-
+            success: false,
+            error: "You must be logged in."
         });
-
     }
 
-
     next();
-
 }
 
 
-function sanitizeUser(
-    user
-) {
+function sanitizeUser(user) {
 
     return {
-
-        id:
-            user.id,
-
-        username:
-            user.username,
-
-        email:
-            user.email,
-
-        created_at:
-            user.created_at
-
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        created_at: user.created_at
     };
-
 }
 
 
-/* ======================================================
-   SERVER STATUS
-====================================================== */
+function regenerateSession(req) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            req.session.regenerate(
+                error => {
+
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+
+                }
+            );
+        }
+    );
+}
+
+
+function saveSession(req) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            req.session.save(
+                error => {
+
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+
+                }
+            );
+        }
+    );
+}
+
+
+// ======================================================
+// SERVER STATUS
+// ======================================================
 
 app.get(
     "/api/status",
@@ -582,8 +464,7 @@ app.get(
 
         res.json({
 
-            success:
-                true,
+            success: true,
 
             message:
                 "MIRAI server is running.",
@@ -592,21 +473,16 @@ app.get(
                 Boolean(
                     req.session?.userId
                 )
-
         });
-
     }
 );
 
 
-/* ======================================================
-   REGISTER
-====================================================== */
+// ======================================================
+// REGISTER
+// ======================================================
 
-async function registerUser(
-    req,
-    res
-) {
+async function registerUser(req, res) {
 
     try {
 
@@ -616,7 +492,6 @@ async function registerUser(
                 ""
             ).trim();
 
-
         const email =
             String(
                 req.body.email ||
@@ -625,13 +500,11 @@ async function registerUser(
                 .trim()
                 .toLowerCase();
 
-
         const password =
             String(
                 req.body.password ||
                 ""
             );
-
 
         if (
             !username ||
@@ -641,72 +514,47 @@ async function registerUser(
 
             return res.status(400).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Username, email, and password are required."
-
             });
-
         }
 
-
         if (
-            username.length <
-            3 ||
-            username.length >
-            30
+            username.length < 3 ||
+            username.length > 30
         ) {
 
             return res.status(400).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Username must be between 3 and 30 characters."
-
             });
-
         }
 
-
-        if (
-            password.length <
-            6
-        ) {
+        if (password.length < 6) {
 
             return res.status(400).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Password must be at least 6 characters."
-
             });
-
         }
-
 
         const existing =
             await pool.query(
                 `
                     SELECT id
-
                     FROM users
-
                     WHERE
-                        LOWER(username)
-                        =
-                        LOWER($1)
-
+                        LOWER(username) = LOWER($1)
                     OR
-                        LOWER(email)
-                        =
-                        LOWER($2)
-
+                        LOWER(email) = LOWER($2)
                     LIMIT 1
                 `,
                 [
@@ -715,30 +563,22 @@ async function registerUser(
                 ]
             );
 
-
-        if (
-            existing.rows.length
-        ) {
+        if (existing.rows.length) {
 
             return res.status(409).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "A user with that username or email already exists."
-
             });
-
         }
-
 
         const passwordHash =
             await bcrypt.hash(
                 password,
                 12
             );
-
 
         const result =
             await pool.query(
@@ -749,14 +589,12 @@ async function registerUser(
                         email,
                         password_hash
                     )
-
                     VALUES
                     (
                         $1,
                         $2,
                         $3
                     )
-
                     RETURNING
                         id,
                         username,
@@ -770,32 +608,21 @@ async function registerUser(
                 ]
             );
 
-
         const user =
             result.rows[0];
-
 
         req.session.userId =
             user.id;
 
-
-        await saveSession(
-            req
-        );
-
+        await saveSession(req);
 
         res.status(201).json({
 
-            success:
-                true,
+            success: true,
 
             user:
-                sanitizeUser(
-                    user
-                )
-
+                sanitizeUser(user)
         });
-
 
     } catch (error) {
 
@@ -804,30 +631,22 @@ async function registerUser(
             error
         );
 
-
         res.status(500).json({
 
-            success:
-                false,
+            success: false,
 
             error:
                 "Could not create account."
-
         });
-
     }
-
 }
 
 
-/* ======================================================
-   LOGIN
-====================================================== */
+// ======================================================
+// LOGIN
+// ======================================================
 
-async function loginUser(
-    req,
-    res
-) {
+async function loginUser(req, res) {
 
     try {
 
@@ -838,13 +657,11 @@ async function loginUser(
                 ""
             ).trim();
 
-
         const password =
             String(
                 req.body.password ||
                 ""
             );
-
 
         if (
             !identifier ||
@@ -853,16 +670,12 @@ async function loginUser(
 
             return res.status(400).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Username/email and password are required."
-
             });
-
         }
-
 
         const result =
             await pool.query(
@@ -877,43 +690,28 @@ async function loginUser(
                     FROM users
 
                     WHERE
-                        LOWER(username)
-                        =
-                        LOWER($1)
-
+                        LOWER(username) = LOWER($1)
                     OR
-                        LOWER(email)
-                        =
-                        LOWER($1)
+                        LOWER(email) = LOWER($1)
 
                     LIMIT 1
                 `,
-                [
-                    identifier
-                ]
+                [identifier]
             );
 
-
-        if (
-            !result.rows.length
-        ) {
+        if (!result.rows.length) {
 
             return res.status(401).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Invalid username/email or password."
-
             });
-
         }
-
 
         const user =
             result.rows[0];
-
 
         const valid =
             await bcrypt.compare(
@@ -921,48 +719,31 @@ async function loginUser(
                 user.password_hash
             );
 
-
         if (!valid) {
 
             return res.status(401).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Invalid username/email or password."
-
             });
-
         }
 
-
-        await regenerateSession(
-            req
-        );
-
+        await regenerateSession(req);
 
         req.session.userId =
             user.id;
 
-
-        await saveSession(
-            req
-        );
-
+        await saveSession(req);
 
         res.json({
 
-            success:
-                true,
+            success: true,
 
             user:
-                sanitizeUser(
-                    user
-                )
-
+                sanitizeUser(user)
         });
-
 
     } catch (error) {
 
@@ -971,85 +752,20 @@ async function loginUser(
             error
         );
 
-
         res.status(500).json({
 
-            success:
-                false,
+            success: false,
 
             error:
                 "Could not log in."
-
         });
-
     }
-
 }
 
 
-/* ======================================================
-   SESSION HELPERS
-====================================================== */
-
-function regenerateSession(
-    req
-) {
-
-    return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
-
-            req.session.regenerate(
-                error => {
-
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-function saveSession(
-    req
-) {
-
-    return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
-
-            req.session.save(
-                error => {
-
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-/* ======================================================
-   AUTH ROUTES
-====================================================== */
+// ======================================================
+// AUTH ROUTES
+// ======================================================
 
 app.post(
     "/auth/register",
@@ -1060,7 +776,6 @@ app.post(
     "/api/auth/register",
     registerUser
 );
-
 
 app.post(
     "/auth/login",
@@ -1073,14 +788,11 @@ app.post(
 );
 
 
-/* ======================================================
-   LOGOUT
-====================================================== */
+// ======================================================
+// LOGOUT
+// ======================================================
 
-function logoutUser(
-    req,
-    res
-) {
+function logoutUser(req, res) {
 
     req.session.destroy(
         error => {
@@ -1092,48 +804,33 @@ function logoutUser(
                     error
                 );
 
-
                 return res.status(500).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Could not log out."
-
                 });
-
             }
-
 
             res.clearCookie(
                 "connect.sid",
                 {
-
-                    httpOnly:
-                        true,
+                    httpOnly: true,
 
                     secure:
                         process.env.NODE_ENV ===
                         "production",
 
-                    sameSite:
-                        "lax"
-
+                    sameSite: "lax"
                 }
             );
 
-
             res.json({
-
-                success:
-                    true
-
+                success: true
             });
-
         }
     );
-
 }
 
 
@@ -1142,43 +839,31 @@ app.post(
     logoutUser
 );
 
-
 app.post(
     "/api/auth/logout",
     logoutUser
 );
 
 
-/* ======================================================
-   CURRENT USER
-====================================================== */
+// ======================================================
+// CURRENT USER
+// ======================================================
 
-async function currentUser(
-    req,
-    res
-) {
+async function currentUser(req, res) {
 
     try {
 
-        if (
-            !req.session?.userId
-        ) {
+        if (!req.session?.userId) {
 
             return res.json({
 
-                success:
-                    true,
+                success: true,
 
-                loggedIn:
-                    false,
+                loggedIn: false,
 
-                user:
-                    null
-
+                user: null
             });
-
         }
-
 
         const result =
             await pool.query(
@@ -1191,8 +876,7 @@ async function currentUser(
 
                     FROM users
 
-                    WHERE
-                        id = $1
+                    WHERE id = $1
 
                     LIMIT 1
                 `,
@@ -1201,47 +885,33 @@ async function currentUser(
                 ]
             );
 
-
-        if (
-            !result.rows.length
-        ) {
+        if (!result.rows.length) {
 
             req.session.destroy(
                 () => {}
             );
 
-
             return res.json({
 
-                success:
-                    true,
+                success: true,
 
-                loggedIn:
-                    false,
+                loggedIn: false,
 
-                user:
-                    null
-
+                user: null
             });
-
         }
-
 
         res.json({
 
-            success:
-                true,
+            success: true,
 
-            loggedIn:
-                true,
+            loggedIn: true,
 
             user:
                 sanitizeUser(
                     result.rows[0]
                 )
-
         });
-
 
     } catch (error) {
 
@@ -1250,19 +920,14 @@ async function currentUser(
             error
         );
 
-
         res.status(500).json({
 
-            success:
-                false,
+            success: false,
 
             error:
                 "Could not check login status."
-
         });
-
     }
-
 }
 
 
@@ -1271,46 +936,99 @@ app.get(
     currentUser
 );
 
-
 app.get(
     "/api/auth/me",
     currentUser
 );
 
 
-/* ======================================================
-   VALID LIST STATUS
-====================================================== */
+// ======================================================
+// LIST STATUS
+// ======================================================
 
 const VALID_LIST_STATUSES = [
     "plan",
     "watching",
-    "completed"
+    "completed",
+    "on_hold",
+    "dropped"
 ];
 
 
-function validateListStatus(
-    status
-) {
+function validateListStatus(status) {
 
     return VALID_LIST_STATUSES.includes(
         status
     );
-
 }
 
 
-/* ======================================================
-   MY LIST — GET
-====================================================== */
+function cleanEpisodeNumber(
+    episode,
+    animeData
+) {
+
+    let value =
+        Number(episode);
+
+    if (
+        !Number.isFinite(value) ||
+        value < 0
+    ) {
+        value = 0;
+    }
+
+    value =
+        Math.floor(value);
+
+    const total =
+        Number(
+            animeData?.episodes
+        ) ||
+        Number(
+            animeData?.num_episodes
+        ) ||
+        0;
+
+    if (total > 0) {
+        value =
+            Math.min(
+                value,
+                total
+            );
+    }
+
+    return value;
+}
+
+
+function cleanRating(rating) {
+
+    let value =
+        Number(rating);
+
+    if (
+        !Number.isFinite(value) ||
+        value < 0
+    ) {
+        value = 0;
+    }
+
+    return Math.min(
+        10,
+        Math.round(value * 10) / 10
+    );
+}
+
+
+// ======================================================
+// MY LIST — GET
+// ======================================================
 
 app.get(
     "/api/my-list",
     requireAuth,
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
@@ -1327,17 +1045,14 @@ app.get(
 
                         FROM anime_list
 
-                        WHERE
-                            user_id = $1
+                        WHERE user_id = $1
 
-                        ORDER BY
-                            saved_at DESC
+                        ORDER BY saved_at DESC
                     `,
                     [
                         req.session.userId
                     ]
                 );
-
 
             const list =
                 result.rows.map(
@@ -1358,7 +1073,9 @@ app.get(
                             row.status,
 
                         episode:
-                            row.episode,
+                            Number(
+                                row.episode
+                            ),
 
                         rating:
                             Number(
@@ -1367,21 +1084,15 @@ app.get(
 
                         savedAt:
                             row.saved_at
-
                     })
                 );
 
-
             res.json({
 
-                success:
-                    true,
+                success: true,
 
-                data:
-                    list
-
+                data: list
             });
-
 
         } catch (error) {
 
@@ -1390,40 +1101,31 @@ app.get(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not load your list."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   MY LIST — ADD
-====================================================== */
+// ======================================================
+// MY LIST — ADD / UPSERT
+// ======================================================
 
 app.post(
     "/api/my-list",
     requireAuth,
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
             const anime =
                 req.body.anime;
-
 
             const animeId =
                 Number(
@@ -1431,27 +1133,20 @@ app.post(
                     anime?.mal_id
                 );
 
-
             if (
                 !anime ||
-                !Number.isInteger(
-                    animeId
-                ) ||
+                !Number.isInteger(animeId) ||
                 animeId <= 0
             ) {
 
                 return res.status(400).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Anime information is required."
-
                 });
-
             }
-
 
             const status =
                 String(
@@ -1459,111 +1154,45 @@ app.post(
                     "plan"
                 );
 
-
             if (
-                !validateListStatus(
-                    status
-                )
+                !validateListStatus(status)
             ) {
 
                 return res.status(400).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Invalid anime status."
-
                 });
-
             }
 
-
-            let episode =
-                Number(
-                    req.body.episode
+            const episode =
+                cleanEpisodeNumber(
+                    req.body.episode,
+                    anime
                 );
 
-
-            if (
-                !Number.isFinite(
-                    episode
-                ) ||
-                episode < 0
-            ) {
-
-                episode =
-                    0;
-
-            }
-
-
-            episode =
-                Math.floor(
-                    episode
-                );
-
-
-            let rating =
-                Number(
+            const rating =
+                cleanRating(
                     req.body.rating
                 );
 
-
-            if (
-                !Number.isFinite(
-                    rating
-                ) ||
-                rating < 0
-            ) {
-
-                rating =
-                    0;
-
-            }
-
-
-            rating =
-                Math.min(
-                    5,
-                    rating
-                );
-
-
-            const totalEpisodes =
-                Number(
-                    anime.episodes
-                ) ||
-                Number(
-                    anime.num_episodes
-                ) ||
-                0;
-
-
-            if (
-                totalEpisodes > 0
-            ) {
-
-                episode =
-                    Math.min(
-                        episode,
-                        totalEpisodes
-                    );
-
-            }
-
-
-            if (
-                status ===
-                    "completed" &&
-                totalEpisodes > 0
-            ) {
-
-                episode =
-                    totalEpisodes;
-
-            }
-
+            const finalEpisode =
+                status === "completed" &&
+                (
+                    Number(
+                        anime.episodes
+                    ) ||
+                    Number(
+                        anime.num_episodes
+                    )
+                )
+                    ? Number(
+                        anime.episodes ||
+                        anime.num_episodes
+                    )
+                    : episode;
 
             await pool.query(
                 `
@@ -1617,22 +1246,18 @@ app.post(
                     animeId,
                     anime,
                     status,
-                    episode,
+                    finalEpisode,
                     rating
                 ]
             );
 
-
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 message:
                     "Anime saved."
-
             });
-
 
         } catch (error) {
 
@@ -1641,34 +1266,26 @@ app.post(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not save anime."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   MY LIST — UPDATE STATUS / EPISODE
-====================================================== */
+// ======================================================
+// MY LIST — UPDATE STATUS / EPISODE
+// ======================================================
 
 app.patch(
     "/api/my-list/:animeId",
     requireAuth,
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
@@ -1677,26 +1294,19 @@ app.patch(
                     req.params.animeId
                 );
 
-
             if (
-                !Number.isInteger(
-                    animeId
-                ) ||
+                !Number.isInteger(animeId) ||
                 animeId <= 0
             ) {
 
                 return res.status(400).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Invalid anime ID."
-
                 });
-
             }
-
 
             const existing =
                 await pool.query(
@@ -1711,7 +1321,6 @@ app.patch(
 
                         WHERE
                             user_id = $1
-
                         AND
                             anime_id = $2
 
@@ -1723,129 +1332,60 @@ app.patch(
                     ]
                 );
 
-
-            if (
-                !existing.rows.length
-            ) {
+            if (!existing.rows.length) {
 
                 return res.status(404).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Anime is not in your list."
-
                 });
-
             }
-
 
             const current =
                 existing.rows[0];
 
-
-            let status =
-                req.body.status !==
-                undefined
-
-                    ? String(
-                        req.body.status
-                    )
-
+            const status =
+                req.body.status !== undefined
+                    ? String(req.body.status)
                     : current.status;
 
-
-            let episode =
-                req.body.episode !==
-                undefined
-
-                    ? Number(
-                        req.body.episode
-                    )
-
-                    : Number(
-                        current.episode
-                    );
-
-
             if (
-                !validateListStatus(
-                    status
-                )
+                !validateListStatus(status)
             ) {
 
                 return res.status(400).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Invalid anime status."
-
                 });
-
             }
 
-
-            if (
-                !Number.isFinite(
-                    episode
-                ) ||
-                episode < 0
-            ) {
-
-                episode =
-                    0;
-
-            }
-
-
-            episode =
-                Math.floor(
-                    episode
+            const episode =
+                cleanEpisodeNumber(
+                    req.body.episode !== undefined
+                        ? req.body.episode
+                        : current.episode,
+                    current.anime_data
                 );
-
-
-            const animeData =
-                current.anime_data ||
-                {};
-
 
             const totalEpisodes =
                 Number(
-                    animeData.episodes
+                    current.anime_data?.episodes
                 ) ||
                 Number(
-                    animeData.num_episodes
+                    current.anime_data?.num_episodes
                 ) ||
                 0;
 
-
-            if (
+            const finalEpisode =
+                status === "completed" &&
                 totalEpisodes > 0
-            ) {
-
-                episode =
-                    Math.min(
-                        episode,
-                        totalEpisodes
-                    );
-
-            }
-
-
-            if (
-                status ===
-                    "completed" &&
-                totalEpisodes > 0
-            ) {
-
-                episode =
-                    totalEpisodes;
-
-            }
-
+                    ? totalEpisodes
+                    : episode;
 
             const result =
                 await pool.query(
@@ -1854,12 +1394,11 @@ app.patch(
 
                         SET
                             status = $1,
-
-                            episode = $2
+                            episode = $2,
+                            saved_at = NOW()
 
                         WHERE
                             user_id = $3
-
                         AND
                             anime_id = $4
 
@@ -1872,17 +1411,15 @@ app.patch(
                     `,
                     [
                         status,
-                        episode,
+                        finalEpisode,
                         req.session.userId,
                         animeId
                     ]
                 );
 
-
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 data: {
 
@@ -1911,11 +1448,8 @@ app.patch(
                     savedAt:
                         result.rows[0]
                             .saved_at
-
                 }
-
             });
-
 
         } catch (error) {
 
@@ -1924,34 +1458,26 @@ app.patch(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not update anime."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   MY LIST — UPDATE RATING
-====================================================== */
+// ======================================================
+// MY LIST — UPDATE RATING
+// ======================================================
 
 app.patch(
     "/api/my-list/:animeId/rating",
     requireAuth,
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
@@ -1960,53 +1486,24 @@ app.patch(
                     req.params.animeId
                 );
 
-
-            const rating =
-                Number(
-                    req.body.rating
-                );
-
-
             if (
-                !Number.isInteger(
-                    animeId
-                ) ||
+                !Number.isInteger(animeId) ||
                 animeId <= 0
             ) {
 
                 return res.status(400).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Invalid anime ID."
-
                 });
-
             }
 
-
-            if (
-                !Number.isFinite(
-                    rating
-                ) ||
-                rating < 0 ||
-                rating > 5
-            ) {
-
-                return res.status(400).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Rating must be between 0 and 5."
-
-                });
-
-            }
-
+            const rating =
+                cleanRating(
+                    req.body.rating
+                );
 
             const result =
                 await pool.query(
@@ -2014,20 +1511,17 @@ app.patch(
                         UPDATE anime_list
 
                         SET
-                            rating = $1
+                            rating = $1,
+                            saved_at = NOW()
 
                         WHERE
                             user_id = $2
-
                         AND
                             anime_id = $3
 
                         RETURNING
                             anime_id,
-                            status,
-                            episode,
-                            rating,
-                            saved_at
+                            rating
                     `,
                     [
                         rating,
@@ -2036,37 +1530,27 @@ app.patch(
                     ]
                 );
 
-
-            if (
-                !result.rows.length
-            ) {
+            if (!result.rows.length) {
 
                 return res.status(404).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Anime is not in your list."
-
                 });
-
             }
-
 
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 rating:
                     Number(
                         result.rows[0]
                             .rating
                     )
-
             });
-
 
         } catch (error) {
 
@@ -2075,34 +1559,26 @@ app.patch(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not save rating."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   MY LIST — DELETE
-====================================================== */
+// ======================================================
+// MY LIST — DELETE
+// ======================================================
 
 app.delete(
     "/api/my-list/:animeId",
     requireAuth,
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
@@ -2111,26 +1587,19 @@ app.delete(
                     req.params.animeId
                 );
 
-
             if (
-                !Number.isInteger(
-                    animeId
-                ) ||
+                !Number.isInteger(animeId) ||
                 animeId <= 0
             ) {
 
                 return res.status(400).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Invalid anime ID."
-
                 });
-
             }
-
 
             await pool.query(
                 `
@@ -2138,7 +1607,6 @@ app.delete(
 
                     WHERE
                         user_id = $1
-
                     AND
                         anime_id = $2
                 `,
@@ -2148,17 +1616,13 @@ app.delete(
                 ]
             );
 
-
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 message:
                     "Anime removed."
-
             });
-
 
         } catch (error) {
 
@@ -2167,33 +1631,51 @@ app.delete(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not remove anime."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   SEARCH
-====================================================== */
+// ======================================================
+// MAL ANIME FIELDS
+// ======================================================
+
+const ANIME_FIELDS =
+    [
+        "id",
+        "title",
+        "main_picture",
+        "alternative_titles",
+        "start_date",
+        "end_date",
+        "synopsis",
+        "mean",
+        "rank",
+        "popularity",
+        "num_list_users",
+        "num_episodes",
+        "status",
+        "genres",
+        "media_type",
+        "broadcast",
+        "source"
+    ].join(",");
+
+
+// ======================================================
+// SEARCH
+// ======================================================
 
 app.get(
     "/anime/search",
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
@@ -2203,70 +1685,33 @@ app.get(
                     ""
                 ).trim();
 
-
             if (!name) {
 
                 return res.status(400).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Anime name is required."
-
                 });
-
             }
-
 
             const url =
                 "https://api.myanimelist.net/v2/anime" +
-
-                `?q=${encodeURIComponent(
-                    name
-                )}` +
-
+                `?q=${encodeURIComponent(name)}` +
                 "&limit=20" +
-
-                "&fields=" +
-
-                "id," +
-                "title," +
-                "main_picture," +
-                "alternative_titles," +
-                "start_date," +
-                "end_date," +
-                "synopsis," +
-                "mean," +
-                "rank," +
-                "popularity," +
-                "num_list_users," +
-                "num_episodes," +
-                "status," +
-                "genres," +
-                "media_type," +
-                "broadcast," +
-                "source";
-
+                `&fields=${ANIME_FIELDS}`;
 
             const data =
-                await malFetch(
-                    url
-                );
-
+                await malFetch(url);
 
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 data:
-                    normalizeAnimeList(
-                        data
-                    )
-
+                    normalizeAnimeList(data)
             });
-
 
         } catch (error) {
 
@@ -2275,33 +1720,25 @@ app.get(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Search failed."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   TOP ANIME
-====================================================== */
+// ======================================================
+// TOP ANIME
+// ======================================================
 
 app.get(
     "/anime/top",
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
@@ -2310,58 +1747,27 @@ app.get(
                     Math.max(
                         Number(
                             req.query.limit
-                        ) ||
-                        50,
+                        ) || 50,
                         1
                     ),
                     100
                 );
 
-
             const url =
                 "https://api.myanimelist.net/v2/anime/ranking" +
-
                 `?ranking_type=all&limit=${limit}` +
-
-                "&fields=" +
-
-                "id," +
-                "title," +
-                "main_picture," +
-                "alternative_titles," +
-                "start_date," +
-                "end_date," +
-                "synopsis," +
-                "mean," +
-                "rank," +
-                "popularity," +
-                "num_list_users," +
-                "num_episodes," +
-                "status," +
-                "genres," +
-                "media_type," +
-                "broadcast," +
-                "source";
-
+                `&fields=${ANIME_FIELDS}`;
 
             const data =
-                await malFetch(
-                    url
-                );
-
+                await malFetch(url);
 
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 data:
-                    normalizeAnimeList(
-                        data
-                    )
-
+                    normalizeAnimeList(data)
             });
-
 
         } catch (error) {
 
@@ -2370,33 +1776,25 @@ app.get(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not load top anime."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   TRENDING
-====================================================== */
+// ======================================================
+// TRENDING
+// ======================================================
 
 app.get(
     "/anime/trending",
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
@@ -2405,58 +1803,27 @@ app.get(
                     Math.max(
                         Number(
                             req.query.limit
-                        ) ||
-                        20,
+                        ) || 20,
                         1
                     ),
                     100
                 );
 
-
             const url =
                 "https://api.myanimelist.net/v2/anime/ranking" +
-
                 `?ranking_type=bypopularity&limit=${limit}` +
-
-                "&fields=" +
-
-                "id," +
-                "title," +
-                "main_picture," +
-                "alternative_titles," +
-                "start_date," +
-                "end_date," +
-                "synopsis," +
-                "mean," +
-                "rank," +
-                "popularity," +
-                "num_list_users," +
-                "num_episodes," +
-                "status," +
-                "genres," +
-                "media_type," +
-                "broadcast," +
-                "source";
-
+                `&fields=${ANIME_FIELDS}`;
 
             const data =
-                await malFetch(
-                    url
-                );
-
+                await malFetch(url);
 
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 data:
-                    normalizeAnimeList(
-                        data
-                    )
-
+                    normalizeAnimeList(data)
             });
-
 
         } catch (error) {
 
@@ -2465,86 +1832,45 @@ app.get(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not load trending anime."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   RANDOM
-====================================================== */
+// ======================================================
+// RANDOM
+// ======================================================
 
 app.get(
     "/anime/random",
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
             const url =
                 "https://api.myanimelist.net/v2/anime/ranking" +
-
                 "?ranking_type=all" +
-
                 "&limit=100" +
-
-                "&fields=" +
-
-                "id," +
-                "title," +
-                "main_picture," +
-                "alternative_titles," +
-                "start_date," +
-                "end_date," +
-                "synopsis," +
-                "mean," +
-                "rank," +
-                "popularity," +
-                "num_list_users," +
-                "num_episodes," +
-                "status," +
-                "genres," +
-                "media_type," +
-                "broadcast," +
-                "source";
-
+                `&fields=${ANIME_FIELDS}`;
 
             const data =
-                await malFetch(
-                    url
-                );
-
+                await malFetch(url);
 
             const animeList =
-                normalizeAnimeList(
-                    data
-                );
+                normalizeAnimeList(data);
 
-
-            if (
-                !animeList.length
-            ) {
-
+            if (!animeList.length) {
                 throw new Error(
                     "No anime were returned."
                 );
-
             }
-
 
             const anime =
                 animeList[
@@ -2554,17 +1880,12 @@ app.get(
                     )
                 ];
 
-
             res.json({
 
-                success:
-                    true,
+                success: true,
 
-                data:
-                    anime
-
+                data: anime
             });
-
 
         } catch (error) {
 
@@ -2573,79 +1894,167 @@ app.get(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not find a random anime."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   SCHEDULE
-====================================================== */
+// ======================================================
+// OFFICIAL TRAILER
+// ======================================================
+//
+// MyAnimeList's normal API response does not expose the
+// trailer URL through the fields used above.
+//
+// Jikan mirrors public MAL information and exposes the
+// trailer metadata when MAL has an official trailer.
+//
+// We only return the trailer when a YouTube URL is
+// supplied by the source.
+//
+// ======================================================
+
+app.get(
+    "/anime/trailer/:id",
+    async (req, res) => {
+
+        try {
+
+            const id =
+                Number(
+                    req.params.id
+                );
+
+            if (
+                !Number.isInteger(id) ||
+                id <= 0
+            ) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        "Invalid anime ID."
+                });
+            }
+
+            const response =
+                await fetch(
+                    `https://api.jikan.moe/v4/anime/${id}/full`
+                );
+
+            if (!response.ok) {
+
+                return res.json({
+
+                    success: true,
+
+                    data: null
+                });
+            }
+
+            const result =
+                await response.json();
+
+            const trailer =
+                result?.data?.trailer;
+
+            const youtubeId =
+                trailer?.youtube_id;
+
+            const embedURL =
+                trailer?.embed_url ||
+                (
+                    youtubeId
+                        ? `https://www.youtube.com/embed/${youtubeId}`
+                        : ""
+                );
+
+            if (!embedURL) {
+
+                return res.json({
+
+                    success: true,
+
+                    data: null
+                });
+            }
+
+            res.json({
+
+                success: true,
+
+                data: {
+
+                    embed_url:
+                        embedURL,
+
+                    youtube_id:
+                        youtubeId ||
+                        null,
+
+                    url:
+                        trailer.url ||
+                        null
+                }
+            });
+
+        } catch (error) {
+
+            console.error(
+                "TRAILER ERROR:",
+                error
+            );
+
+            res.json({
+
+                success: true,
+
+                data: null
+            });
+        }
+    }
+);
+
+
+// ======================================================
+// SCHEDULE
+// ======================================================
 
 app.get(
     "/anime/schedule",
-    async (
-        req,
-        res
-    ) => {
+    async (req, res) => {
 
         try {
 
             const now =
                 new Date();
 
-
             const year =
                 now.getFullYear();
-
 
             const month =
                 now.getMonth();
 
-
             let season;
 
-
-            if (
-                month <= 2
-            ) {
-
-                season =
-                    "winter";
-
-            } else if (
-                month <= 5
-            ) {
-
-                season =
-                    "spring";
-
-            } else if (
-                month <= 8
-            ) {
-
-                season =
-                    "summer";
-
+            if (month <= 2) {
+                season = "winter";
+            } else if (month <= 5) {
+                season = "spring";
+            } else if (month <= 8) {
+                season = "summer";
             } else {
-
-                season =
-                    "fall";
-
+                season = "fall";
             }
-
 
             const requestedDay =
                 String(
@@ -2655,9 +2064,7 @@ app.get(
                     .trim()
                     .toLowerCase();
 
-
             const validDays = [
-
                 "monday",
                 "tuesday",
                 "wednesday",
@@ -2665,53 +2072,23 @@ app.get(
                 "friday",
                 "saturday",
                 "sunday"
-
             ];
-
 
             const url =
                 "https://api.myanimelist.net/v2/anime/season" +
-
                 `/${year}/${season}` +
-
                 "?limit=100" +
-
-                "&fields=" +
-
-                "id," +
-                "title," +
-                "main_picture," +
-                "alternative_titles," +
-                "start_date," +
-                "end_date," +
-                "synopsis," +
-                "mean," +
-                "rank," +
-                "popularity," +
-                "num_list_users," +
-                "num_episodes," +
-                "status," +
-                "genres," +
-                "media_type," +
-                "broadcast," +
-                "source";
-
+                `&fields=${ANIME_FIELDS}`;
 
             const data =
-                await malFetch(
-                    url
-                );
-
+                await malFetch(url);
 
             let anime =
-                normalizeAnimeList(
-                    data
-                )
-                .filter(
-                    item =>
-                        item.broadcast
-                );
-
+                normalizeAnimeList(data)
+                    .filter(
+                        item =>
+                            item.broadcast
+                    );
 
             if (
                 validDays.includes(
@@ -2730,34 +2107,17 @@ app.get(
                                 )
                                     .toLowerCase();
 
-
                             return (
                                 malDay ===
                                 requestedDay
                             );
-
                         }
                     );
-
             }
-
-
-            /*
-               The broadcast object is intentionally
-               returned untouched.
-
-               This allows the frontend to use:
-                   broadcast.day
-                   broadcast.start_time
-
-               and display actual airing times.
-            */
-
 
             res.json({
 
-                success:
-                    true,
+                success: true,
 
                 season,
 
@@ -2767,11 +2127,8 @@ app.get(
                     requestedDay ||
                     null,
 
-                data:
-                    anime
-
+                data: anime
             });
-
 
         } catch (error) {
 
@@ -2780,26 +2137,21 @@ app.get(
                 error
             );
 
-
             res.status(500).json({
 
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Could not load schedule."
-
             });
-
         }
-
     }
 );
 
 
-/* ======================================================
-   SERVE FRONTEND
-====================================================== */
+// ======================================================
+// SERVE FRONTEND
+// ======================================================
 
 const websitePath =
     path.join(
@@ -2807,13 +2159,11 @@ const websitePath =
         ".."
     );
 
-
 app.use(
     express.static(
         websitePath
     )
 );
-
 
 app.get(
     "/",
@@ -2825,14 +2175,13 @@ app.get(
                 "index.html"
             )
         );
-
     }
 );
 
 
-/* ======================================================
-   ERROR HANDLER
-====================================================== */
+// ======================================================
+// ERROR HANDLER
+// ======================================================
 
 app.use(
     (
@@ -2847,31 +2196,26 @@ app.use(
             err
         );
 
-
         res.status(500).json({
 
-            success:
-                false,
+            success: false,
 
             error:
                 "Internal server error."
-
         });
-
     }
 );
 
 
-/* ======================================================
-   START SERVER
-====================================================== */
+// ======================================================
+// START SERVER
+// ======================================================
 
 async function startServer() {
 
     try {
 
         await setupDatabase();
-
 
         app.listen(
             PORT,
@@ -2880,10 +2224,8 @@ async function startServer() {
                 console.log(
                     `MIRAI server running on port ${PORT}`
                 );
-
             }
         );
-
 
     } catch (error) {
 
@@ -2892,12 +2234,8 @@ async function startServer() {
             error
         );
 
-
         process.exit(1);
-
     }
-
 }
-
 
 startServer();

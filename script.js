@@ -5734,3 +5734,102 @@ async function initializeMIRAI() {
 
 
 initializeMIRAI();
+/* =========================================================
+   MIRAI MOBILE NAVIGATION FIX
+   ========================================================= */
+
+(() => {
+
+    const mobileMenu =
+        document.getElementById("mobileMenuBtn");
+
+    /*
+       The old mobile hamburger opened the desktop
+       sidebar. MIRAI now uses the bottom navigation,
+       so the hamburger is intentionally disabled.
+    */
+
+    if (mobileMenu) {
+
+        mobileMenu.style.display = "none";
+
+        mobileMenu.onclick = null;
+
+    }
+
+
+    /*
+       Mobile search button opens the existing global
+       search instead of creating another search system.
+    */
+
+    const mobileSearch =
+        document.getElementById(
+            "mobileSearchButton"
+        );
+
+    if (mobileSearch) {
+
+        mobileSearch.addEventListener(
+            "click",
+            () => {
+
+                const input =
+                    document.getElementById(
+                        "globalSearchInput"
+                    );
+
+                if (input) {
+
+                    input.focus();
+
+                    input.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+
+                } else {
+
+                    if (
+                        typeof goToSearch ===
+                        "function"
+                    ) {
+                        goToSearch();
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /*
+       Make the Lelouch brand image return to Home.
+    */
+
+    const mobileBrand =
+        document.getElementById(
+            "mobileHomeButton"
+        );
+
+    if (mobileBrand) {
+
+        mobileBrand.addEventListener(
+            "click",
+            () => {
+
+                if (
+                    typeof showPage ===
+                    "function"
+                ) {
+                    showPage("home");
+                }
+
+            }
+        );
+
+    }
+
+})();
