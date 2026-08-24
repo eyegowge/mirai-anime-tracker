@@ -1,246 +1,1311 @@
-const API_BASE = "http://localhost:3000";
-let popularAnime = [], currentAnime = null;
-let myList = JSON.parse(localStorage.getItem('mirai_list')) || [];
+/* =========================================================
+   MIRAI — ANIME TRACKER — FRONTEND SCRIPT
+========================================================= */
 
-// Cloud Intro Removal
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        const intro = document.getElementById('cloudIntro');
-        if(intro) intro.style.display = 'none';
-    }, 2500);
-});
+const API_BASE = "";
 
-// Theme Logic
-document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
-    document.body.classList.toggle('theme-light');
-    localStorage.setItem('theme', document.body.classList.contains('theme-light') ? 'light' : 'dark');
-});
-if(localStorage.getItem('theme') === 'light') document.body.classList.add('theme-light');
+let currentUser = null, currentAnime = null, currentRating = 0, myList = [], popularAnime = [], scheduleData = {};
+let featuredIndex = 0, homeListIndex = 0, currentScheduleDay = "monday", currentDiscoverMode = "popular";
+let toastTimeout = null, heroAutoplayTimer = null;
+let isLoadingSchedule = false, isLoadingList = false, isLoadingPopular = false;
 
-// Page Navigation
-function switchPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
-    document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(i => i.classList.remove('active'));
-    document.getElementById(pageId + 'Page').classList.add('active-page');
-    document.querySelectorAll(`[data-page="${pageId}"]`).forEach(i => i.classList.add('active'));
-    window.scrollTo({top:0, behavior:'smooth'});
-    
-    if(pageId === 'home') renderHomeList();
-    if(pageId === 'my-list') renderMyList();
-    if(pageId === 'schedule') loadSchedule('monday');
-    if(pageId === 'trending') loadTrending();
-    if(pageId === 'discover') loadDiscover();
+const HOME_LIST_SIZE = 6, RATING_MIN = 0.5, RATING_MAX = 5, RATING_STEP = 0.5;
+const THEMES = ["aurora", "sakura", "cyber"];
+const THEME_LABELS = { aurora: "Aurora", sakura: "Sakura", cyber: "Cyber" };
+
+const pages = {
+  home: document.getElementById("homePage"),
+  search: document.getElementById("searchPage"),
+  trending: document.getElementById("trendingPage"),
+  schedule: document.getElementById("schedulePage"),
+  "my-list": document.getElementById("myListPage"),
+  discover: document.getElementById("discoverPage"),
+  random: document.getElementById("randomPage")
+};
+
+const navItems = document.querySelectorAll(".nav-item");
+const mobileNavItems = document.querySelectorAll(".mobile-nav-item");
+const accountModal = document.getElementById("accountModal");
+const animeModal = document.getElementById("animeModal");
+const ratingModal = document.getElementById("ratingModal");
+const trailerModal = document.getElementById("trailerModal");
+const loginContainer = document.getElementById("loginContainer");
+const registerContainer = document.getElementById("registerContainer");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const loginError = document.getElementById("loginError");
+const registerError = document.getElementById("registerError");
+const loggedOutAccount = document.getElementById("loggedOutAccount");
+const loggedInAccount = document.getElementById("loggedInAccount");
+const sidebarUsername = document.getElementById("sidebarUsername");
+const userAvatar = document.getElementById("userAvatar");
+
+function getElement(id) { return document.getElementById(id); }
+function query(s) { return document.querySelector(s); }
+function queryAll(s) { return document.querySelectorAll(s); }
+
+function escapeHTML(v) {
+  if (v === null || v === undefined) return "";
+  return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+function roundRating(v) { const n = Number(v); return Number.isFinite(n) ? Math.round(n / RATING_STEP) * RATING_STEP : 0; }
+function normalizeRating(v) { const n = roundRating(v); return n <= 0 ? 0 : Number(clamp(n, RATING_MIN, RATING_MAX).toFixed(1)); }
+function restoreBodyScroll() { if (!document.querySelector(".modal-overlay.open")) document.body.style.overflow = ""; }
+
+/* =========================================================
+   THEME SYSTEM
+========================================================= */
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("mirai-theme", theme);
+  const label = getElement("themeToggleLabel");
+  if (label) label.textContent = `Theme: ${THEME_LABELS[theme] || theme}`;
 }
 
-document.querySelectorAll('[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => switchPage(btn.dataset.page));
+function initTheme() {
+  const saved = localStorage.getItem("mirai-theme");
+  applyTheme(THEMES.includes(saved) ? saved : "aurora");
+}
+
+getElement("themeToggleBtn")?.addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme") || "aurora";
+  const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
+  applyTheme(next);
 });
+
+/* =========================================================
+   INTRO SPLASH (cloud whoosh)
+========================================================= */
+
+function initSplash() {
+  const splash = getElement("splash");
+  if (!splash) return;
+  const alreadySeen = sessionStorage.getItem("mirai-splash-seen");
+  if (alreadySeen) { splash.classList.add("done"); return; }
+  sessionStorage.setItem("mirai-splash-seen", "1");
+  setTimeout(() => splash.classList.add("done"), 2600);
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function showToast(message, type = "") {
+  const toast = getElement("toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.className = "toast";
+  if (type) toast.classList.add(type);
+  requestAnimationFrame(() => toast.classList.add("show"));
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toast.classList.remove("show"), 3200);
+}
+
+/* =========================================================
+   API
+========================================================= */
+
+async function apiRequest(url, options = {}) {
+  const response = await fetch(`${API_BASE}${url}`, { credentials: "include", ...options });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `Request failed with status ${response.status}.`);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  return data;
+}
+
+/* =========================================================
+   NORMALIZE ANIME
+========================================================= */
+
+function normalizeAnime(anime) {
+  if (!anime) return null;
+  const node = anime.node || anime;
+  const id = Number(node.id || anime.mal_id || anime.anime_id || anime.id);
+  if (!Number.isInteger(id) || id <= 0) return null;
+
+  const picture = node.main_picture || {};
+  const image = picture.large || picture.medium || anime.image || anime.image_url || anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "";
+  const episodes = node.num_episodes ?? anime.episodes ?? anime.episode_count ?? anime.num_episodes ?? null;
+  const storedStatus = anime.listStatus || anime.list_status || "";
+  const validStatuses = ["plan","watching","completed","on_hold","dropped"];
+  const listStatus = validStatuses.includes(storedStatus) ? storedStatus : "";
+  const storedRating = normalizeRating(anime.rating);
+
+  return {
+    ...anime, id, mal_id: id,
+    title: node.title || anime.title || anime.name || "Unknown Anime",
+    image, image_url: image,
+    synopsis: node.synopsis || anime.synopsis || anime.description || "No synopsis available.",
+    score: node.mean ?? anime.score ?? anime.mal_score ?? null,
+    mal_score: node.mean ?? anime.mal_score ?? anime.score ?? null,
+    episodes, episode_count: episodes,
+    type: node.media_type || anime.type || "Anime",
+    status: node.status || anime.status || "",
+    start_date: node.start_date || anime.start_date || null,
+    end_date: node.end_date || anime.end_date || null,
+    rank: node.rank ?? anime.rank ?? null,
+    popularity: node.popularity ?? anime.popularity ?? null,
+    genres: Array.isArray(node.genres) ? node.genres : (Array.isArray(anime.genres) ? anime.genres : []),
+    broadcast: node.broadcast || anime.broadcast || null,
+    source: node.source || anime.source || null,
+    alternative_titles: node.alternative_titles || anime.alternative_titles || null,
+    listStatus, rating: storedRating,
+    episode: Math.max(0, Math.floor(Number(anime.episode || 0))),
+    savedAt: anime.savedAt || anime.saved_at || null,
+    trailer_url: node.trailer_url || anime.trailer_url || anime.trailer?.embed_url || null
+  };
+}
+
+function normalizeAnimeList(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map(normalizeAnime).filter(Boolean);
+}
+
+/* =========================================================
+   PAGE NAVIGATION
+========================================================= */
+
+function showPage(pageName) {
+  Object.values(pages).forEach(p => p && p.classList.remove("active-page"));
+  if (pages[pageName]) pages[pageName].classList.add("active-page");
+
+  navItems.forEach(i => i.classList.toggle("active", i.dataset.page === pageName));
+  mobileNavItems.forEach(i => i.classList.toggle("active", i.dataset.page === pageName));
+
+  getElement("sidebar")?.classList.remove("open");
+  getElement("mobileBackdrop")?.classList.remove("open");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  if (pageName === "home") startHeroAutoplay();
+  if (pageName === "my-list") renderMyList();
+  if (pageName === "trending") loadTrending();
+  if (pageName === "schedule") loadSchedule(query(".schedule-tab.active")?.dataset.day || currentScheduleDay || "monday");
+  if (pageName === "discover") loadDiscover(currentDiscoverMode);
+}
+
+navItems.forEach(i => i.addEventListener("click", () => showPage(i.dataset.page)));
+mobileNavItems.forEach(i => i.addEventListener("click", () => showPage(i.dataset.page)));
+
+/* =========================================================
+   MOBILE SIDEBAR / DRAWER
+========================================================= */
+
+const mobileMenuBtn = getElement("mobileMenuBtn");
+mobileMenuBtn?.addEventListener("click", event => {
+  event.stopPropagation();
+  getElement("sidebar")?.classList.toggle("open");
+  getElement("mobileBackdrop")?.classList.toggle("open");
+});
+
+getElement("mobileBackdrop")?.addEventListener("click", () => {
+  getElement("sidebar")?.classList.remove("open");
+  getElement("mobileBackdrop")?.classList.remove("open");
+});
+
+document.addEventListener("click", event => {
+  const sidebar = getElement("sidebar");
+  if (!sidebar || !sidebar.classList.contains("open")) return;
+  if (sidebar.contains(event.target) || mobileMenuBtn?.contains(event.target)) return;
+  sidebar.classList.remove("open");
+  getElement("mobileBackdrop")?.classList.remove("open");
+});
+
+getElement("mobileSearchButton")?.addEventListener("click", () => {
+  showPage("search");
+  setTimeout(() => getElement("searchInput")?.focus(), 150);
+});
+
+getElement("mobileAccountBtn")?.addEventListener("click", () => {
+  currentUser ? showPage("my-list") : openLogin();
+});
+
+getElement("mobileHomeButton")?.addEventListener("click", () => showPage("home"));
+
+/* =========================================================
+   BACK HOME
+========================================================= */
+
+queryAll("[data-home]").forEach(b => b.addEventListener("click", () => showPage("home")));
+queryAll(".back-home-button").forEach(b => b.addEventListener("click", () => showPage("home")));
+getElement("globalHomeButton")?.addEventListener("click", () => showPage("home"));
+
+/* =========================================================
+   SEARCH (global + page, works from any tab)
+========================================================= */
 
 function goToSearch() {
-    switchPage('search');
-    setTimeout(() => document.getElementById('searchInput').focus(), 100);
+  showPage("search");
+  setTimeout(() => getElement("searchInput")?.focus(), 120);
 }
 
-// Global Search form
-document.getElementById("globalSearchForm")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const q = document.getElementById("globalSearchInput").value;
-    if(!q) return;
-    switchPage('search');
-    document.getElementById("searchStatus").innerText = `Searching for "${q}"...`;
-    try {
-        const res = await fetch(`${API_BASE}/anime/search?name=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        renderGrid("searchGrid", data.data);
-        document.getElementById("searchStatus").innerText = `Found ${data.data.length} results.`;
-    } catch(err) { document.getElementById("searchStatus").innerText = "Search failed."; }
+getElement("homeSearchBtn")?.addEventListener("click", goToSearch);
+getElement("homeListButton")?.addEventListener("click", () => showPage("my-list"));
+getElement("sidebarSearchButton")?.addEventListener("click", goToSearch);
+
+async function performGlobalSearch() {
+  const input = getElement("globalSearchInput");
+  if (!input) { goToSearch(); return; }
+  const text = input.value.trim();
+  if (!text) { goToSearch(); return; }
+  const pageInput = getElement("searchInput");
+  if (pageInput) pageInput.value = text;
+  showPage("search");
+  await performSearch(text);
+}
+
+getElement("globalSearchForm")?.addEventListener("submit", e => { e.preventDefault(); performGlobalSearch(); });
+getElement("globalSearchButton")?.addEventListener("click", e => { e.preventDefault(); performGlobalSearch(); });
+
+document.addEventListener("keydown", event => {
+  const tag = document.activeElement?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  if (event.key === "/") { event.preventDefault(); getElement("globalSearchInput")?.focus(); getElement("globalSearchInput")?.select(); }
 });
 
-// Load Popular & Trailer Slider
-let featuredIndex = 0;
-async function loadPopular() {
-    try {
-        const res = await fetch(`${API_BASE}/anime/top?limit=15`);
-        const data = await res.json();
-        popularAnime = data.data || [];
-        renderHero();
-        renderGrid("popularGrid", popularAnime.slice(0, 10));
-    } catch(e) { console.error("Error loading popular", e); }
+getElement("globalSearchInput")?.addEventListener("keydown", event => {
+  if (event.key === "Enter") { event.preventDefault(); performGlobalSearch(); }
+});
+
+/* =========================================================
+   ACCOUNT MODAL
+========================================================= */
+
+function openAccountModal() { accountModal?.classList.add("open"); document.body.style.overflow = "hidden"; }
+function closeAccountModal() { accountModal?.classList.remove("open"); restoreBodyScroll(); }
+function openLogin() { clearAccountErrors(); loginContainer?.classList.remove("hidden"); registerContainer?.classList.add("hidden"); openAccountModal(); }
+function openRegister() { clearAccountErrors(); loginContainer?.classList.add("hidden"); registerContainer?.classList.remove("hidden"); openAccountModal(); }
+
+getElement("sidebarLoginBtn")?.addEventListener("click", openLogin);
+getElement("sidebarSignupBtn")?.addEventListener("click", openRegister);
+getElement("listLoginBtn")?.addEventListener("click", openLogin);
+getElement("showRegisterBtn")?.addEventListener("click", openRegister);
+getElement("showLoginBtn")?.addEventListener("click", openLogin);
+getElement("accountModalClose")?.addEventListener("click", closeAccountModal);
+accountModal?.addEventListener("click", e => { if (e.target === accountModal) closeAccountModal(); });
+
+function clearAccountErrors() {
+  [loginError, registerError].forEach(el => { if (el) { el.textContent = ""; el.classList.remove("show"); } });
+}
+function showAccountError(el, msg) { if (el) { el.textContent = msg; el.classList.add("show"); } }
+
+/* REGISTER */
+registerForm?.addEventListener("submit", async event => {
+  event.preventDefault();
+  clearAccountErrors();
+  const username = getElement("registerUsername")?.value.trim() || "";
+  const email = getElement("registerEmail")?.value.trim() || "";
+  const password = getElement("registerPassword")?.value || "";
+  const confirmPassword = getElement("registerConfirmPassword")?.value || "";
+
+  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) return showAccountError(registerError, "Username must be 3–30 characters (letters, numbers, _ or -).");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAccountError(registerError, "Please enter a valid email address.");
+  if (password.length < 6) return showAccountError(registerError, "Password must be at least 6 characters.");
+  if (password !== confirmPassword) return showAccountError(registerError, "Passwords do not match.");
+
+  const button = registerForm.querySelector("button[type='submit']");
+  const oldText = button?.textContent || "Create Account";
+  if (button) { button.disabled = true; button.textContent = "Creating account..."; }
+
+  try {
+    const data = await apiRequest("/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, email, password }) });
+    currentUser = data.user || null;
+    if (!currentUser) throw new Error("Account created but no user account was returned.");
+    myList = [];
+    closeAccountModal();
+    registerForm.reset();
+    updateAccountUI();
+    await loadMyListFromServer();
+    showToast("Your MIRAI account has been created.", "success");
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
+    showAccountError(registerError, error.message || "Could not create account.");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = oldText; }
+  }
+});
+
+/* LOGIN */
+loginForm?.addEventListener("submit", async event => {
+  event.preventDefault();
+  clearAccountErrors();
+  const identifier = getElement("loginEmail")?.value.trim() || "";
+  const password = getElement("loginPassword")?.value || "";
+  if (!identifier || !password) return showAccountError(loginError, "Enter your username/email and password.");
+
+  const button = loginForm.querySelector("button[type='submit']");
+  const oldText = button?.textContent || "Log In";
+  if (button) { button.disabled = true; button.textContent = "Logging in..."; }
+
+  try {
+    const data = await apiRequest("/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, password }) });
+    currentUser = data.user || null;
+    if (!currentUser) throw new Error("Login succeeded but no user was returned.");
+    closeAccountModal();
+    loginForm.reset();
+    updateAccountUI();
+    await loadMyListFromServer();
+    showToast(`Welcome back, ${currentUser.username || "User"}!`, "success");
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+    showAccountError(loginError, error.message || "Could not log in.");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = oldText; }
+  }
+});
+
+/* LOGOUT */
+getElement("logoutBtn")?.addEventListener("click", async () => {
+  try { await apiRequest("/auth/logout", { method: "POST" }); } catch (error) { console.error("LOGOUT ERROR:", error); }
+  currentUser = null; myList = []; homeListIndex = 0;
+  updateAccountUI();
+  showPage("home");
+  showToast("You have been logged out.");
+});
+
+/* =========================================================
+   ACCOUNT UI
+========================================================= */
+
+function updateAccountUI() {
+  if (currentUser) {
+    loggedOutAccount?.classList.add("hidden");
+    loggedInAccount?.classList.remove("hidden");
+    const username = currentUser.username || currentUser.email?.split("@")[0] || "User";
+    if (sidebarUsername) sidebarUsername.textContent = username;
+    if (userAvatar) userAvatar.textContent = username.charAt(0).toUpperCase();
+    const subtitle = getElement("listSubtitle");
+    if (subtitle) subtitle.textContent = `Your personal collection, ${username}.`;
+    getElement("listToolbar")?.classList.remove("hidden");
+  } else {
+    loggedOutAccount?.classList.remove("hidden");
+    loggedInAccount?.classList.add("hidden");
+    const subtitle = getElement("listSubtitle");
+    if (subtitle) subtitle.textContent = "Log in to access your personal anime collection.";
+    getElement("listToolbar")?.classList.add("hidden");
+  }
+  renderMyList();
+  renderHomeList();
+}
+
+/* =========================================================
+   SESSION
+========================================================= */
+
+async function checkSession() {
+  try {
+    const data = await apiRequest("/auth/me", { cache: "no-store" });
+    if (data.loggedIn && data.user) {
+      currentUser = data.user;
+      updateAccountUI();
+      await loadMyListFromServer();
+    } else {
+      currentUser = null; myList = []; updateAccountUI();
+    }
+  } catch (error) {
+    console.error("SESSION ERROR:", error);
+    currentUser = null; myList = []; updateAccountUI();
+  }
+}
+
+/* =========================================================
+   MY LIST
+========================================================= */
+
+async function loadMyListFromServer() {
+  if (!currentUser) { myList = []; renderMyList(); renderHomeList(); return; }
+  if (isLoadingList) return;
+  isLoadingList = true;
+  try {
+    const data = await apiRequest("/api/my-list", { cache: "no-store" });
+    myList = normalizeAnimeList(data.data || []);
+    myList.sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+    myList = myList.map(a => ({ ...a, rating: normalizeRating(a.rating) }));
+    homeListIndex = 0;
+    renderMyList();
+    renderHomeList();
+  } catch (error) {
+    console.error("MY LIST LOAD ERROR:", error);
+    if (error.status === 401) { currentUser = null; myList = []; updateAccountUI(); return; }
+    showToast("Could not load your anime list.", "error");
+  } finally {
+    isLoadingList = false;
+  }
+}
+
+function getAnimeId(a) { return Number(a?.mal_id || a?.id || a?.anime_id || 0) || null; }
+function isInList(a) { const id = getAnimeId(a); return !!id && myList.some(i => Number(getAnimeId(i)) === Number(id)); }
+function getListAnime(a) { const id = getAnimeId(a); return id ? myList.find(i => Number(getAnimeId(i)) === Number(id)) || null : null; }
+
+async function addAnimeToList(anime, status = "plan", episode = 0, rating = 0) {
+  if (!currentUser) { openLogin(); return false; }
+  const normalized = normalizeAnime(anime);
+  if (!normalized) { showToast("Unable to identify this anime.", "error"); return false; }
+  const animeId = getAnimeId(normalized);
+  if (!animeId) { showToast("This anime has an invalid ID.", "error"); return false; }
+
+  try {
+    await apiRequest("/api/my-list", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anime: normalized, status, episode: Math.max(0, Math.floor(Number(episode) || 0)), rating: normalizeRating(rating) })
+    });
+    await loadMyListFromServer();
+    updateModalListButton(); updateModalListControls();
+    showToast("Added to My List.", "success");
+    return true;
+  } catch (error) {
+    console.error("ADD LIST ERROR:", error);
+    showToast(error.message || "Could not add anime.", "error");
+    return false;
+  }
+}
+
+async function removeAnimeFromList(anime) {
+  if (!currentUser) return false;
+  const id = getAnimeId(anime);
+  if (!id) return false;
+  try {
+    await apiRequest(`/api/my-list/${id}`, { method: "DELETE" });
+    myList = myList.filter(i => Number(getAnimeId(i)) !== Number(id));
+    renderMyList(); renderHomeList(); updateModalListButton(); updateModalListControls();
+    showToast("Removed from My List.");
+    return true;
+  } catch (error) {
+    console.error("REMOVE LIST ERROR:", error);
+    showToast(error.message || "Could not remove anime.", "error");
+    return false;
+  }
+}
+
+async function updateAnimeListEntry(anime, status, episode) {
+  if (!currentUser) return false;
+  const id = getAnimeId(anime);
+  if (!id) return false;
+  let safeEpisode = Math.max(0, Math.floor(Number(episode) || 0));
+  const total = Number(anime.episodes || anime.episode_count || 0);
+  if (total > 0) safeEpisode = Math.min(safeEpisode, total);
+  if (status === "completed" && total > 0) safeEpisode = total;
+
+  try {
+    const data = await apiRequest(`/api/my-list/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, episode: safeEpisode })
+    });
+    const existing = getListAnime(anime);
+    if (existing) {
+      existing.listStatus = data.data?.status || status;
+      existing.status = existing.listStatus;
+      existing.episode = Number(data.data?.episode ?? safeEpisode);
+      existing.savedAt = data.data?.savedAt || new Date().toISOString();
+    }
+    renderMyList(); renderHomeList(); updateModalListControls();
+    return true;
+  } catch (error) {
+    console.error("UPDATE LIST ERROR:", error);
+    showToast(error.message || "Could not update anime.", "error");
+    return false;
+  }
+}
+
+/* =========================================================
+   MY LIST RENDER
+========================================================= */
+
+function renderMyList() {
+  const container = getElement("myListContent");
+  const loginBox = getElement("myListLogin");
+  if (!container || !loginBox) return;
+
+  if (!currentUser) { loginBox.classList.remove("hidden"); container.innerHTML = ""; return; }
+  loginBox.classList.add("hidden");
+
+  if (!myList.length) {
+    container.innerHTML = `
+      <div class="empty-list">
+        <div class="empty-list-icon"><svg viewBox="0 0 64 64" width="30" height="30"><path d="M32 2 L58 18 V46 L32 62 L6 46 V18 Z" fill="currentColor"/></svg></div>
+        <h3>Your list is empty</h3>
+        <p>Search for an anime and start building your collection.</p>
+        <button class="primary-button" id="findAnimeButton" type="button">Find Anime</button>
+      </div>`;
+    getElement("findAnimeButton")?.addEventListener("click", goToSearch);
+    return;
+  }
+
+  const activeTab = query(".status-tab.active");
+  const status = activeTab?.dataset.status || "all";
+  const filtered = status === "all" ? myList : myList.filter(a => a.listStatus === status);
+
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty-list"><h3>Nothing here yet</h3><p>You do not have any anime in this category.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="anime-grid">${filtered.map((a, i) => animeCard(a, i)).join("")}</div>`;
+  container.querySelectorAll(".anime-card").forEach(card => {
+    card.addEventListener("click", () => openAnimeModal(filtered[Number(card.dataset.index)]));
+  });
+}
+
+queryAll(".status-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    queryAll(".status-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    renderMyList();
+  });
+});
+
+/* =========================================================
+   HOME LIST (recent → oldest, paged with arrows)
+========================================================= */
+
+function renderHomeList() {
+  const grid = getElement("homeListGrid");
+  if (!grid) return;
+
+  if (!currentUser) {
+    grid.innerHTML = `
+      <div class="home-list-empty">
+        <div class="home-list-empty-icon"><svg viewBox="0 0 64 64" width="26" height="26"><path d="M32 2 L58 18 V46 L32 62 L6 46 V18 Z" fill="currentColor"/></svg></div>
+        <h3>Your list lives here</h3>
+        <p>Log in to see the anime you have recently added.</p>
+        <button class="primary-button" id="homeListLoginButton" type="button">Log In</button>
+      </div>`;
+    getElement("homeListLoginButton")?.addEventListener("click", openLogin);
+    updateHomeListControls();
+    return;
+  }
+
+  if (!myList.length) {
+    grid.innerHTML = `
+      <div class="home-list-empty">
+        <div class="home-list-empty-icon">+</div>
+        <h3>Your list is empty</h3>
+        <p>Search for anime and add them to see them here.</p>
+        <button class="primary-button" id="homeFindAnimeButton" type="button">Find Anime</button>
+      </div>`;
+    getElement("homeFindAnimeButton")?.addEventListener("click", goToSearch);
+    updateHomeListControls();
+    return;
+  }
+
+  myList.sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+  const maxStart = Math.max(0, Math.floor((myList.length - 1) / HOME_LIST_SIZE) * HOME_LIST_SIZE);
+  homeListIndex = Math.min(homeListIndex, maxStart);
+  const visible = myList.slice(homeListIndex, homeListIndex + HOME_LIST_SIZE);
+
+  grid.innerHTML = visible.map((a, i) => animeCard(a, i)).join("");
+  grid.querySelectorAll(".anime-card").forEach(card => {
+    card.addEventListener("click", () => openAnimeModal(visible[Number(card.dataset.index)]));
+  });
+
+  updateHomeListControls();
+}
+
+function updateHomeListControls() {
+  const previous = getElement("homeListPrevious");
+  const next = getElement("homeListNext");
+  const counter = getElement("homeListCounter");
+  const total = myList.length;
+
+  if (previous) previous.disabled = homeListIndex <= 0;
+  if (next) next.disabled = homeListIndex + HOME_LIST_SIZE >= total;
+  if (counter) {
+    counter.textContent = !total ? "0 anime" : `${homeListIndex + 1}-${Math.min(homeListIndex + HOME_LIST_SIZE, total)} of ${total}`;
+  }
+}
+
+getElement("homeListPrevious")?.addEventListener("click", () => { homeListIndex = Math.max(0, homeListIndex - HOME_LIST_SIZE); renderHomeList(); });
+getElement("homeListNext")?.addEventListener("click", () => { if (homeListIndex + HOME_LIST_SIZE < myList.length) homeListIndex += HOME_LIST_SIZE; renderHomeList(); });
+
+/* =========================================================
+   ANIME CARD
+========================================================= */
+
+function animeCard(anime, index) {
+  const a = normalizeAnime(anime);
+  if (!a) return "";
+  const image = a.image || a.image_url || "";
+  const rating = normalizeRating(a.rating);
+  const labels = { watching: "Watching", completed: "Completed", plan: "Plan to Watch", on_hold: "On Hold", dropped: "Dropped" };
+  const statusText = labels[a.listStatus] || "";
+
+  return `
+    <article class="anime-card" data-index="${index}">
+      <div class="anime-image-wrapper">
+        ${image ? `<img class="anime-image" src="${escapeHTML(image)}" alt="${escapeHTML(a.title)}" loading="lazy">` : `<div class="anime-image-placeholder">◒</div>`}
+        ${a.score != null ? `<div class="score-badge">★ ${escapeHTML(Number(a.score).toFixed(1))}</div>` : ""}
+        ${rating > 0 ? `<div class="list-rating-badge">★ ${escapeHTML(rating.toFixed(1))}/5</div>` : ""}
+      </div>
+      <div class="anime-card-info">
+        <div class="anime-card-title">${escapeHTML(a.title)}</div>
+        <div class="anime-card-meta">${statusText ? `${escapeHTML(statusText)} · ` : ""}${a.episodes ? `${escapeHTML(String(a.episodes))} episodes` : "Episodes unknown"}</div>
+      </div>
+    </article>`;
+}
+
+/* =========================================================
+   ANIME MODAL
+========================================================= */
+
+function openAnimeModal(anime) {
+  currentAnime = normalizeAnime(anime);
+  if (!currentAnime) { showToast("Unable to open this anime.", "error"); return; }
+
+  const image = currentAnime.image || currentAnime.image_url || "";
+  const imageElement = getElement("modalAnimeImage");
+  if (imageElement) { imageElement.src = image; imageElement.alt = currentAnime.title; imageElement.style.display = image ? "" : "none"; }
+
+  const typeElement = getElement("modalAnimeType");
+  if (typeElement) typeElement.textContent = String(currentAnime.type || "Anime").toUpperCase();
+
+  const titleElement = getElement("modalAnimeTitle");
+  if (titleElement) titleElement.textContent = currentAnime.title;
+
+  const meta = getElement("modalAnimeMeta");
+  if (meta) meta.textContent = `★ ${currentAnime.score == null ? "N/A" : currentAnime.score} • ${currentAnime.episodes || "?"} episodes`;
+
+  const synopsis = getElement("modalAnimeSynopsis");
+  if (synopsis) synopsis.textContent = currentAnime.synopsis || "No synopsis available.";
+
+  updateModalListButton();
+  updateModalListControls();
+  loadAnimeTrailerButton(currentAnime);
+
+  animeModal?.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeAnimeModal() { animeModal?.classList.remove("open"); restoreBodyScroll(); }
+getElement("animeModalClose")?.addEventListener("click", closeAnimeModal);
+animeModal?.addEventListener("click", e => { if (e.target === animeModal) closeAnimeModal(); });
+
+function updateModalListButton() {
+  const button = getElement("modalListButton");
+  if (!button || !currentAnime) return;
+  if (isInList(currentAnime)) { button.textContent = "✓ In My List"; button.classList.add("in-list"); }
+  else { button.textContent = "+ Add to My List"; button.classList.remove("in-list"); }
+}
+
+getElement("modalListButton")?.addEventListener("click", async () => {
+  if (!currentAnime) return;
+  if (!currentUser) { closeAnimeModal(); openLogin(); showToast("Log in to manage your list.", "error"); return; }
+  const button = getElement("modalListButton");
+  if (button) button.disabled = true;
+  try {
+    if (isInList(currentAnime)) await removeAnimeFromList(currentAnime);
+    else await addAnimeToList(currentAnime);
+    updateModalListButton(); updateModalListControls();
+  } finally { if (button) button.disabled = false; }
+});
+
+function updateModalListControls() {
+  const management = getElement("listManagement");
+  if (!management) return;
+  if (!currentAnime || !isInList(currentAnime)) { management.classList.add("hidden"); return; }
+  management.classList.remove("hidden");
+
+  const existing = getListAnime(currentAnime);
+  if (!existing) return;
+
+  const status = getElement("animeStatusSelect");
+  const episode = getElement("episodeInput");
+  if (status) status.value = existing.listStatus || "plan";
+  if (episode) episode.value = Number(existing.episode || 0);
+
+  const currentStatus = getElement("modalCurrentStatus");
+  if (currentStatus) {
+    const labels = { plan: "Plan to Watch", watching: "Watching", completed: "Completed", on_hold: "On Hold", dropped: "Dropped" };
+    currentStatus.textContent = `${labels[existing.listStatus] || existing.listStatus || "Unknown"} • Episode ${Number(existing.episode || 0)}`;
+  }
+}
+
+getElement("episodePlus")?.addEventListener("click", () => {
+  const input = getElement("episodeInput");
+  if (!input || !currentAnime) return;
+  const current = Math.max(0, Math.floor(Number(input.value || 0)));
+  const maximum = Number(currentAnime.episodes || currentAnime.episode_count || 999999);
+  input.value = Math.min(current + 1, maximum);
+});
+
+getElement("episodeMinus")?.addEventListener("click", () => {
+  const input = getElement("episodeInput");
+  if (!input) return;
+  input.value = Math.max(0, Math.floor(Number(input.value || 0)) - 1);
+});
+
+getElement("saveListChanges")?.addEventListener("click", async () => {
+  if (!currentUser || !currentAnime) return;
+  const status = getElement("animeStatusSelect")?.value || "plan";
+  const episode = Number(getElement("episodeInput")?.value || 0);
+  const button = getElement("saveListChanges");
+  const oldText = button?.textContent || "Save Changes";
+  if (button) { button.disabled = true; button.textContent = "Saving..."; }
+  try { await updateAnimeListEntry(currentAnime, status, episode); showToast("Anime updated.", "success"); }
+  finally { if (button) { button.disabled = false; button.textContent = oldText; } }
+});
+
+/* =========================================================
+   RATING MODAL (0.5 increments)
+========================================================= */
+
+function updateRatingDisplay(value) {
+  let rating = clamp(roundRating(value), RATING_MIN, RATING_MAX);
+  currentRating = Number(rating.toFixed(1));
+  const big = getElement("ratingBigNumber");
+  const label = getElement("ratingValue");
+  if (big) big.textContent = currentRating.toFixed(1);
+  if (label) label.textContent = `${currentRating.toFixed(1)} / 5`;
+}
+
+function openRatingModal() {
+  if (!currentUser) { closeAnimeModal(); openLogin(); showToast("Log in to rate anime.", "error"); return; }
+  if (!currentAnime) return;
+  if (!isInList(currentAnime)) { showToast("Add this anime to My List before rating it.", "error"); return; }
+
+  const existing = getListAnime(currentAnime);
+  currentRating = normalizeRating(existing?.rating);
+
+  const title = getElement("ratingAnimeTitle");
+  if (title) title.textContent = currentAnime.title || "Anime";
+
+  const slider = getElement("ratingSlider");
+  if (slider) {
+    slider.min = String(RATING_MIN); slider.max = String(RATING_MAX); slider.step = String(RATING_STEP);
+    slider.value = currentRating || RATING_MIN;
+    updateRatingDisplay(slider.value);
+  }
+
+  ratingModal?.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeRatingModal() { ratingModal?.classList.remove("open"); restoreBodyScroll(); }
+getElement("modalRateButton")?.addEventListener("click", openRatingModal);
+getElement("ratingModalClose")?.addEventListener("click", closeRatingModal);
+ratingModal?.addEventListener("click", e => { if (e.target === ratingModal) closeRatingModal(); });
+
+const ratingSlider = getElement("ratingSlider");
+if (ratingSlider) {
+  ratingSlider.min = String(RATING_MIN); ratingSlider.max = String(RATING_MAX); ratingSlider.step = String(RATING_STEP);
+  ratingSlider.addEventListener("input", e => updateRatingDisplay(e.target.value));
+  ratingSlider.addEventListener("change", e => updateRatingDisplay(e.target.value));
+}
+
+getElement("submitRating")?.addEventListener("click", async () => {
+  if (!currentUser || !currentAnime) return;
+  const id = getAnimeId(currentAnime);
+  if (!id) return;
+  const rating = normalizeRating(currentRating);
+  if (!rating) { showToast("Choose a rating first.", "error"); return; }
+
+  const button = getElement("submitRating");
+  const oldText = button?.textContent || "Save Rating";
+  if (button) { button.disabled = true; button.textContent = "Saving..."; }
+
+  try {
+    const data = await apiRequest(`/api/my-list/${id}/rating`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating }) });
+    const existing = getListAnime(currentAnime);
+    if (existing) existing.rating = normalizeRating(data.rating ?? rating);
+    currentAnime.rating = normalizeRating(data.rating ?? rating);
+    renderMyList(); renderHomeList(); closeRatingModal();
+    showToast(`Rated ${rating.toFixed(1)}/5.`, "success");
+  } catch (error) {
+    console.error("RATING SAVE ERROR:", error);
+    showToast(error.message || "Could not save rating.", "error");
+  } finally { if (button) { button.disabled = false; button.textContent = oldText; } }
+});
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+getElement("searchForm")?.addEventListener("submit", e => { e.preventDefault(); performSearch(getElement("searchInput")?.value.trim() || ""); });
+
+async function performSearch(searchText) {
+  const grid = getElement("searchGrid");
+  const status = getElement("searchStatus");
+
+  if (!searchText) {
+    if (status) status.textContent = "Enter an anime name to search.";
+    if (grid) grid.innerHTML = "";
+    return;
+  }
+
+  if (status) status.textContent = `Searching for "${searchText}"...`;
+  if (grid) grid.innerHTML = `<div class="loading"><div class="spinner"></div><span>Searching anime...</span></div>`;
+
+  try {
+    const data = await apiRequest(`/anime/search?name=${encodeURIComponent(searchText)}`);
+    const anime = normalizeAnimeList(data.data || []);
+
+    if (!anime.length) {
+      if (status) status.textContent = "No anime found.";
+      if (grid) grid.innerHTML = `<div class="loading">No anime found.</div>`;
+      return;
+    }
+
+    if (status) status.textContent = `${anime.length} result${anime.length === 1 ? "" : "s"} found.`;
+    renderAnimeGrid(grid, anime);
+  } catch (error) {
+    console.error("SEARCH ERROR:", error);
+    if (status) status.textContent = "Search failed. Please try again.";
+    if (grid) grid.innerHTML = `<div class="loading">Search failed.</div>`;
+  }
+}
+
+function renderAnimeGrid(grid, animeList) {
+  if (!grid) return;
+  const normalized = normalizeAnimeList(animeList);
+  if (!normalized.length) { grid.innerHTML = `<div class="loading">No anime available.</div>`; return; }
+  grid.innerHTML = normalized.map((a, i) => animeCard(a, i)).join("");
+  grid.querySelectorAll(".anime-card").forEach(card => {
+    card.addEventListener("click", () => openAnimeModal(normalized[Number(card.dataset.index)]));
+  });
+}
+
+/* =========================================================
+   POPULAR / HERO SLIDESHOW (with trailer preview)
+========================================================= */
+
+async function loadPopularAnime() {
+  if (isLoadingPopular) return;
+  isLoadingPopular = true;
+  try {
+    const data = await apiRequest("/anime/top?limit=30");
+    popularAnime = normalizeAnimeList(data.data || []);
+    featuredIndex = 0;
+    renderHero();
+    const grid = getElement("popularGrid");
+    if (grid) renderAnimeGrid(grid, popularAnime.slice(0, 12));
+    startHeroAutoplay();
+  } catch (error) {
+    console.error("POPULAR ERROR:", error);
+    const grid = getElement("popularGrid");
+    if (grid) grid.innerHTML = `<div class="loading">Unable to load popular anime.</div>`;
+  } finally { isLoadingPopular = false; }
+}
+
+function getFeaturedAnime() {
+  if (!popularAnime.length) return null;
+  const count = Math.min(popularAnime.length, 8);
+  featuredIndex = (featuredIndex + count) % count;
+  return popularAnime[featuredIndex];
 }
 
 function renderHero() {
-    if(!popularAnime.length) return;
-    const anime = popularAnime[featuredIndex];
-    document.getElementById("heroTitle").innerHTML = `${anime.title}`;
-    document.getElementById("heroSynopsis").innerText = (anime.synopsis || "Discover your next favourite anime.").substring(0, 150) + "...";
-    document.getElementById("heroMeta").innerText = `★ ${anime.mean || 'N/A'} • ${anime.num_episodes || '?'} Episodes`;
-    
-    const iframe = document.getElementById("heroTrailerFrame");
-    const img = document.getElementById("heroImage");
-    if(anime.trailer && anime.trailer.youtube_id) {
-        iframe.src = `https://www.youtube.com/embed/${anime.trailer.youtube_id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${anime.trailer.youtube_id}`;
-        iframe.style.display = 'block'; img.style.display = 'none';
-    } else {
-        img.src = anime.main_picture?.large || "";
-        iframe.style.display = 'none'; img.style.display = 'block';
-    }
-    
-    document.getElementById("heroViewButton").onclick = () => openAnimeModal(anime);
+  const anime = getFeaturedAnime();
+  if (!anime) return;
+
+  hideTrailerInline();
+
+  const image = anime.image || anime.image_url || "";
+  const heroImage = getElement("heroImage");
+  const heroTitle = getElement("heroTitle");
+  const heroSynopsis = getElement("heroSynopsis");
+  const heroMeta = getElement("heroMeta");
+
+  if (heroImage) { heroImage.src = image; heroImage.alt = anime.title; }
+  if (heroTitle) heroTitle.textContent = anime.title || "MIRAI";
+  if (heroSynopsis) heroSynopsis.textContent = anime.synopsis || "Discover your next favourite anime.";
+  if (heroMeta) {
+    const score = anime.score ?? "N/A";
+    heroMeta.textContent = `★ ${score === "N/A" ? score : Number(score).toFixed(1)} • ${anime.type || "Anime"} • ${anime.episodes ?? "?"} episodes`;
+  }
+
+  const viewButton = getElement("heroViewButton");
+  if (viewButton) viewButton.onclick = () => openAnimeModal(anime);
+
+  const trailerButton = getElement("heroTrailerButton");
+  if (trailerButton) trailerButton.onclick = () => openTrailerForAnime(anime);
+
+  const previewBtn = getElement("heroPreviewBtn");
+  if (previewBtn) previewBtn.onclick = () => toggleTrailerInline(anime);
+
+  renderHeroDots();
 }
 
-document.getElementById("heroNext")?.addEventListener("click", () => { featuredIndex = (featuredIndex + 1) % popularAnime.length; renderHero(); });
-document.getElementById("heroPrevious")?.addEventListener("click", () => { featuredIndex = (featuredIndex - 1 + popularAnime.length) % popularAnime.length; renderHero(); });
+async function toggleTrailerInline(anime) {
+  const wrap = getElement("trailerInline");
+  const frame = getElement("trailerInlineFrame");
+  if (!wrap || !frame) return;
 
-// Rendering Cards
-function generateCardHTML(a) {
-    const statusText = getListStatus(a.id);
-    const badgeHTML = statusText ? `<span class="badge ${statusText.toLowerCase().replace(' ', '-')}">${statusText}</span>` : `<span class="badge score">★ ${a.mean || 'N/A'}</span>`;
-    return `
-        <div class="anime-card" onclick='openAnimeModal(${JSON.stringify(a).replace(/'/g, "&apos;")})'>
-            <img src="${a.main_picture?.large || ''}" alt="${a.title}">
-            ${badgeHTML}
-            <div class="anime-card-info">
-                <h4>${a.title}</h4>
-                <div style="font-size:11px; color:gray;">${a.num_episodes || '?'} Episodes</div>
-            </div>
-        </div>
-    `;
+  if (!wrap.classList.contains("hidden")) { hideTrailerInline(); return; }
+
+  const trailer = await getTrailer(anime);
+  if (!trailer?.embed_url) { showToast("No trailer preview is available for this anime.", "error"); return; }
+
+  frame.src = `${trailer.embed_url}${trailer.embed_url.includes("?") ? "&" : "?"}autoplay=1&mute=1`;
+  wrap.classList.remove("hidden");
+  clearInterval(heroAutoplayTimer);
 }
 
-function renderGrid(elementId, animeList) {
-    const el = document.getElementById(elementId);
-    if(el) el.innerHTML = animeList.length ? animeList.map(generateCardHTML).join("") : "No anime found.";
+function hideTrailerInline() {
+  const wrap = getElement("trailerInline");
+  const frame = getElement("trailerInlineFrame");
+  if (frame) frame.src = "";
+  if (wrap) wrap.classList.add("hidden");
 }
 
-// My List Logic (Using LocalStorage)
-function getListStatus(id) {
-    const item = myList.find(i => i.id === id);
-    return item ? item.listStatus : null;
+function renderHeroDots() {
+  const container = getElement("heroDots");
+  if (!container || !popularAnime.length) return;
+  const count = Math.min(popularAnime.length, 8);
+  container.innerHTML = Array.from({ length: count }, (_, i) =>
+    `<button class="carousel-dot ${i === featuredIndex ? "active" : ""}" type="button" data-hero-index="${i}" aria-label="Featured anime ${i + 1}"></button>`
+  ).join("");
+  container.querySelectorAll("[data-hero-index]").forEach(dot => {
+    dot.addEventListener("click", () => { featuredIndex = Number(dot.dataset.heroIndex); renderHero(); restartHeroAutoplay(); });
+  });
 }
 
-function saveToList(anime, status) {
-    const exists = myList.find(i => i.id === anime.id);
-    if(exists) { exists.listStatus = status; } 
-    else { anime.listStatus = status; anime.userRating = 0; myList.push(anime); }
-    localStorage.setItem('mirai_list', JSON.stringify(myList));
-    renderHomeList();
-    if(document.getElementById('myListPage').classList.contains('active-page')) renderMyList();
-}
+function nextFeaturedAnime() { if (!popularAnime.length) return; const count = Math.min(popularAnime.length, 8); featuredIndex = (featuredIndex + 1) % count; renderHero(); restartHeroAutoplay(); }
+function previousFeaturedAnime() { if (!popularAnime.length) return; const count = Math.min(popularAnime.length, 8); featuredIndex = (featuredIndex - 1 + count) % count; renderHero(); restartHeroAutoplay(); }
 
-function saveRating(id, rating) {
-    const exists = myList.find(i => i.id === id);
-    if(exists) { exists.userRating = rating; localStorage.setItem('mirai_list', JSON.stringify(myList)); }
-}
+getElement("heroNext")?.addEventListener("click", nextFeaturedAnime);
+getElement("heroPrevious")?.addEventListener("click", previousFeaturedAnime);
 
-function renderHomeList() {
-    const el = document.getElementById("homeListGrid");
-    if(!el) return;
-    const sortedList = [...myList].reverse();
-    el.innerHTML = sortedList.length ? sortedList.map(generateCardHTML).join("") : `<div class="loading"><span>No anime in your list yet. Start searching!</span></div>`;
+function startHeroAutoplay() {
+  clearInterval(heroAutoplayTimer);
+  heroAutoplayTimer = setInterval(() => {
+    const home = pages.home;
+    if (home?.classList.contains("active-page") && getElement("trailerInline")?.classList.contains("hidden")) nextFeaturedAnime();
+  }, 8000);
 }
+function restartHeroAutoplay() { clearInterval(heroAutoplayTimer); startHeroAutoplay(); }
 
-function renderMyList() {
-    const el = document.getElementById("myListContent");
-    const activeTab = document.querySelector(".status-tab.active").dataset.status;
-    const filtered = activeTab === "all" ? myList : myList.filter(a => a.listStatus.toLowerCase().includes(activeTab));
-    renderGrid("myListContent", filtered.reverse());
-}
+getElement("homeHero")?.addEventListener("mouseenter", () => clearInterval(heroAutoplayTimer));
+getElement("homeHero")?.addEventListener("mouseleave", () => startHeroAutoplay());
 
-document.querySelectorAll('.status-tab').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        renderMyList();
-    });
+let heroTouchStartX = null;
+document.addEventListener("touchstart", e => {
+  const home = pages.home;
+  if (!home?.classList.contains("active-page") || e.touches.length !== 1) return;
+  heroTouchStartX = e.touches[0].clientX;
+}, { passive: true });
+
+document.addEventListener("touchend", e => {
+  if (heroTouchStartX === null) return;
+  const endX = e.changedTouches[0]?.clientX;
+  if (typeof endX !== "number") { heroTouchStartX = null; return; }
+  const distance = heroTouchStartX - endX;
+  if (Math.abs(distance) > 55) distance > 0 ? nextFeaturedAnime() : previousFeaturedAnime();
+  heroTouchStartX = null;
+}, { passive: true });
+
+document.addEventListener("keydown", event => {
+  const tag = document.activeElement?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  if (!pages.home?.classList.contains("active-page")) return;
+  if (event.key === "ArrowRight") nextFeaturedAnime();
+  if (event.key === "ArrowLeft") previousFeaturedAnime();
 });
 
-// Modals
-function openAnimeModal(anime) {
-    currentAnime = anime;
-    document.getElementById("modalAnimeImage").src = anime.main_picture?.large || "";
-    document.getElementById("modalAnimeTitle").innerText = anime.title;
-    document.getElementById("modalAnimeMeta").innerText = `★ ${anime.mean || 'N/A'} • ${anime.num_episodes || '?'} Episodes`;
-    document.getElementById("modalAnimeSynopsis").innerText = anime.synopsis || "No synopsis available.";
-    
-    const currentStatus = getListStatus(anime.id);
-    document.getElementById("animeStatusSelect").value = currentStatus ? currentStatus.toLowerCase().replace(' ', '-') : "plan";
-    
-    document.getElementById("animeModal").classList.add("open");
-}
+/* =========================================================
+   TRENDING / DISCOVER / RANDOM
+========================================================= */
 
-document.getElementById("saveListChanges")?.addEventListener('click', () => {
-    const status = document.getElementById("animeStatusSelect").value;
-    const formattedStatus = status === 'watching' ? 'Watching' : status === 'completed' ? 'Completed' : 'Plan to Watch';
-    saveToList(currentAnime, formattedStatus);
-    closeModal('animeModal');
-});
-
-function openRatingModal() {
-    if(!currentAnime || !getListStatus(currentAnime.id)) return alert("Please add to your list first!");
-    closeModal('animeModal');
-    const existing = myList.find(i => i.id === currentAnime.id);
-    const rating = existing.userRating || 5.0;
-    document.getElementById("ratingSlider").value = rating;
-    document.getElementById("ratingBigNumber").innerText = Number(rating).toFixed(1);
-    document.getElementById("ratingModal").classList.add("open");
-}
-
-document.getElementById("submitRating")?.addEventListener('click', () => {
-    const rating = document.getElementById("ratingSlider").value;
-    saveRating(currentAnime.id, rating);
-    closeModal('ratingModal');
-});
-
-function closeModal(id) { document.getElementById(id).classList.remove("open"); }
-
-// Schedule (With Times)
-async function loadSchedule(day) {
-    document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector(`[data-day="${day}"]`).classList.add('active');
-    const grid = document.getElementById("scheduleGrid");
-    grid.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-    try {
-        const res = await fetch(`${API_BASE}/anime/schedule?day=${day}`);
-        const data = await res.json();
-        const list = data.data || [];
-        if(!list.length) { grid.innerHTML = "No anime today."; return; }
-        
-        grid.innerHTML = list.map((a, i) => {
-            // Assign a time (1am, 2am etc) based on array index to fulfill request
-            const hour = (i % 12) + 1;
-            const ampm = i % 24 < 12 ? "AM" : "PM";
-            return `
-            <div class="schedule-hour" onclick='openAnimeModal(${JSON.stringify(a).replace(/'/g, "&apos;")})'>
-                <div class="schedule-time">${hour}:00 ${ampm}</div>
-                <div class="schedule-anime">
-                    <img src="${a.main_picture?.large}">
-                    <div><h4>${a.title}</h4><span style="font-size:12px; color:var(--muted);">Airing Episode ${a.num_episodes || '?'}</span></div>
-                </div>
-            </div>`;
-        }).join("");
-    } catch(e) { grid.innerHTML = "Error loading schedule."; }
-}
-document.querySelectorAll('.schedule-tab').forEach(btn => btn.addEventListener('click', (e) => loadSchedule(e.target.dataset.day)));
-
-// Extra Pages Loaders
 async function loadTrending() {
-    const res = await fetch(`${API_BASE}/anime/top?type=bypopularity`);
-    const data = await res.json();
-    renderGrid("trendingGrid", data.data);
-}
-async function loadDiscover() {
-    const res = await fetch(`${API_BASE}/anime/seasonal`);
-    const data = await res.json();
-    renderGrid("discoverGrid", data.data);
-}
-async function loadRandom() {
-    document.getElementById("randomResult").innerHTML = `<div class="spinner"></div>`;
-    const res = await fetch(`${API_BASE}/anime/top?limit=50`);
-    const data = await res.json();
-    const randomAnime = data.data[Math.floor(Math.random() * data.data.length)];
-    renderGrid("randomResult", [randomAnime]);
+  const grid = getElement("trendingGrid");
+  if (!grid) return;
+  grid.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading trending anime...</span></div>`;
+  try {
+    const data = await apiRequest("/anime/trending?limit=30");
+    renderAnimeGrid(grid, data.data || []);
+  } catch (error) {
+    console.error("TRENDING ERROR:", error);
+    grid.innerHTML = `<div class="loading">Unable to load trending anime.</div>`;
+  }
 }
 
-// Init
-loadPopular();
-renderHomeList();
+queryAll(".discover-filter").forEach(button => {
+  button.addEventListener("click", () => {
+    queryAll(".discover-filter").forEach(b => b.classList.remove("active"));
+    button.classList.add("active");
+    currentDiscoverMode = button.dataset.discover || "popular";
+    loadDiscover(currentDiscoverMode);
+  });
+});
+
+async function loadDiscover(mode = "popular") {
+  const grid = getElement("discoverGrid");
+  if (!grid) return;
+  grid.innerHTML = `<div class="loading"><div class="spinner"></div><span>Finding something new...</span></div>`;
+
+  try {
+    let anime = [];
+    if (mode === "popular") anime = normalizeAnimeList((await apiRequest("/anime/trending?limit=30")).data || []);
+    else anime = normalizeAnimeList((await apiRequest("/anime/top?limit=50")).data || []);
+
+    if (mode === "upcoming") {
+      const now = new Date();
+      anime = anime.filter(item => item.start_date && new Date(item.start_date) > now);
+    }
+    if (mode === "airing") {
+      anime = anime.filter(item => String(item.status || "").toLowerCase().includes("currently") || Boolean(item.broadcast));
+    }
+
+    renderAnimeGrid(grid, anime.slice(0, 24));
+  } catch (error) {
+    console.error("DISCOVER ERROR:", error);
+    grid.innerHTML = `<div class="loading">Unable to load Discover.</div>`;
+  }
+}
+
+getElement("randomButton")?.addEventListener("click", async () => {
+  const result = getElement("randomResult");
+  if (result) result.innerHTML = `<div class="loading"><div class="spinner"></div><span>Finding an anime...</span></div>`;
+  try {
+    const data = await apiRequest("/anime/random");
+    const anime = normalizeAnime(data.data);
+    if (!anime) throw new Error("No anime was returned.");
+    if (result) result.innerHTML = "";
+    openAnimeModal(anime);
+  } catch (error) {
+    console.error("RANDOM ERROR:", error);
+    if (result) result.innerHTML = "";
+    showToast("Unable to find a random anime.", "error");
+  }
+});
+
+/* =========================================================
+   SCHEDULE (hourly, always shows air time)
+========================================================= */
+
+const VALID_DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+
+function parseScheduleTime(anime) {
+  const airing = anime?.airing || {};
+  const broadcast = anime?.broadcast || {};
+  const raw = airing.time || broadcast.start_time || broadcast.time || airing.display || "";
+  if (!raw) return null;
+  const match = String(raw).match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const hour = Number(match[1]), minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute, total: hour * 60 + minute };
+}
+
+function formatScheduleTime(hour, minute) {
+  const period = hour >= 12 ? "PM" : "AM";
+  const twelveHour = hour % 12 || 12;
+  return `${twelveHour}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
+function renderScheduleHourStrip(animeList) {
+  const container = getElement("scheduleHours");
+  if (!container) return;
+  const presentHours = new Set();
+  (Array.isArray(animeList) ? animeList : []).forEach(anime => { const t = parseScheduleTime(anime); if (t) presentHours.add(t.hour); });
+
+  container.innerHTML = Array.from({ length: 24 }, (_, hour) =>
+    `<button type="button" class="schedule-hour-chip ${presentHours.has(hour) ? "has-anime" : ""}" data-hour="${hour}">${escapeHTML(formatScheduleTime(hour, 0))}</button>`
+  ).join("");
+
+  container.querySelectorAll("[data-hour]").forEach(button => {
+    button.addEventListener("click", () => {
+      container.querySelectorAll(".schedule-hour-chip").forEach(c => c.classList.remove("active-chip"));
+      button.classList.add("active-chip");
+      const hour = Number(button.dataset.hour);
+      const list = (Array.isArray(animeList) ? animeList : []).filter(a => { const t = parseScheduleTime(a); return t && t.hour === hour; });
+      renderScheduleGrid(getElement("scheduleGrid"), list);
+    });
+  });
+}
+
+async function loadSchedule(day = "monday") {
+  const grid = getElement("scheduleGrid");
+  if (!grid) return;
+
+  currentScheduleDay = String(day).trim().toLowerCase();
+  if (!VALID_DAYS.includes(currentScheduleDay)) currentScheduleDay = "monday";
+  updateScheduleTabs(currentScheduleDay);
+
+  if (scheduleData[currentScheduleDay]) {
+    renderScheduleHourStrip(scheduleData[currentScheduleDay]);
+    renderScheduleGrid(grid, scheduleData[currentScheduleDay]);
+    return;
+  }
+
+  if (isLoadingSchedule) return;
+  isLoadingSchedule = true;
+  grid.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading ${escapeHTML(currentScheduleDay)} schedule...</span></div>`;
+
+  try {
+    const data = await apiRequest(`/anime/schedule?day=${encodeURIComponent(currentScheduleDay)}`);
+    scheduleData[currentScheduleDay] = Array.isArray(data.data)
+      ? data.data.map(item => ({ ...normalizeAnime(item), airing: item.airing || null }))
+      : [];
+    renderScheduleHourStrip(scheduleData[currentScheduleDay]);
+    renderScheduleGrid(grid, scheduleData[currentScheduleDay]);
+  } catch (error) {
+    console.error("SCHEDULE ERROR:", error);
+    grid.innerHTML = `<div class="loading">Unable to load the schedule.</div>`;
+  } finally { isLoadingSchedule = false; }
+}
+
+function updateScheduleTabs(activeDay) {
+  queryAll(".schedule-tab").forEach(tab => tab.classList.toggle("active", String(tab.dataset.day || "").toLowerCase() === activeDay));
+}
+
+queryAll(".schedule-tab").forEach(tab => tab.addEventListener("click", () => loadSchedule(tab.dataset.day || "monday")));
+
+function renderScheduleGrid(grid, animeList) {
+  if (!grid) return;
+  if (!animeList || !animeList.length) { grid.innerHTML = `<div class="loading">No anime found for this time.</div>`; return; }
+
+  const sorted = [...animeList].sort((a, b) => (parseScheduleTime(a)?.total ?? Infinity) - (parseScheduleTime(b)?.total ?? Infinity));
+  const groups = new Map();
+  sorted.forEach(anime => {
+    const t = parseScheduleTime(anime);
+    const key = t ? `${t.hour}:${t.minute}` : "unknown";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(anime);
+  });
+
+  const ordered = [...groups.entries()].sort(([a], [b]) => {
+    if (a === "unknown") return 1;
+    if (b === "unknown") return -1;
+    const [ah, am] = a.split(":").map(Number);
+    const [bh, bm] = b.split(":").map(Number);
+    return (ah * 60 + am) - (bh * 60 + bm);
+  });
+
+  grid.innerHTML = ordered.map(([key, items]) => {
+    const parts = key === "unknown" ? null : key.split(":").map(Number);
+    const label = parts ? formatScheduleTime(parts[0], parts[1]) : "Time TBA";
+    return `
+      <section class="schedule-hour">
+        <div class="schedule-time">${escapeHTML(label)}</div>
+        <div>
+          ${items.map(anime => `
+            <article class="schedule-anime" data-anime-id="${escapeHTML(String(getAnimeId(anime)))}">
+              ${anime.image ? `<img src="${escapeHTML(anime.image)}" alt="${escapeHTML(anime.title)}" loading="lazy">` : ""}
+              <div>
+                <strong>${escapeHTML(anime.title)}</strong>
+                <div class="anime-card-meta">
+                  <span class="schedule-air-time">${escapeHTML(label)}</span>
+                  ${anime.type ? ` • ${escapeHTML(anime.type)}` : ""}
+                  ${anime.episodes ? ` • ${escapeHTML(String(anime.episodes))} episodes` : ""}
+                </div>
+              </div>
+            </article>`).join("")}
+        </div>
+      </section>`;
+  }).join("");
+
+  grid.querySelectorAll(".schedule-anime").forEach(item => {
+    item.addEventListener("click", () => {
+      const id = Number(item.dataset.animeId);
+      const anime = animeList.find(entry => Number(getAnimeId(entry)) === id);
+      if (anime) openAnimeModal(anime);
+    });
+  });
+}
+
+/* =========================================================
+   TRAILERS
+========================================================= */
+
+async function getTrailer(anime) {
+  const id = getAnimeId(anime);
+  if (!id) return null;
+  try { const data = await apiRequest(`/anime/trailer/${id}`); return data.data || null; }
+  catch (error) { console.debug("TRAILER ERROR:", error); return null; }
+}
+
+async function openTrailerForAnime(anime) {
+  const trailer = await getTrailer(anime);
+  if (!trailer?.embed_url) { showToast("No official trailer is available for this anime.", "error"); return; }
+  openTrailerModal(trailer);
+}
+
+function openTrailerModal(trailer) {
+  const frame = getElement("trailerFrame");
+  if (!frame || !trailer?.embed_url) return;
+  frame.src = trailer.embed_url;
+  trailerModal?.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeTrailerModal() {
+  const frame = getElement("trailerFrame");
+  if (frame) frame.src = "";
+  trailerModal?.classList.remove("open");
+  restoreBodyScroll();
+}
+
+async function loadAnimeTrailerButton(anime) {
+  const area = getElement("modalTrailerArea");
+  const button = getElement("modalTrailerButton");
+  if (!area || !button || !anime) return;
+  area.classList.add("hidden");
+  const trailer = await getTrailer(anime);
+  if (!trailer?.embed_url) return;
+  area.classList.remove("hidden");
+  button.onclick = () => openTrailerModal(trailer);
+}
+
+getElement("modalTrailerButton")?.addEventListener("click", () => { if (currentAnime) openTrailerForAnime(currentAnime); });
+getElement("trailerModalClose")?.addEventListener("click", closeTrailerModal);
+trailerModal?.addEventListener("click", e => { if (e.target === trailerModal) closeTrailerModal(); });
+
+/* =========================================================
+   IMAGE ERROR / MODAL ESCAPE / BACKGROUND CLICK
+========================================================= */
+
+document.addEventListener("error", event => {
+  if (event.target?.matches?.(".anime-image, .modal-anime-image, #heroImage")) event.target.style.display = "none";
+}, true);
+
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  closeAccountModal(); closeAnimeModal(); closeRatingModal(); closeTrailerModal(); hideTrailerInline();
+});
+
+[accountModal, animeModal, ratingModal, trailerModal].filter(Boolean).forEach(modal => {
+  modal.addEventListener("click", event => {
+    if (event.target !== modal) return;
+    modal.classList.remove("open");
+    restoreBodyScroll();
+  });
+});
+
+/* =========================================================
+   SYNC ACROSS DEVICES
+   (see note at top of message re: cookie SameSite/Secure config)
+========================================================= */
+
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || !currentUser) return;
+  try { await loadMyListFromServer(); } catch (error) { console.debug("VISIBILITY LIST REFRESH ERROR:", error); }
+});
+
+setInterval(async () => {
+  if (!currentUser || document.visibilityState !== "visible") return;
+  try { await loadMyListFromServer(); } catch (error) { console.debug("BACKGROUND SYNC ERROR:", error); }
+}, 60_000);
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+async function initializeMIRAI() {
+  initTheme();
+  initSplash();
+  updateAccountUI();
+  await checkSession();
+  await loadPopularAnime();
+  currentScheduleDay = query(".schedule-tab.active")?.dataset.day || "monday";
+  await loadSchedule(currentScheduleDay);
+  startHeroAutoplay();
+  document.documentElement.style.overflowX = "hidden";
+  document.body.style.overflowX = "hidden";
+}
+
+initializeMIRAI();
