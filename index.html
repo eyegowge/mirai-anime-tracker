@@ -33,72 +33,200 @@
         href="style.css"
     >
 
+    <style id="mirai-ux-hotfixes">
 
-<style id="mirai-brand-and-icon-overrides">
-    .brand-image,
-    .mobile-brand-image,
-    .account-logo-image,
-    .footer-brand-image {
-        overflow: hidden;
-        display: inline-grid;
-        place-items: center;
-    }
+        .brand-image img,
+        .mobile-brand-image img,
+        .account-logo-image img,
+        .footer-brand-image img,
+        .empty-list-icon img {
 
-    .brand-image {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
-    }
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
 
-    .brand-image img,
-    .mobile-brand-image img,
-    .account-logo-image img,
-    .footer-brand-image img,
-    .empty-list-icon img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
+        }
 
-    .mobile-brand-image {
-        width: 30px;
-        height: 30px;
-        border-radius: 9px;
-        flex: 0 0 auto;
-    }
 
-    .account-logo-image {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
-        vertical-align: middle;
-    }
+        .brand-image,
+        .mobile-brand-image,
+        .account-logo-image,
+        .footer-brand-image,
+        .empty-list-icon {
 
-    .footer-brand-image {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        vertical-align: middle;
-    }
+            overflow: hidden;
 
-    .nav-icon svg,
-    .mobile-nav-icon svg {
-        width: 19px;
-        height: 19px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.8;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        display: block;
-    }
+        }
 
-    .mobile-nav-icon svg {
-        width: 18px;
-        height: 18px;
-    }
-</style>
+
+        .brand-image {
+
+            display: grid;
+            place-items: center;
+
+            width: 44px;
+            height: 44px;
+
+            border-radius: 13px;
+
+        }
+
+
+        .mobile-brand-image {
+
+            display: inline-grid;
+            place-items: center;
+
+            width: 30px;
+            height: 30px;
+
+            border-radius: 9px;
+
+        }
+
+
+        .account-logo-image {
+
+            display: inline-grid;
+            place-items: center;
+
+            width: 44px;
+            height: 44px;
+
+            border-radius: 13px;
+
+            vertical-align: middle;
+
+        }
+
+
+        .footer-brand-image {
+
+            display: inline-grid;
+            place-items: center;
+
+            width: 28px;
+            height: 28px;
+
+            border-radius: 8px;
+
+            vertical-align: middle;
+
+        }
+
+
+        .empty-list-icon {
+
+            display: grid;
+            place-items: center;
+
+        }
+
+
+        .mobile-header-actions {
+
+            display: flex;
+            align-items: center;
+
+            gap: 7px;
+
+        }
+
+
+        .mobile-search-button {
+
+            width: 37px;
+            height: 37px;
+
+            display: grid;
+            place-items: center;
+
+            border: 1px solid var(--border);
+
+            border-radius: 10px;
+
+            background:
+                rgba(255,255,255,.045);
+
+            color: white;
+
+            cursor: pointer;
+
+        }
+
+
+        .mobile-brand {
+
+            gap: 8px;
+
+        }
+
+
+        .mobile-brand > span:last-child {
+
+            color: white;
+
+        }
+
+
+        .schedule-hour-chip.has-anime {
+
+            border-color:
+                rgba(255,255,255,.18);
+
+            background:
+                rgba(255,255,255,.055);
+
+        }
+
+
+        /* =====================================================
+           RATING SLIDER
+        ===================================================== */
+
+        #ratingSlider {
+
+            width: 100%;
+
+            cursor: pointer;
+
+        }
+
+
+        #ratingSlider::-webkit-slider-thumb {
+
+            cursor: grab;
+
+        }
+
+
+        #ratingSlider::-webkit-slider-thumb:active {
+
+            cursor: grabbing;
+
+        }
+
+
+        #ratingSlider::-moz-range-thumb {
+
+            cursor: grab;
+
+        }
+
+
+        .rating-scale {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            width: 100%;
+
+        }
+
+
+    </style>
 
 </head>
 
@@ -128,14 +256,21 @@
     <div class="brand">
 
         <div class="brand-icon brand-image">
-            <img src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg" alt="MIRAI logo" loading="eager">
+
+            <img
+                src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg"
+                alt="MIRAI"
+            >
+
         </div>
+
 
         <div>
 
             <div class="brand-name">
                 MIRAI
             </div>
+
 
             <div class="brand-subtitle">
                 ANIME TRACKER
@@ -178,7 +313,12 @@
             type="button"
         >
 
-            <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg></span>
+            <span
+                class="nav-icon nav-home"
+                aria-hidden="true"
+            >
+                ⌂
+            </span>
 
             <span>
                 Home
@@ -193,7 +333,12 @@
             type="button"
         >
 
-            <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>
+            <span
+                class="nav-icon nav-list"
+                aria-hidden="true"
+            >
+                ▤
+            </span>
 
             <span>
                 My List
@@ -208,7 +353,12 @@
             type="button"
         >
 
-            <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5"/><path d="M9 5h10v10"/></svg></span>
+            <span
+                class="nav-icon nav-trending"
+                aria-hidden="true"
+            >
+                ↗
+            </span>
 
             <span>
                 Trending
@@ -223,7 +373,12 @@
             type="button"
         >
 
-            <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg></span>
+            <span
+                class="nav-icon nav-schedule"
+                aria-hidden="true"
+            >
+                ◷
+            </span>
 
             <span>
                 Schedule
@@ -238,7 +393,12 @@
             type="button"
         >
 
-            <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+            <span
+                class="nav-icon nav-discover"
+                aria-hidden="true"
+            >
+                ◈
+            </span>
 
             <span>
                 Discover
@@ -253,7 +413,12 @@
             type="button"
         >
 
-            <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8L12 3Z"/></svg></span>
+            <span
+                class="nav-icon nav-random"
+                aria-hidden="true"
+            >
+                ✦
+            </span>
 
             <span>
                 Random
@@ -360,25 +525,47 @@
         class="mobile-brand"
         id="mobileHomeButton"
         type="button"
+        aria-label="Go to MIRAI home"
     >
 
         <span class="mobile-brand-image">
-            <img src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg" alt="MIRAI" loading="eager">
+
+            <img
+                src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg"
+                alt="MIRAI"
+            >
+
         </span>
 
-        MIRAI
+        <span>
+            MIRAI
+        </span>
 
     </button>
 
 
-    <button
-        class="mobile-account-button"
-        id="mobileAccountBtn"
-        type="button"
-        aria-label="Account"
-    >
-        ●
-    </button>
+    <div class="mobile-header-actions">
+
+        <button
+            class="mobile-search-button"
+            id="mobileSearchButton"
+            type="button"
+            aria-label="Search anime"
+        >
+            ⌕
+        </button>
+
+
+        <button
+            class="mobile-account-button"
+            id="mobileAccountBtn"
+            type="button"
+            aria-label="Account"
+        >
+            ●
+        </button>
+
+    </div>
 
 </header>
 
@@ -464,8 +651,10 @@
 
 
             <h1 id="heroTitle">
+
                 Welcome to
                 <span>MIRAI.</span>
+
             </h1>
 
 
@@ -1004,7 +1193,12 @@
         <div class="empty-list">
 
             <div class="empty-list-icon">
-                <img src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg" alt="MIRAI" loading="lazy">
+
+                <img
+                    src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg"
+                    alt="MIRAI"
+                >
+
             </div>
 
 
@@ -1072,6 +1266,24 @@
                 type="button"
             >
                 Completed
+            </button>
+
+
+            <button
+                class="status-tab"
+                data-status="on_hold"
+                type="button"
+            >
+                On Hold
+            </button>
+
+
+            <button
+                class="status-tab"
+                data-status="dropped"
+                type="button"
+            >
+                Dropped
             </button>
 
         </div>
@@ -1353,6 +1565,14 @@
                             Completed
                         </option>
 
+                        <option value="on_hold">
+                            On Hold
+                        </option>
+
+                        <option value="dropped">
+                            Dropped
+                        </option>
+
                     </select>
 
 
@@ -1471,7 +1691,7 @@
             <div class="rating-big-number">
 
                 <span id="ratingBigNumber">
-                    5
+                    5.0
                 </span>
 
                 <small>
@@ -1484,25 +1704,38 @@
             <input
                 id="ratingSlider"
                 type="range"
-                min="1"
+                min="0.5"
                 max="5"
-                step="1"
+                step="0.5"
                 value="5"
+                aria-label="Anime rating"
             >
 
 
             <div class="rating-scale">
 
                 <span>
-                    1
+                    0.5
                 </span>
 
                 <span>
-                    3
+                    1.5
                 </span>
 
                 <span>
-                    5
+                    2.5
+                </span>
+
+                <span>
+                    3.5
+                </span>
+
+                <span>
+                    4.5
+                </span>
+
+                <span>
+                    5.0
                 </span>
 
             </div>
@@ -1514,7 +1747,7 @@
             class="rating-value"
             id="ratingValue"
         >
-            5 / 5
+            5.0 / 5
         </div>
 
 
@@ -1597,7 +1830,12 @@
         <div class="account-logo">
 
             <span class="account-logo-image">
-                <img src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg" alt="MIRAI" loading="eager">
+
+                <img
+                    src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg"
+                    alt="MIRAI"
+                >
+
             </span>
 
             MIRAI
@@ -1836,7 +2074,9 @@
         type="button"
     >
 
-        <span class="mobile-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg></span>
+        <span>
+            ⌂
+        </span>
 
         <small>
             Home
@@ -1851,7 +2091,9 @@
         type="button"
     >
 
-        <span class="mobile-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>
+        <span>
+            ▤
+        </span>
 
         <small>
             List
@@ -1866,7 +2108,9 @@
         type="button"
     >
 
-        <span class="mobile-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5"/><path d="M9 5h10v10"/></svg></span>
+        <span>
+            ↗
+        </span>
 
         <small>
             Trending
@@ -1881,7 +2125,9 @@
         type="button"
     >
 
-        <span class="mobile-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg></span>
+        <span>
+            ◷
+        </span>
 
         <small>
             Schedule
@@ -1896,7 +2142,9 @@
         type="button"
     >
 
-        <span class="mobile-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+        <span>
+            ◈
+        </span>
 
         <small>
             Discover
@@ -1914,7 +2162,12 @@
 <footer>
 
     <span class="footer-brand-image">
-        <img src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg" alt="MIRAI" loading="lazy">
+
+        <img
+            src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg"
+            alt="MIRAI"
+        >
+
     </span>
 
     MIRAI
@@ -1927,6 +2180,7 @@
 
 
 <script src="script.js"></script>
+
 
 </body>
 

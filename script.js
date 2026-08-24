@@ -1,65 +1,136 @@
 /* =========================================================
    MIRAI — ANIME TRACKER
-   COMPLETE UPDATED SCRIPT
+   COMPLETE FRONTEND SCRIPT
+   =========================================================
+
+   Features:
+   - Responsive desktop/mobile navigation
+   - Mobile bottom navigation
+   - Global search
+   - Sidebar search
+   - My List
+   - Plan / Watching / Completed / On Hold / Dropped
+   - Episode tracking
+   - 0.5-step personal ratings
+   - Cross-device PostgreSQL syncing
+   - Popular anime
+   - Trending anime
+   - Discover
+   - Random anime
+   - Weekly schedule
+   - Hour-by-hour schedule navigation
+   - Featured anime carousel
+   - Keyboard carousel controls
+   - Touch swipe carousel
+   - Official trailer loading
+   - Anime details modal
+   - Account registration/login/logout
+========================================================= */
+
+
+/* =========================================================
+   CONFIG
 ========================================================= */
 
 const API_BASE = "";
 
 
 /* =========================================================
-   STATE
+   GLOBAL STATE
 ========================================================= */
 
 let currentUser = null;
+
 let currentAnime = null;
 
 let currentRating = 0;
 
 let myList = [];
 
-let scheduleData = {};
-
 let popularAnime = [];
 
-let homeListIndex = 0;
+let scheduleData = {};
+
 let featuredIndex = 0;
+
+let homeListIndex = 0;
 
 let currentScheduleDay = "monday";
 
+let currentDiscoverMode = "popular";
+
+let toastTimeout = null;
+
+let heroAutoplayTimer = null;
+
+let isLoadingSchedule = false;
+
+let isLoadingList = false;
+
+let isLoadingPopular = false;
+
 const HOME_LIST_SIZE = 6;
+
+const RATING_MIN = 0.5;
+
+const RATING_MAX = 5;
+
+const RATING_STEP = 0.5;
 
 
 /* =========================================================
-   DOM
+   DOM REFERENCES
 ========================================================= */
 
 const pages = {
+
     home:
-        document.getElementById("homePage"),
+        document.getElementById(
+            "homePage"
+        ),
 
     search:
-        document.getElementById("searchPage"),
+        document.getElementById(
+            "searchPage"
+        ),
 
     trending:
-        document.getElementById("trendingPage"),
+        document.getElementById(
+            "trendingPage"
+        ),
 
     schedule:
-        document.getElementById("schedulePage"),
+        document.getElementById(
+            "schedulePage"
+        ),
 
     "my-list":
-        document.getElementById("myListPage"),
+        document.getElementById(
+            "myListPage"
+        ),
 
     discover:
-        document.getElementById("discoverPage"),
+        document.getElementById(
+            "discoverPage"
+        ),
 
     random:
-        document.getElementById("randomPage")
+        document.getElementById(
+            "randomPage"
+        )
+
 };
 
 
 const navItems =
     document.querySelectorAll(
         ".nav-item"
+    );
+
+
+const mobileNavItems =
+    document.querySelectorAll(
+        ".mobile-nav-item"
     );
 
 
@@ -78,6 +149,12 @@ const animeModal =
 const ratingModal =
     document.getElementById(
         "ratingModal"
+    );
+
+
+const trailerModal =
+    document.getElementById(
+        "trailerModal"
     );
 
 
@@ -142,21 +219,559 @@ const userAvatar =
 
 
 /* =========================================================
-   SAFE ELEMENT HELPERS
+   HELPERS
 ========================================================= */
 
 function getElement(id) {
-    return document.getElementById(id);
+
+    return document.getElementById(
+        id
+    );
+
 }
 
 
 function query(selector) {
-    return document.querySelector(selector);
+
+    return document.querySelector(
+        selector
+    );
+
 }
 
 
 function queryAll(selector) {
-    return document.querySelectorAll(selector);
+
+    return document.querySelectorAll(
+        selector
+    );
+
+}
+
+
+function escapeHTML(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
+}
+
+
+function clamp(
+    value,
+    min,
+    max
+) {
+
+    return Math.min(
+        max,
+        Math.max(
+            min,
+            value
+        )
+    );
+
+}
+
+
+function roundRating(
+    value
+) {
+
+    const number =
+        Number(
+            value
+        );
+
+
+    if (
+        !Number.isFinite(
+            number
+        )
+    ) {
+
+        return 0;
+
+    }
+
+
+    return (
+        Math.round(
+            number /
+            RATING_STEP
+        ) *
+        RATING_STEP
+    );
+
+}
+
+
+function normalizeRating(
+    value
+) {
+
+    const number =
+        roundRating(
+            value
+        );
+
+
+    if (
+        number <=
+        0
+    ) {
+
+        return 0;
+
+    }
+
+
+    return Number(
+        clamp(
+            number,
+            RATING_MIN,
+            RATING_MAX
+        ).toFixed(
+            1
+        )
+    );
+
+}
+
+
+function restoreBodyScroll() {
+
+    const modalOpen =
+        document.querySelector(
+            ".modal-overlay.open"
+        );
+
+
+    if (
+        !modalOpen
+    ) {
+
+        document.body.style.overflow =
+            "";
+
+    }
+
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function showToast(
+    message,
+    type = ""
+) {
+
+    const toast =
+        getElement(
+            "toast"
+        );
+
+
+    if (
+        !toast
+    ) {
+
+        return;
+
+    }
+
+
+    toast.textContent =
+        message;
+
+
+    toast.className =
+        "toast";
+
+
+    if (
+        type
+    ) {
+
+        toast.classList.add(
+            type
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        () => {
+
+            toast.classList.add(
+                "show"
+            );
+
+        }
+    );
+
+
+    clearTimeout(
+        toastTimeout
+    );
+
+
+    toastTimeout =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            3200
+        );
+
+}
+
+
+/* =========================================================
+   API REQUEST
+========================================================= */
+
+async function apiRequest(
+    url,
+    options = {}
+) {
+
+    const response =
+        await fetch(
+            `${API_BASE}${url}`,
+            {
+                credentials:
+                    "include",
+
+                ...options
+            }
+        );
+
+
+    const data =
+        await response
+            .json()
+            .catch(
+                () => ({})
+            );
+
+
+    if (
+        !response.ok
+    ) {
+
+        const error =
+            new Error(
+                data.error ||
+                data.message ||
+                `Request failed with status ${response.status}.`
+            );
+
+
+        error.status =
+            response.status;
+
+
+        error.data =
+            data;
+
+
+        throw error;
+
+    }
+
+
+    return data;
+
+}
+
+
+/* =========================================================
+   NORMALIZE ANIME
+========================================================= */
+
+function normalizeAnime(
+    anime
+) {
+
+    if (
+        !anime
+    ) {
+
+        return null;
+
+    }
+
+
+    const node =
+        anime.node ||
+        anime;
+
+
+    const id =
+        Number(
+            node.id ||
+            anime.mal_id ||
+            anime.anime_id ||
+            anime.id
+        );
+
+
+    if (
+        !Number.isInteger(
+            id
+        ) ||
+        id <=
+        0
+    ) {
+
+        return null;
+
+    }
+
+
+    const picture =
+        node.main_picture ||
+        {};
+
+
+    const image =
+        picture.large ||
+        picture.medium ||
+        anime.image ||
+        anime.image_url ||
+        anime.images?.jpg?.large_image_url ||
+        anime.images?.jpg?.image_url ||
+        "";
+
+
+    const episodes =
+        node.num_episodes ??
+        anime.episodes ??
+        anime.episode_count ??
+        anime.num_episodes ??
+        null;
+
+
+    const storedStatus =
+        anime.listStatus ||
+        anime.list_status ||
+        "";
+
+
+    const validStatuses = [
+        "plan",
+        "watching",
+        "completed",
+        "on_hold",
+        "dropped"
+    ];
+
+
+    const listStatus =
+        validStatuses.includes(
+            storedStatus
+        )
+            ? storedStatus
+            : "";
+
+
+    const storedRating =
+        normalizeRating(
+            anime.rating
+        );
+
+
+    return {
+
+        ...anime,
+
+        id,
+
+        mal_id:
+            id,
+
+        title:
+            node.title ||
+            anime.title ||
+            anime.name ||
+            "Unknown Anime",
+
+        image,
+
+        image_url:
+            image,
+
+        synopsis:
+            node.synopsis ||
+            anime.synopsis ||
+            anime.description ||
+            "No synopsis available.",
+
+        score:
+            node.mean ??
+            anime.score ??
+            anime.mal_score ??
+            null,
+
+        mal_score:
+            node.mean ??
+            anime.mal_score ??
+            anime.score ??
+            null,
+
+        episodes,
+
+        episode_count:
+            episodes,
+
+        type:
+            node.media_type ||
+            anime.type ||
+            "Anime",
+
+        status:
+            node.status ||
+            anime.status ||
+            "",
+
+        start_date:
+            node.start_date ||
+            anime.start_date ||
+            null,
+
+        end_date:
+            node.end_date ||
+            anime.end_date ||
+            null,
+
+        rank:
+            node.rank ??
+            anime.rank ??
+            null,
+
+        popularity:
+            node.popularity ??
+            anime.popularity ??
+            null,
+
+        genres:
+            Array.isArray(
+                node.genres
+            )
+                ? node.genres
+                : (
+                    Array.isArray(
+                        anime.genres
+                    )
+                        ? anime.genres
+                        : []
+                ),
+
+        broadcast:
+            node.broadcast ||
+            anime.broadcast ||
+            null,
+
+        source:
+            node.source ||
+            anime.source ||
+            null,
+
+        alternative_titles:
+            node.alternative_titles ||
+            anime.alternative_titles ||
+            null,
+
+        listStatus,
+
+        rating:
+            storedRating,
+
+        episode:
+            Math.max(
+                0,
+                Math.floor(
+                    Number(
+                        anime.episode ||
+                        0
+                    )
+                )
+            ),
+
+        savedAt:
+            anime.savedAt ||
+            anime.saved_at ||
+            null
+
+    };
+
+}
+
+
+function normalizeAnimeList(
+    list
+) {
+
+    if (
+        !Array.isArray(
+            list
+        )
+    ) {
+
+        return [];
+
+    }
+
+
+    return list
+        .map(
+            normalizeAnime
+        )
+        .filter(
+            Boolean
+        );
+
 }
 
 
@@ -164,63 +779,82 @@ function queryAll(selector) {
    PAGE NAVIGATION
 ========================================================= */
 
-function showPage(pageName) {
+function showPage(
+    pageName
+) {
 
-    Object.values(pages)
-        .forEach(page => {
+    Object.values(
+        pages
+    )
+        .forEach(
+            page => {
 
-            if (page) {
-                page.classList.remove(
-                    "active-page"
-                );
+                if (
+                    page
+                ) {
+
+                    page.classList.remove(
+                        "active-page"
+                    );
+
+                }
+
             }
+        );
 
-        });
 
+    if (
+        pages[
+            pageName
+        ]
+    ) {
 
-    if (pages[pageName]) {
-
-        pages[pageName]
+        pages[
+            pageName
+        ]
             .classList
-            .add("active-page");
+            .add(
+                "active-page"
+            );
 
     }
 
 
-    navItems.forEach(item => {
+    navItems.forEach(
+        item => {
 
-        item.classList.toggle(
-            "active",
-            item.dataset.page === pageName
-        );
+            item.classList.toggle(
+                "active",
+                item.dataset.page ===
+                pageName
+            );
 
-    });
+        }
+    );
 
 
-    /*
-       Support the mobile navigation too.
-       The class names are kept separate so the
-       desktop sidebar and mobile bottom bar
-       both work together.
-    */
+    mobileNavItems.forEach(
+        item => {
 
-    queryAll(
-        ".mobile-nav-item"
-    ).forEach(item => {
+            item.classList.toggle(
+                "active",
+                item.dataset.page ===
+                pageName
+            );
 
-        item.classList.toggle(
-            "active",
-            item.dataset.page === pageName
-        );
-
-    });
+        }
+    );
 
 
     const sidebar =
-        getElement("sidebar");
+        getElement(
+            "sidebar"
+        );
 
 
-    if (sidebar) {
+    if (
+        sidebar
+    ) {
 
         sidebar.classList.remove(
             "open"
@@ -229,27 +863,68 @@ function showPage(pageName) {
     }
 
 
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
+    const backdrop =
+        getElement(
+            "mobileBackdrop"
+        );
 
 
-    if (pageName === "my-list") {
+    if (
+        backdrop
+    ) {
+
+        backdrop.classList.remove(
+            "open"
+        );
+
+    }
+
+
+    window.scrollTo(
+        {
+            top:
+                0,
+
+            behavior:
+                "smooth"
+        }
+    );
+
+
+    if (
+        pageName ===
+        "home"
+    ) {
+
+        startHeroAutoplay();
+
+    }
+
+
+    if (
+        pageName ===
+        "my-list"
+    ) {
 
         renderMyList();
 
     }
 
 
-    if (pageName === "trending") {
+    if (
+        pageName ===
+        "trending"
+    ) {
 
         loadTrending();
 
     }
 
 
-    if (pageName === "schedule") {
+    if (
+        pageName ===
+        "schedule"
+    ) {
 
         const activeTab =
             query(
@@ -266,9 +941,14 @@ function showPage(pageName) {
     }
 
 
-    if (pageName === "discover") {
+    if (
+        pageName ===
+        "discover"
+    ) {
 
-        loadDiscover();
+        loadDiscover(
+            currentDiscoverMode
+        );
 
     }
 
@@ -279,46 +959,48 @@ function showPage(pageName) {
    DESKTOP NAVIGATION
 ========================================================= */
 
-navItems.forEach(item => {
+navItems.forEach(
+    item => {
 
-    item.addEventListener(
-        "click",
-        () => {
+        item.addEventListener(
+            "click",
+            () => {
 
-            showPage(
-                item.dataset.page
-            );
+                showPage(
+                    item.dataset.page
+                );
 
-        }
-    );
+            }
+        );
 
-});
+    }
+);
 
 
 /* =========================================================
    MOBILE NAVIGATION
 ========================================================= */
 
-queryAll(
-    ".mobile-nav-item"
-).forEach(item => {
+mobileNavItems.forEach(
+    item => {
 
-    item.addEventListener(
-        "click",
-        () => {
+        item.addEventListener(
+            "click",
+            () => {
 
-            showPage(
-                item.dataset.page
-            );
+                showPage(
+                    item.dataset.page
+                );
 
-        }
-    );
+            }
+        );
 
-});
+    }
+);
 
 
 /* =========================================================
-   MOBILE MENU
+   MOBILE SIDEBAR
 ========================================================= */
 
 const mobileMenuBtn =
@@ -327,11 +1009,16 @@ const mobileMenuBtn =
     );
 
 
-if (mobileMenuBtn) {
+if (
+    mobileMenuBtn
+) {
 
     mobileMenuBtn.addEventListener(
         "click",
-        () => {
+        event => {
+
+            event.stopPropagation();
+
 
             const sidebar =
                 getElement(
@@ -339,9 +1026,28 @@ if (mobileMenuBtn) {
                 );
 
 
-            if (sidebar) {
+            const backdrop =
+                getElement(
+                    "mobileBackdrop"
+                );
+
+
+            if (
+                sidebar
+            ) {
 
                 sidebar.classList.toggle(
+                    "open"
+                );
+
+            }
+
+
+            if (
+                backdrop
+            ) {
+
+                backdrop.classList.toggle(
                     "open"
                 );
 
@@ -353,87 +1059,131 @@ if (mobileMenuBtn) {
 }
 
 
-/* =========================================================
-   MOBILE ACCOUNT
-========================================================= */
-
-const mobileAccountBtn =
+const mobileBackdrop =
     getElement(
-        "mobileAccountBtn"
+        "mobileBackdrop"
     );
 
 
-if (mobileAccountBtn) {
+mobileBackdrop?.addEventListener(
+    "click",
+    () => {
 
-    mobileAccountBtn.addEventListener(
-        "click",
-        () => {
-
-            if (currentUser) {
-
-                showPage(
-                    "my-list"
-                );
-
-            } else {
-
-                openLogin();
-
-            }
-
-        }
-    );
-
-}
+        getElement(
+            "sidebar"
+        )?.classList.remove(
+            "open"
+        );
 
 
-/* =========================================================
-   SIDEBAR OVERLAY BEHAVIOUR
-========================================================= */
+        mobileBackdrop.classList.remove(
+            "open"
+        );
+
+    }
+);
+
 
 document.addEventListener(
     "click",
     event => {
 
         const sidebar =
-            getElement("sidebar");
-
-
-        if (!sidebar) {
-            return;
-        }
+            getElement(
+                "sidebar"
+            );
 
 
         if (
+            !sidebar ||
             !sidebar.classList.contains(
                 "open"
             )
         ) {
+
             return;
+
         }
 
 
-        const clickedInside =
+        if (
             sidebar.contains(
                 event.target
-            );
-
-
-        const clickedMenu =
-            mobileMenuBtn &&
-            mobileMenuBtn.contains(
+            ) ||
+            mobileMenuBtn?.contains(
                 event.target
-            );
-
-
-        if (
-            !clickedInside &&
-            !clickedMenu
+            )
         ) {
 
-            sidebar.classList.remove(
-                "open"
+            return;
+
+        }
+
+
+        sidebar.classList.remove(
+            "open"
+        );
+
+
+        mobileBackdrop?.classList.remove(
+            "open"
+        );
+
+    }
+);
+
+
+/* =========================================================
+   MOBILE SEARCH
+========================================================= */
+
+getElement(
+    "mobileSearchButton"
+)?.addEventListener(
+    "click",
+    () => {
+
+        showPage(
+            "search"
+        );
+
+
+        setTimeout(
+            () => {
+
+                getElement(
+                    "searchInput"
+                )?.focus();
+
+            },
+            150
+        );
+
+    }
+);
+
+
+/* =========================================================
+   MOBILE ACCOUNT
+========================================================= */
+
+getElement(
+    "mobileAccountBtn"
+)?.addEventListener(
+    "click",
+    () => {
+
+        if (
+            currentUser
+        ) {
+
+            showPage(
+                "my-list"
             );
+
+        } else {
+
+            openLogin();
 
         }
 
@@ -442,7 +1192,85 @@ document.addEventListener(
 
 
 /* =========================================================
-   HERO BUTTONS
+   MOBILE BRAND / HOME
+========================================================= */
+
+getElement(
+    "mobileHomeButton"
+)?.addEventListener(
+    "click",
+    () => {
+
+        showPage(
+            "home"
+        );
+
+    }
+);
+
+
+/* =========================================================
+   BACK HOME BUTTONS
+========================================================= */
+
+queryAll(
+    "[data-home]"
+)
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    showPage(
+                        "home"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+queryAll(
+    ".back-home-button"
+)
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    showPage(
+                        "home"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+getElement(
+    "globalHomeButton"
+)?.addEventListener(
+    "click",
+    () => {
+
+        showPage(
+            "home"
+        );
+
+    }
+);
+
+
+/* =========================================================
+   SEARCH NAVIGATION
 ========================================================= */
 
 function goToSearch() {
@@ -452,22 +1280,26 @@ function goToSearch() {
     );
 
 
-    const input =
-        getElement(
-            "searchInput"
-        );
+    setTimeout(
+        () => {
 
+            getElement(
+                "searchInput"
+            )?.focus();
 
-    if (input) {
-
-        setTimeout(
-            () => input.focus(),
-            100
-        );
-
-    }
+        },
+        120
+    );
 
 }
+
+
+getElement(
+    "homeSearchBtn"
+)?.addEventListener(
+    "click",
+    goToSearch
+);
 
 
 getElement(
@@ -479,10 +1311,16 @@ getElement(
 
 
 getElement(
-    "homeSearchBtn"
+    "homeListButton"
 )?.addEventListener(
     "click",
-    goToSearch
+    () => {
+
+        showPage(
+            "my-list"
+        );
+
+    }
 );
 
 
@@ -500,36 +1338,6 @@ getElement(
 );
 
 
-getElement(
-    "listLoginBtn"
-)?.addEventListener(
-    "click",
-    openLogin
-);
-
-
-/* =========================================================
-   BACK TO HOME
-========================================================= */
-
-queryAll(
-    ".back-home-button"
-).forEach(button => {
-
-    button.addEventListener(
-        "click",
-        () => {
-
-            showPage(
-                "home"
-            );
-
-        }
-    );
-
-});
-
-
 /* =========================================================
    GLOBAL SEARCH
 ========================================================= */
@@ -539,31 +1347,15 @@ async function performGlobalSearch() {
     const input =
         getElement(
             "globalSearchInput"
-        );
-
-
-    const legacyInput =
+        ) ||
         getElement(
             "globalSearch"
         );
 
 
-    const searchInput =
-        input ||
-        legacyInput;
-
-
-    if (!searchInput) {
-        goToSearch();
-        return;
-    }
-
-
-    const queryText =
-        searchInput.value.trim();
-
-
-    if (!queryText) {
+    if (
+        !input
+    ) {
 
         goToSearch();
 
@@ -572,16 +1364,33 @@ async function performGlobalSearch() {
     }
 
 
-    const searchPageInput =
+    const text =
+        input.value.trim();
+
+
+    if (
+        !text
+    ) {
+
+        goToSearch();
+
+        return;
+
+    }
+
+
+    const pageInput =
         getElement(
             "searchInput"
         );
 
 
-    if (searchPageInput) {
+    if (
+        pageInput
+    ) {
 
-        searchPageInput.value =
-            queryText;
+        pageInput.value =
+            text;
 
     }
 
@@ -591,55 +1400,113 @@ async function performGlobalSearch() {
     );
 
 
-    const form =
-        getElement(
-            "searchForm"
-        );
-
-
-    if (form) {
-
-        form.dispatchEvent(
-            new Event(
-                "submit",
-                {
-                    bubbles: true,
-                    cancelable: true
-                }
-            )
-        );
-
-        return;
-
-    }
-
-
     await performSearch(
-        queryText
+        text
     );
 
 }
 
 
-/* Search button */
+getElement(
+    "globalSearchForm"
+)?.addEventListener(
+    "submit",
+    event => {
+
+        event.preventDefault();
+
+        performGlobalSearch();
+
+    }
+);
+
 
 getElement(
     "globalSearchButton"
 )?.addEventListener(
     "click",
-    performGlobalSearch
+    event => {
+
+        event.preventDefault();
+
+        performGlobalSearch();
+
+    }
 );
 
+
+/* =========================================================
+   SIDEBAR SEARCH
+========================================================= */
 
 getElement(
-    "searchButton"
+    "sidebarSearchButton"
 )?.addEventListener(
     "click",
-    performGlobalSearch
+    goToSearch
 );
 
 
-/* Enter key in global search */
+/* =========================================================
+   "/" SEARCH SHORTCUT
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        const tag =
+            document.activeElement
+                ?.tagName;
+
+
+        if (
+            tag ===
+            "INPUT" ||
+            tag ===
+            "TEXTAREA" ||
+            tag ===
+            "SELECT"
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            event.key ===
+            "/"
+        ) {
+
+            event.preventDefault();
+
+
+            const input =
+                getElement(
+                    "globalSearchInput"
+                );
+
+
+            if (
+                input
+            ) {
+
+                input.focus();
+
+                input.select();
+
+            }
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   ENTER SEARCH
+========================================================= */
 
 [
     getElement(
@@ -650,28 +1517,32 @@ getElement(
         "globalSearch"
     )
 ]
-    .filter(Boolean)
-    .forEach(input => {
+    .filter(
+        Boolean
+    )
+    .forEach(
+        input => {
 
-        input.addEventListener(
-            "keydown",
-            event => {
+            input.addEventListener(
+                "keydown",
+                event => {
 
-                if (
-                    event.key ===
-                    "Enter"
-                ) {
+                    if (
+                        event.key ===
+                        "Enter"
+                    ) {
 
-                    event.preventDefault();
+                        event.preventDefault();
 
-                    performGlobalSearch();
+                        performGlobalSearch();
+
+                    }
 
                 }
+            );
 
-            }
-        );
-
-    });
+        }
+    );
 
 
 /* =========================================================
@@ -680,14 +1551,15 @@ getElement(
 
 function openAccountModal() {
 
-    if (!accountModal) {
-        return;
+    if (
+        accountModal
+    ) {
+
+        accountModal.classList.add(
+            "open"
+        );
+
     }
-
-
-    accountModal.classList.add(
-        "open"
-    );
 
 
     document.body.style.overflow =
@@ -698,14 +1570,15 @@ function openAccountModal() {
 
 function closeAccountModal() {
 
-    if (!accountModal) {
-        return;
+    if (
+        accountModal
+    ) {
+
+        accountModal.classList.remove(
+            "open"
+        );
+
     }
-
-
-    accountModal.classList.remove(
-        "open"
-    );
 
 
     restoreBodyScroll();
@@ -718,14 +1591,14 @@ function openLogin() {
     clearAccountErrors();
 
 
-    loginContainer
-        ?.classList
-        .remove("hidden");
+    loginContainer?.classList.remove(
+        "hidden"
+    );
 
 
-    registerContainer
-        ?.classList
-        .add("hidden");
+    registerContainer?.classList.add(
+        "hidden"
+    );
 
 
     openAccountModal();
@@ -738,14 +1611,14 @@ function openRegister() {
     clearAccountErrors();
 
 
-    loginContainer
-        ?.classList
-        .add("hidden");
+    loginContainer?.classList.add(
+        "hidden"
+    );
 
 
-    registerContainer
-        ?.classList
-        .remove("hidden");
+    registerContainer?.classList.remove(
+        "hidden"
+    );
 
 
     openAccountModal();
@@ -766,6 +1639,14 @@ getElement(
 )?.addEventListener(
     "click",
     openRegister
+);
+
+
+getElement(
+    "listLoginBtn"
+)?.addEventListener(
+    "click",
+    openLogin
 );
 
 
@@ -814,13 +1695,49 @@ accountModal?.addEventListener(
    ACCOUNT ERRORS
 ========================================================= */
 
-function showError(
+function clearAccountErrors() {
+
+    [
+        loginError,
+        registerError
+    ]
+        .forEach(
+            element => {
+
+                if (
+                    !element
+                ) {
+
+                    return;
+
+                }
+
+
+                element.textContent =
+                    "";
+
+
+                element.classList.remove(
+                    "show"
+                );
+
+            }
+        );
+
+}
+
+
+function showAccountError(
     element,
     message
 ) {
 
-    if (!element) {
+    if (
+        !element
+    ) {
+
         return;
+
     }
 
 
@@ -835,553 +1752,601 @@ function showError(
 }
 
 
-function clearAccountErrors() {
+/* =========================================================
+   REGISTER
+========================================================= */
 
-    loginError
-        ?.classList
-        .remove("show");
+registerForm?.addEventListener(
+    "submit",
+    async event => {
+
+        event.preventDefault();
 
 
-    registerError
-        ?.classList
-        .remove("show");
+        clearAccountErrors();
 
 
-    if (loginError) {
-
-        loginError.textContent =
+        const username =
+            getElement(
+                "registerUsername"
+            )
+            ?.value
+            .trim() ||
             "";
 
-    }
 
-
-    if (registerError) {
-
-        registerError.textContent =
+        const email =
+            getElement(
+                "registerEmail"
+            )
+            ?.value
+            .trim() ||
             "";
 
-    }
 
-}
+        const password =
+            getElement(
+                "registerPassword"
+            )
+            ?.value ||
+            "";
+
+
+        const confirmPassword =
+            getElement(
+                "registerConfirmPassword"
+            )
+            ?.value ||
+            "";
+
+
+        if (
+            !/^[a-zA-Z0-9_-]{3,30}$/
+                .test(
+                    username
+                )
+        ) {
+
+            showAccountError(
+                registerError,
+                "Username must be 3–30 characters and use letters, numbers, underscores, or hyphens."
+            );
+
+            return;
+
+        }
+
+
+        if (
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                .test(
+                    email
+                )
+        ) {
+
+            showAccountError(
+                registerError,
+                "Please enter a valid email address."
+            );
+
+            return;
+
+        }
+
+
+        if (
+            password.length <
+            6
+        ) {
+
+            showAccountError(
+                registerError,
+                "Password must be at least 6 characters."
+            );
+
+            return;
+
+        }
+
+
+        if (
+            password !==
+            confirmPassword
+        ) {
+
+            showAccountError(
+                registerError,
+                "Passwords do not match."
+            );
+
+            return;
+
+        }
+
+
+        const button =
+            registerForm.querySelector(
+                "button[type='submit']"
+            );
+
+
+        const oldText =
+            button?.textContent ||
+            "Create Account";
+
+
+        if (
+            button
+        ) {
+
+            button.disabled =
+                true;
+
+            button.textContent =
+                "Creating account...";
+
+        }
+
+
+        try {
+
+            const data =
+                await apiRequest(
+                    "/auth/register",
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify(
+                                {
+                                    username,
+                                    email,
+                                    password
+                                }
+                            )
+                    }
+                );
+
+
+            currentUser =
+                data.user ||
+                null;
+
+
+            if (
+                !currentUser
+            ) {
+
+                throw new Error(
+                    "Account created but no user account was returned."
+                );
+
+            }
+
+
+            myList =
+                [];
+
+
+            closeAccountModal();
+
+
+            registerForm.reset();
+
+
+            updateAccountUI();
+
+
+            await loadMyListFromServer();
+
+
+            showToast(
+                "Your MIRAI account has been created.",
+                "success"
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "REGISTER ERROR:",
+                error
+            );
+
+
+            showAccountError(
+                registerError,
+                error.message ||
+                "Could not create account."
+            );
+
+
+        } finally {
+
+            if (
+                button
+            ) {
+
+                button.disabled =
+                    false;
+
+                button.textContent =
+                    oldText;
+
+            }
+
+        }
+
+    }
+);
 
 
 /* =========================================================
    LOGIN
 ========================================================= */
 
-if (loginForm) {
+loginForm?.addEventListener(
+    "submit",
+    async event => {
 
-    loginForm.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
+        event.preventDefault();
 
 
-            clearAccountErrors();
+        clearAccountErrors();
 
 
-            const identifier =
-                getElement(
-                    "loginEmail"
-                )
-                ?.value
-                .trim();
+        const identifier =
+            getElement(
+                "loginEmail"
+            )
+            ?.value
+            .trim() ||
+            "";
 
 
-            const password =
-                getElement(
-                    "loginPassword"
-                )
-                ?.value ||
-                "";
+        const password =
+            getElement(
+                "loginPassword"
+            )
+            ?.value ||
+            "";
 
 
-            if (
-                !identifier ||
-                !password
-            ) {
+        if (
+            !identifier ||
+            !password
+        ) {
 
-                showError(
-                    loginError,
-                    "Please enter your username/email and password."
-                );
+            showAccountError(
+                loginError,
+                "Enter your username/email and password."
+            );
 
-                return;
+            return;
 
-            }
-
-
-            const button =
-                loginForm.querySelector(
-                    "button"
-                );
+        }
 
 
-            const originalText =
-                button?.textContent ||
-                "Log In";
+        const button =
+            loginForm.querySelector(
+                "button[type='submit']"
+            );
 
 
-            if (button) {
-
-                button.disabled =
-                    true;
-
-                button.textContent =
-                    "Logging in...";
-
-            }
+        const oldText =
+            button?.textContent ||
+            "Log In";
 
 
-            try {
+        if (
+            button
+        ) {
 
-                const response =
-                    await fetch(
-                        `${API_BASE}/auth/login`,
-                        {
-                            method:
-                                "POST",
+            button.disabled =
+                true;
 
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
+            button.textContent =
+                "Logging in...";
 
-                            credentials:
-                                "include",
+        }
 
-                            body:
-                                JSON.stringify({
+
+        try {
+
+            const data =
+                await apiRequest(
+                    "/auth/login",
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify(
+                                {
                                     identifier,
                                     password
-                                })
-                        }
-                    );
-
-
-                const data =
-                    await response
-                        .json()
-                        .catch(
-                            () => ({})
-                        );
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        data.error ||
-                        data.message ||
-                        "Incorrect username/email or password."
-                    );
-
-                }
-
-
-                currentUser =
-                    data.user ||
-                    null;
-
-
-                if (!currentUser) {
-
-                    throw new Error(
-                        "Login succeeded but no user account was returned."
-                    );
-
-                }
-
-
-                homeListIndex =
-                    0;
-
-
-                updateAccountUI();
-
-
-                await loadMyListFromServer();
-
-
-                closeAccountModal();
-
-
-                loginForm.reset();
-
-
-                showToast(
-                    `Welcome back, ${
-                        currentUser.username ||
-                        "User"
-                    }!`,
-                    "success"
+                                }
+                            )
+                    }
                 );
 
 
-            } catch (error) {
-
-                console.error(
-                    "LOGIN ERROR:",
-                    error
-                );
-
-
-                showError(
-                    loginError,
-                    error.message ||
-                    "Unable to log in."
-                );
-
-
-            } finally {
-
-                if (button) {
-
-                    button.disabled =
-                        false;
-
-                    button.textContent =
-                        originalText;
-
-                }
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   REGISTER
-========================================================= */
-
-if (registerForm) {
-
-    registerForm.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
-
-
-            clearAccountErrors();
-
-
-            const username =
-                getElement(
-                    "registerUsername"
-                )
-                ?.value
-                .trim() ||
-                "";
-
-
-            const email =
-                getElement(
-                    "registerEmail"
-                )
-                ?.value
-                .trim() ||
-                "";
-
-
-            const password =
-                getElement(
-                    "registerPassword"
-                )
-                ?.value ||
-                "";
-
-
-            const confirmPassword =
-                getElement(
-                    "registerConfirmPassword"
-                )
-                ?.value ||
-                "";
+            currentUser =
+                data.user ||
+                null;
 
 
             if (
-                username.length <
-                3
+                !currentUser
             ) {
 
-                showError(
-                    registerError,
-                    "Username must contain at least 3 characters."
+                throw new Error(
+                    "Login succeeded but no user was returned."
                 );
-
-                return;
 
             }
 
+
+            closeAccountModal();
+
+
+            loginForm.reset();
+
+
+            updateAccountUI();
+
+
+            await loadMyListFromServer();
+
+
+            showToast(
+                `Welcome back, ${currentUser.username || "User"}!`,
+                "success"
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "LOGIN ERROR:",
+                error
+            );
+
+
+            showAccountError(
+                loginError,
+                error.message ||
+                "Could not log in."
+            );
+
+
+        } finally {
 
             if (
-                username.length >
-                30
+                button
             ) {
-
-                showError(
-                    registerError,
-                    "Username must be 30 characters or fewer."
-                );
-
-                return;
-
-            }
-
-
-            if (
-                !email.includes("@")
-            ) {
-
-                showError(
-                    registerError,
-                    "Please enter a valid email address."
-                );
-
-                return;
-
-            }
-
-
-            if (
-                password.length <
-                6
-            ) {
-
-                showError(
-                    registerError,
-                    "Password must contain at least 6 characters."
-                );
-
-                return;
-
-            }
-
-
-            if (
-                password !==
-                confirmPassword
-            ) {
-
-                showError(
-                    registerError,
-                    "Passwords do not match."
-                );
-
-                return;
-
-            }
-
-
-            const button =
-                registerForm.querySelector(
-                    "button"
-                );
-
-
-            const originalText =
-                button?.textContent ||
-                "Create Account";
-
-
-            if (button) {
 
                 button.disabled =
-                    true;
+                    false;
 
                 button.textContent =
-                    "Creating account...";
-
-            }
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        `${API_BASE}/auth/register`,
-                        {
-                            method:
-                                "POST",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            credentials:
-                                "include",
-
-                            body:
-                                JSON.stringify({
-                                    username,
-                                    email,
-                                    password
-                                })
-                        }
-                    );
-
-
-                const data =
-                    await response
-                        .json()
-                        .catch(
-                            () => ({})
-                        );
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        data.error ||
-                        data.message ||
-                        "Unable to create account."
-                    );
-
-                }
-
-
-                currentUser =
-                    data.user ||
-                    null;
-
-
-                if (!currentUser) {
-
-                    throw new Error(
-                        "Account was created but no user account was returned."
-                    );
-
-                }
-
-
-                myList = [];
-
-                homeListIndex =
-                    0;
-
-
-                updateAccountUI();
-
-
-                await loadMyListFromServer();
-
-
-                closeAccountModal();
-
-
-                registerForm.reset();
-
-
-                showToast(
-                    "Your MIRAI account has been created!",
-                    "success"
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "REGISTER ERROR:",
-                    error
-                );
-
-
-                showError(
-                    registerError,
-                    error.message ||
-                    "Unable to create account."
-                );
-
-
-            } finally {
-
-                if (button) {
-
-                    button.disabled =
-                        false;
-
-                    button.textContent =
-                        originalText;
-
-                }
+                    oldText;
 
             }
 
         }
-    );
 
-}
+    }
+);
 
 
 /* =========================================================
    LOGOUT
 ========================================================= */
 
-const logoutBtn =
-    getElement(
-        "logoutBtn"
-    );
+getElement(
+    "logoutBtn"
+)?.addEventListener(
+    "click",
+    async () => {
 
+        try {
 
-if (logoutBtn) {
-
-    logoutBtn.addEventListener(
-        "click",
-        async () => {
-
-            try {
-
-                await fetch(
-                    `${API_BASE}/auth/logout`,
-                    {
-                        method:
-                            "POST",
-
-                        credentials:
-                            "include"
-                    }
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "Logout request failed:",
-                    error
-                );
-
-            }
-
-
-            currentUser =
-                null;
-
-            myList =
-                [];
-
-            homeListIndex =
-                0;
-
-
-            updateAccountUI();
-
-
-            showToast(
-                "You have been logged out."
+            await apiRequest(
+                "/auth/logout",
+                {
+                    method:
+                        "POST"
+                }
             );
 
+        } catch (
+            error
+        ) {
 
-            showPage(
-                "home"
+            console.error(
+                "LOGOUT ERROR:",
+                error
             );
 
         }
-    );
+
+
+        currentUser =
+            null;
+
+
+        myList =
+            [];
+
+
+        homeListIndex =
+            0;
+
+
+        updateAccountUI();
+
+
+        showPage(
+            "home"
+        );
+
+
+        showToast(
+            "You have been logged out."
+        );
+
+    }
+);
+
+
+/* =========================================================
+   ACCOUNT UI
+========================================================= */
+
+function updateAccountUI() {
+
+    if (
+        currentUser
+    ) {
+
+        loggedOutAccount?.classList.add(
+            "hidden"
+        );
+
+
+        loggedInAccount?.classList.remove(
+            "hidden"
+        );
+
+
+        const username =
+            currentUser.username ||
+            currentUser.email
+                ?.split("@")[0] ||
+            "User";
+
+
+        if (
+            sidebarUsername
+        ) {
+
+            sidebarUsername.textContent =
+                username;
+
+        }
+
+
+        if (
+            userAvatar
+        ) {
+
+            userAvatar.textContent =
+                username
+                    .charAt(0)
+                    .toUpperCase();
+
+        }
+
+
+        const subtitle =
+            getElement(
+                "listSubtitle"
+            );
+
+
+        if (
+            subtitle
+        ) {
+
+            subtitle.textContent =
+                `Your personal collection, ${username}.`;
+
+        }
+
+
+        const toolbar =
+            getElement(
+                "listToolbar"
+            );
+
+
+        if (
+            toolbar
+        ) {
+
+            toolbar.classList.remove(
+                "hidden"
+            );
+
+        }
+
+    } else {
+
+        loggedOutAccount?.classList.remove(
+            "hidden"
+        );
+
+
+        loggedInAccount?.classList.add(
+            "hidden"
+        );
+
+
+        const subtitle =
+            getElement(
+                "listSubtitle"
+            );
+
+
+        if (
+            subtitle
+        ) {
+
+            subtitle.textContent =
+                "Log in to access your personal anime collection.";
+
+        }
+
+
+        const toolbar =
+            getElement(
+                "listToolbar"
+            );
+
+
+        if (
+            toolbar
+        ) {
+
+            toolbar.classList.add(
+                "hidden"
+            );
+
+        }
+
+    }
+
+
+    renderMyList();
+
+
+    renderHomeList();
 
 }
 
@@ -1394,39 +2359,14 @@ async function checkSession() {
 
     try {
 
-        const response =
-            await fetch(
-                `${API_BASE}/auth/me`,
+        const data =
+            await apiRequest(
+                "/auth/me",
                 {
-                    method:
-                        "GET",
-
-                    credentials:
-                        "include",
-
                     cache:
                         "no-store"
                 }
             );
-
-
-        if (!response.ok) {
-
-            currentUser =
-                null;
-
-            myList =
-                [];
-
-            updateAccountUI();
-
-            return;
-
-        }
-
-
-        const data =
-            await response.json();
 
 
         if (
@@ -1443,24 +2383,26 @@ async function checkSession() {
 
             await loadMyListFromServer();
 
-
         } else {
 
             currentUser =
                 null;
 
+
             myList =
                 [];
+
 
             updateAccountUI();
 
         }
 
-
-    } catch (error) {
+    } catch (
+        error
+    ) {
 
         console.error(
-            "Session check failed:",
+            "SESSION ERROR:",
             error
         );
 
@@ -1468,8 +2410,10 @@ async function checkSession() {
         currentUser =
             null;
 
+
         myList =
             [];
+
 
         updateAccountUI();
 
@@ -1479,186 +2423,67 @@ async function checkSession() {
 
 
 /* =========================================================
-   ACCOUNT UI
-========================================================= */
-
-function updateAccountUI() {
-
-    if (currentUser) {
-
-        loggedOutAccount
-            ?.classList
-            .add("hidden");
-
-
-        loggedInAccount
-            ?.classList
-            .remove("hidden");
-
-
-        const username =
-            currentUser.username ||
-            currentUser.name ||
-            currentUser.email
-                ?.split("@")[0] ||
-            "User";
-
-
-        if (sidebarUsername) {
-
-            sidebarUsername.textContent =
-                username;
-
-        }
-
-
-        if (userAvatar) {
-
-            userAvatar.textContent =
-                username
-                    .charAt(0)
-                    .toUpperCase();
-
-        }
-
-
-        const listSubtitle =
-            getElement(
-                "listSubtitle"
-            );
-
-
-        if (listSubtitle) {
-
-            listSubtitle.textContent =
-                `Your personal collection, ${username}.`;
-
-        }
-
-    } else {
-
-        loggedOutAccount
-            ?.classList
-            .remove("hidden");
-
-
-        loggedInAccount
-            ?.classList
-            .add("hidden");
-
-
-        const listSubtitle =
-            getElement(
-                "listSubtitle"
-            );
-
-
-        if (listSubtitle) {
-
-            listSubtitle.textContent =
-                "Log in to access your personal anime collection.";
-
-        }
-
-    }
-
-
-    renderMyList();
-
-    renderHomeList();
-
-}
-
-
-/* =========================================================
-   LOAD USER LIST FROM DATABASE
+   MY LIST
 ========================================================= */
 
 async function loadMyListFromServer() {
 
-    if (!currentUser) {
+    if (
+        !currentUser
+    ) {
 
         myList =
             [];
 
+
         renderMyList();
 
+
         renderHomeList();
+
 
         return;
 
     }
 
 
+    if (
+        isLoadingList
+    ) {
+
+        return;
+
+    }
+
+
+    isLoadingList =
+        true;
+
+
     try {
 
-        const response =
-            await fetch(
-                `${API_BASE}/api/my-list`,
+        const data =
+            await apiRequest(
+                "/api/my-list",
                 {
-                    method:
-                        "GET",
-
-                    credentials:
-                        "include",
-
                     cache:
                         "no-store"
                 }
             );
 
 
-        const data =
-            await response
-                .json()
-                .catch(
-                    () => ({})
-                );
-
-
-        if (!response.ok) {
-
-            if (
-                response.status ===
-                401
-            ) {
-
-                currentUser =
-                    null;
-
-                myList =
-                    [];
-
-                updateAccountUI();
-
-                return;
-
-            }
-
-
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Could not load your list."
-            );
-
-        }
-
-
         myList =
             normalizeAnimeList(
-                data.data || []
+                data.data ||
+                []
             );
 
 
-        /*
-           PostgreSQL already returns newest first,
-           but sorting again protects the frontend
-           when savedAt is present.
-        */
-
         myList.sort(
-            (a, b) =>
+            (
+                a,
+                b
+            ) =>
                 new Date(
                     b.savedAt ||
                     0
@@ -1670,30 +2495,60 @@ async function loadMyListFromServer() {
         );
 
 
+        myList =
+            myList.map(
+                anime => ({
+
+                    ...anime,
+
+                    rating:
+                        normalizeRating(
+                            anime.rating
+                        )
+
+                })
+            );
+
+
         homeListIndex =
             0;
 
 
         renderMyList();
 
+
         renderHomeList();
 
 
-    } catch (error) {
+    } catch (
+        error
+    ) {
 
         console.error(
-            "LOAD MY LIST ERROR:",
+            "MY LIST LOAD ERROR:",
             error
         );
 
 
-        myList =
-            [];
+        if (
+            error.status ===
+            401
+        ) {
+
+            currentUser =
+                null;
 
 
-        renderMyList();
+            myList =
+                [];
 
-        renderHomeList();
+
+            updateAccountUI();
+
+
+            return;
+
+        }
 
 
         showToast(
@@ -1701,332 +2556,533 @@ async function loadMyListFromServer() {
             "error"
         );
 
+    } finally {
+
+        isLoadingList =
+            false;
+
     }
 
 }
 
 
 /* =========================================================
-   ANIME API
+   LIST HELPERS
 ========================================================= */
 
-async function fetchAnime(
-    url
-) {
-
-    const response =
-        await fetch(url);
-
-
-    const data =
-        await response
-            .json()
-            .catch(
-                () => ({})
-            );
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            data.error ||
-            data.message ||
-            "Anime API request failed."
-        );
-
-    }
-
-
-    return data;
-
-}
-
-
-/* =========================================================
-   ANIME NORMALIZER
-========================================================= */
-
-function normalizeAnime(
+function getAnimeId(
     anime
 ) {
 
-    if (!anime) {
+    if (
+        !anime
+    ) {
+
         return null;
+
     }
 
 
-    const node =
-        anime.node ||
-        anime;
-
-
-    const id =
-        node.id ||
-        anime.id ||
+    return Number(
         anime.mal_id ||
-        anime.anime_id;
-
-
-    return {
-
-        ...anime,
-
-        id,
-
-
-        mal_id:
-            node.id ||
-            anime.mal_id ||
-            anime.anime_id ||
-            anime.id,
-
-
-        title:
-            node.title ||
-            anime.title ||
-            anime.name ||
-            "Unknown Anime",
-
-
-        image_url:
-            node.main_picture?.large ||
-            node.main_picture?.medium ||
-            anime.image_url ||
-            anime.image ||
-            anime.images?.jpg?.large_image_url ||
-            anime.images?.jpg?.image_url ||
-            "",
-
-
-        image:
-            node.main_picture?.large ||
-            node.main_picture?.medium ||
-            anime.image ||
-            anime.image_url ||
-            anime.images?.jpg?.large_image_url ||
-            anime.images?.jpg?.image_url ||
-            "",
-
-
-        score:
-            node.mean ??
-            anime.score ??
-            anime.mal_score ??
-            null,
-
-
-        mal_score:
-            node.mean ??
-            anime.mal_score ??
-            anime.score ??
-            null,
-
-
-        episodes:
-            node.num_episodes ??
-            anime.episodes ??
-            anime.episode_count ??
-            anime.num_episodes ??
-            null,
-
-
-        episode_count:
-            node.num_episodes ??
-            anime.episode_count ??
-            anime.episodes ??
-            anime.num_episodes ??
-            null,
-
-
-        type:
-            node.media_type ||
-            anime.type ||
-            "Anime",
-
-
-        synopsis:
-            node.synopsis ||
-            anime.synopsis ||
-            anime.description ||
-            "No synopsis available.",
-
-
-        status:
-            node.status ||
-            anime.status ||
-            "",
-
-
-        start_date:
-            node.start_date ||
-            anime.start_date ||
-            null,
-
-
-        end_date:
-            node.end_date ||
-            anime.end_date ||
-            null,
-
-
-        rank:
-            node.rank ??
-            anime.rank ??
-            null,
-
-
-        popularity:
-            node.popularity ??
-            anime.popularity ??
-            null,
-
-
-        genres:
-            node.genres ||
-            anime.genres ||
-            [],
-
-
-        broadcast:
-            node.broadcast ||
-            anime.broadcast ||
-            null,
-
-
-        source:
-            node.source ||
-            anime.source ||
-            null,
-
-
-        alternative_titles:
-            node.alternative_titles ||
-            anime.alternative_titles ||
-            null
-
-    };
+        anime.id ||
+        anime.anime_id ||
+        0
+    ) || null;
 
 }
 
 
-function normalizeAnimeList(
-    list
+function isInList(
+    anime
 ) {
 
-    if (!Array.isArray(list)) {
-        return [];
-    }
-
-
-    return list
-        .map(
-            normalizeAnime
-        )
-        .filter(Boolean);
-
-}
-
-
-/* =========================================================
-   POPULAR ANIME
-========================================================= */
-
-async function loadPopularAnime() {
-
-    const grid =
-        getElement(
-            "popularGrid"
-        );
-
-
-    /*
-       Your original page uses a normal grid.
-       Your newer design can use featured-carousel.
-       We support BOTH.
-    */
-
-    const featured =
-        getElement(
-            "featuredCarousel"
+    const id =
+        getAnimeId(
+            anime
         );
 
 
     if (
-        !grid &&
-        !featured
+        !id
     ) {
-        return;
+
+        return false;
+
+    }
+
+
+    return myList.some(
+        item =>
+            Number(
+                getAnimeId(
+                    item
+                )
+            ) ===
+            Number(
+                id
+            )
+    );
+
+}
+
+
+function getListAnime(
+    anime
+) {
+
+    const id =
+        getAnimeId(
+            anime
+        );
+
+
+    if (
+        !id
+    ) {
+
+        return null;
+
+    }
+
+
+    return myList.find(
+        item =>
+            Number(
+                getAnimeId(
+                    item
+                )
+            ) ===
+            Number(
+                id
+            )
+    ) || null;
+
+}
+
+
+/* =========================================================
+   ADD ANIME
+========================================================= */
+
+async function addAnimeToList(
+    anime,
+    status = "plan",
+    episode = 0,
+    rating = 0
+) {
+
+    if (
+        !currentUser
+    ) {
+
+        openLogin();
+
+        return false;
+
+    }
+
+
+    const normalized =
+        normalizeAnime(
+            anime
+        );
+
+
+    if (
+        !normalized
+    ) {
+
+        showToast(
+            "Unable to identify this anime.",
+            "error"
+        );
+
+
+        return false;
+
+    }
+
+
+    const animeId =
+        getAnimeId(
+            normalized
+        );
+
+
+    if (
+        !animeId
+    ) {
+
+        showToast(
+            "This anime has an invalid ID.",
+            "error"
+        );
+
+
+        return false;
+
+    }
+
+
+    const cleanRating =
+        normalizeRating(
+            rating
+        );
+
+
+    try {
+
+        await apiRequest(
+            "/api/my-list",
+            {
+                method:
+                    "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify(
+                        {
+                            anime:
+                                normalized,
+
+                            status,
+
+                            episode:
+                                Math.max(
+                                    0,
+                                    Math.floor(
+                                        Number(
+                                            episode
+                                        ) ||
+                                        0
+                                    )
+                                ),
+
+                            rating:
+                                cleanRating
+
+                        }
+                    )
+            }
+        );
+
+
+        await loadMyListFromServer();
+
+
+        updateModalListButton();
+
+
+        updateModalListControls();
+
+
+        showToast(
+            "Added to My List.",
+            "success"
+        );
+
+
+        return true;
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "ADD LIST ERROR:",
+            error
+        );
+
+
+        showToast(
+            error.message ||
+            "Could not add anime.",
+            "error"
+        );
+
+
+        return false;
+
+    }
+
+}
+
+
+/* =========================================================
+   REMOVE ANIME
+========================================================= */
+
+async function removeAnimeFromList(
+    anime
+) {
+
+    if (
+        !currentUser
+    ) {
+
+        return false;
+
+    }
+
+
+    const id =
+        getAnimeId(
+            anime
+        );
+
+
+    if (
+        !id
+    ) {
+
+        return false;
+
+    }
+
+
+    try {
+
+        await apiRequest(
+            `/api/my-list/${id}`,
+            {
+                method:
+                    "DELETE"
+            }
+        );
+
+
+        myList =
+            myList.filter(
+                item =>
+                    Number(
+                        getAnimeId(
+                            item
+                        )
+                    ) !==
+                    Number(
+                        id
+                    )
+            );
+
+
+        renderMyList();
+
+
+        renderHomeList();
+
+
+        updateModalListButton();
+
+
+        updateModalListControls();
+
+
+        showToast(
+            "Removed from My List."
+        );
+
+
+        return true;
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "REMOVE LIST ERROR:",
+            error
+        );
+
+
+        showToast(
+            error.message ||
+            "Could not remove anime.",
+            "error"
+        );
+
+
+        return false;
+
+    }
+
+}
+
+
+/* =========================================================
+   UPDATE STATUS / EPISODE
+========================================================= */
+
+async function updateAnimeListEntry(
+    anime,
+    status,
+    episode
+) {
+
+    if (
+        !currentUser
+    ) {
+
+        return false;
+
+    }
+
+
+    const id =
+        getAnimeId(
+            anime
+        );
+
+
+    if (
+        !id
+    ) {
+
+        return false;
+
+    }
+
+
+    let safeEpisode =
+        Math.max(
+            0,
+            Math.floor(
+                Number(
+                    episode
+                ) ||
+                0
+            )
+        );
+
+
+    const total =
+        Number(
+            anime.episodes ||
+            anime.episode_count ||
+            0
+        );
+
+
+    if (
+        total >
+        0
+    ) {
+
+        safeEpisode =
+            Math.min(
+                safeEpisode,
+                total
+            );
+
+    }
+
+
+    if (
+        status ===
+        "completed" &&
+        total >
+        0
+    ) {
+
+        safeEpisode =
+            total;
+
     }
 
 
     try {
 
         const data =
-            await fetchAnime(
-                "/anime/top?limit=50"
+            await apiRequest(
+                `/api/my-list/${id}`,
+                {
+                    method:
+                        "PATCH",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            {
+                                status,
+                                episode:
+                                    safeEpisode
+                            }
+                        )
+                }
             );
 
 
-        popularAnime =
-            normalizeAnimeList(
-                data.data || []
+        const existing =
+            getListAnime(
+                anime
             );
 
 
-        featuredIndex =
-            0;
+        if (
+            existing
+        ) {
+
+            existing.listStatus =
+                data.data?.status ||
+                status;
 
 
-        if (featured) {
-
-            renderFeaturedCarousel();
-
-        }
+            existing.status =
+                existing.listStatus;
 
 
-        if (grid) {
-
-            renderAnimeGrid(
-                grid,
-                popularAnime.slice(
-                    0,
-                    12
-                )
-            );
-
-        }
+            existing.episode =
+                Number(
+                    data.data?.episode ??
+                    safeEpisode
+                );
 
 
-    } catch (error) {
-
-        if (grid) {
-
-            grid.innerHTML = `
-                <div class="loading">
-                    <span>
-                        Unable to load anime.
-                    </span>
-                </div>
-            `;
+            existing.savedAt =
+                data.data?.savedAt ||
+                new Date()
+                    .toISOString();
 
         }
 
 
-        if (featured) {
+        renderMyList();
 
-            featured.innerHTML = `
-                <div class="loading">
-                    Unable to load featured anime.
-                </div>
-            `;
 
-        }
+        renderHomeList();
 
+
+        updateModalListControls();
+
+
+        return true;
+
+    } catch (
+        error
+    ) {
 
         console.error(
-            "Popular anime error:",
+            "UPDATE LIST ERROR:",
             error
         );
+
+
+        showToast(
+            error.message ||
+            "Could not update anime.",
+            "error"
+        );
+
+
+        return false;
 
     }
 
@@ -2034,705 +3090,425 @@ async function loadPopularAnime() {
 
 
 /* =========================================================
-   FEATURED CAROUSEL
+   MY LIST RENDER
 ========================================================= */
 
-function renderFeaturedCarousel() {
+function renderMyList() {
 
     const container =
         getElement(
-            "featuredCarousel"
+            "myListContent"
+        );
+
+
+    const loginBox =
+        getElement(
+            "myListLogin"
         );
 
 
     if (
-        !container
+        !container ||
+        !loginBox
     ) {
+
         return;
+
     }
 
 
     if (
-        !popularAnime.length
+        !currentUser
+    ) {
+
+        loginBox.classList.remove(
+            "hidden"
+        );
+
+
+        container.innerHTML =
+            "";
+
+
+        return;
+
+    }
+
+
+    loginBox.classList.add(
+        "hidden"
+    );
+
+
+    if (
+        !myList.length
     ) {
 
         container.innerHTML = `
-            <div class="loading">
-                No featured anime available.
+            <div class="empty-list">
+
+                <div class="empty-list-icon">
+
+                    <img
+                        src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg"
+                        alt="MIRAI"
+                    >
+
+                </div>
+
+                <h3>
+                    Your list is empty
+                </h3>
+
+                <p>
+                    Search for an anime and start
+                    building your collection.
+                </p>
+
+                <button
+                    class="primary-button"
+                    id="findAnimeButton"
+                    type="button"
+                >
+                    Find Anime
+                </button>
+
             </div>
         `;
+
+
+        getElement(
+            "findAnimeButton"
+        )?.addEventListener(
+            "click",
+            goToSearch
+        );
+
 
         return;
 
     }
 
 
-    if (
-        featuredIndex >=
-        popularAnime.length
-    ) {
-
-        featuredIndex =
-            0;
-
-    }
+    const activeTab =
+        query(
+            ".status-tab.active"
+        );
 
 
-    const anime =
-        popularAnime[
-            featuredIndex
-        ];
+    const status =
+        activeTab?.dataset.status ||
+        "all";
 
 
-    const image =
-        anime.image ||
-        anime.image_url ||
-        "";
-
-
-    const score =
-        anime.score ??
-        "N/A";
-
-
-    /*
-       MAL does not provide an official trailer URL
-       through the fields currently requested by your
-       backend.
-
-       Therefore the trailer container is only shown
-       when your stored anime data already contains
-       a legitimate embed/trailer URL.
-    */
-
-    let trailerHTML =
-        "";
-
-
-    const trailerURL =
-        anime.trailer_url ||
-        anime.trailerUrl ||
-        anime.trailer?.embed_url ||
-        anime.trailer?.url ||
-        "";
+    const filtered =
+        status ===
+        "all"
+            ? myList
+            : myList.filter(
+                anime =>
+                    anime.listStatus ===
+                    status
+            );
 
 
     if (
-        trailerURL &&
-        /^https?:\/\//i.test(
-            trailerURL
-        )
+        !filtered.length
     ) {
 
-        trailerHTML = `
-            <div class="trailer-container">
+        container.innerHTML = `
+            <div class="empty-list">
 
-                <iframe
-                    src="${escapeHTML(
-                        trailerURL
-                    )}"
-                    title="${escapeHTML(
-                        anime.title
-                    )} trailer"
-                    loading="lazy"
-                    allow="
-                        autoplay;
-                        encrypted-media;
-                        picture-in-picture
-                    "
-                    allowfullscreen
-                ></iframe>
+                <h3>
+                    Nothing here yet
+                </h3>
+
+                <p>
+                    You do not have any anime in
+                    this category.
+                </p>
 
             </div>
         `;
+
+
+        return;
 
     }
 
 
     container.innerHTML = `
-
-        <article class="featured-slide">
-
+        <div class="anime-grid">
             ${
-                image
-                    ? `
-                        <img
-                            class="featured-slide-image"
-                            src="${escapeHTML(
-                                image
-                            )}"
-                            alt="${escapeHTML(
-                                anime.title
-                            )}"
-                        >
-                    `
-                    : ""
-            }
-
-
-            <div class="featured-slide-overlay"></div>
-
-
-            <div class="featured-slide-info">
-
-                <p class="section-kicker">
-                    #${featuredIndex + 1}
-                    POPULAR NOW
-                </p>
-
-
-                <h2>
-                    ${escapeHTML(
-                        anime.title
-                    )}
-                </h2>
-
-
-                <div class="anime-meta">
-                    ★ ${
-                        typeof score === "number"
-                            ? score.toFixed(1)
-                            : escapeHTML(
-                                String(score)
+                filtered
+                    .map(
+                        (
+                            anime,
+                            index
+                        ) =>
+                            animeCard(
+                                anime,
+                                index
                             )
-                    }
-
-                    ${
-                        anime.type
-                            ? ` • ${escapeHTML(
-                                String(
-                                    anime.type
-                                )
-                            )}`
-                            : ""
-                    }
-
-                    ${
-                        anime.episodes
-                            ? ` • ${escapeHTML(
-                                String(
-                                    anime.episodes
-                                )
-                            )} episodes`
-                            : ""
-                    }
-                </div>
-
-
-                <p>
-                    ${escapeHTML(
-                        anime.synopsis ||
-                        "No synopsis available."
-                    )}
-                </p>
-
-
-                <div class="hero-buttons">
-
-                    <button
-                        class="primary-button"
-                        id="featuredOpenButton"
-                        type="button"
-                    >
-                        View Details
-                    </button>
-
-                    <button
-                        class="secondary-button"
-                        id="featuredListButton"
-                        type="button"
-                    >
-                        ${
-                            isInList(anime)
-                                ? "✓ In My List"
-                                : "+ My List"
-                        }
-                    </button>
-
-                </div>
-
-
-                ${trailerHTML}
-
-            </div>
-
-        </article>
-
-    `;
-
-
-    getElement(
-        "featuredOpenButton"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            openAnimeModal(
-                anime
-            );
-
-        }
-    );
-
-
-    getElement(
-        "featuredListButton"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            currentAnime =
-                normalizeAnime(
-                    anime
-                );
-
-
-            handleFeaturedListAction();
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   FEATURED NEXT / PREVIOUS
-========================================================= */
-
-function nextFeaturedAnime() {
-
-    if (
-        !popularAnime.length
-    ) {
-        return;
-    }
-
-
-    featuredIndex =
-        (
-            featuredIndex + 1
-        ) %
-        popularAnime.length;
-
-
-    renderFeaturedCarousel();
-
-}
-
-
-function previousFeaturedAnime() {
-
-    if (
-        !popularAnime.length
-    ) {
-        return;
-    }
-
-
-    featuredIndex =
-        (
-            featuredIndex -
-            1 +
-            popularAnime.length
-        ) %
-        popularAnime.length;
-
-
-    renderFeaturedCarousel();
-
-}
-
-
-getElement(
-    "featuredNext"
-)?.addEventListener(
-    "click",
-    nextFeaturedAnime
-);
-
-
-getElement(
-    "featuredPrevious"
-)?.addEventListener(
-    "click",
-    previousFeaturedAnime
-);
-
-
-/*
-   Also support alternate IDs from earlier versions.
-*/
-
-getElement(
-    "popularNext"
-)?.addEventListener(
-    "click",
-    nextFeaturedAnime
-);
-
-
-getElement(
-    "popularPrev"
-)?.addEventListener(
-    "click",
-    previousFeaturedAnime
-);
-
-
-/* =========================================================
-   FEATURED LIST ACTION
-========================================================= */
-
-async function handleFeaturedListAction() {
-
-    if (!currentAnime) {
-        return;
-    }
-
-
-    if (!currentUser) {
-
-        openLogin();
-
-        showToast(
-            "Log in to add anime to your list.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    if (
-        isInList(
-            currentAnime
-        )
-    ) {
-
-        showPage(
-            "my-list"
-        );
-
-        return;
-
-    }
-
-
-    await addAnimeToList(
-        currentAnime
-    );
-
-}
-
-
-/* =========================================================
-   TRENDING
-========================================================= */
-
-async function loadTrending() {
-
-    const grid =
-        getElement(
-            "trendingGrid"
-        );
-
-
-    if (!grid) {
-        return;
-    }
-
-
-    grid.innerHTML = `
-        <div class="loading">
-
-            <div class="spinner"></div>
-
-            <span>
-                Loading trending anime...
-            </span>
-
+                    )
+                    .join("")
+            }
         </div>
     `;
 
 
-    try {
+    container
+        .querySelectorAll(
+            ".anime-card"
+        )
+        .forEach(
+            card => {
 
-        const data =
-            await fetchAnime(
-                "/anime/trending"
-            );
+                card.addEventListener(
+                    "click",
+                    () => {
+
+                        const index =
+                            Number(
+                                card.dataset.index
+                            );
 
 
-        const anime =
-            normalizeAnimeList(
-                data.data || []
-            );
+                        const anime =
+                            filtered[
+                                index
+                            ];
 
 
-        renderAnimeGrid(
-            grid,
-            anime.slice(
-                0,
-                24
-            )
+                        openAnimeModal(
+                            anime
+                        );
+
+                    }
+                );
+
+            }
         );
-
-
-    } catch (error) {
-
-        grid.innerHTML = `
-            <div class="loading">
-                <span>
-                    Unable to load trending anime.
-                </span>
-            </div>
-        `;
-
-
-        console.error(
-            "Trending anime error:",
-            error
-        );
-
-    }
 
 }
 
 
 /* =========================================================
-   SEARCH FORM
+   MY LIST STATUS TABS
 ========================================================= */
 
-const searchForm =
-    getElement(
-        "searchForm"
-    );
+queryAll(
+    ".status-tab"
+)
+    .forEach(
+        tab => {
+
+            tab.addEventListener(
+                "click",
+                () => {
+
+                    queryAll(
+                        ".status-tab"
+                    )
+                        .forEach(
+                            other => {
+
+                                other.classList.remove(
+                                    "active"
+                                );
+
+                            }
+                        );
 
 
-if (searchForm) {
-
-    searchForm.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
-
-
-            const input =
-                getElement(
-                    "searchInput"
-                );
-
-
-            const queryText =
-                input
-                    ?.value
-                    .trim() ||
-                "";
-
-
-            if (!queryText) {
-
-                const status =
-                    getElement(
-                        "searchStatus"
+                    tab.classList.add(
+                        "active"
                     );
 
 
-                if (status) {
-
-                    status.textContent =
-                        "Enter an anime name to search.";
+                    renderMyList();
 
                 }
-
-                return;
-
-            }
-
-
-            await performSearch(
-                queryText
             );
 
         }
     );
 
-}
 
+/* =========================================================
+   HOME LIST
+========================================================= */
 
-async function performSearch(
-    queryText
-) {
+function renderHomeList() {
 
     const grid =
         getElement(
-            "searchGrid"
+            "homeListGrid"
         );
 
 
-    const status =
-        getElement(
-            "searchStatus"
-        );
+    if (
+        !grid
+    ) {
 
-
-    if (status) {
-
-        status.textContent =
-            `Searching for "${queryText}"...`;
-
-    }
-
-
-    if (grid) {
-
-        grid.innerHTML = `
-            <div class="loading">
-
-                <div class="spinner"></div>
-
-                <span>
-                    Searching anime...
-                </span>
-
-            </div>
-        `;
-
-    }
-
-
-    try {
-
-        const data =
-            await fetchAnime(
-                `/anime/search?name=${encodeURIComponent(
-                    queryText
-                )}`
-            );
-
-
-        const anime =
-            normalizeAnimeList(
-                data.data || []
-            );
-
-
-        if (!anime.length) {
-
-            if (status) {
-
-                status.textContent =
-                    "No anime found.";
-
-            }
-
-
-            if (grid) {
-
-                grid.innerHTML = `
-                    <div class="loading">
-                        No anime found.
-                    </div>
-                `;
-
-            }
-
-            return;
-
-        }
-
-
-        if (status) {
-
-            status.textContent =
-                `${anime.length} result${
-                    anime.length === 1
-                        ? ""
-                        : "s"
-                } found.`;
-
-        }
-
-
-        if (grid) {
-
-            renderAnimeGrid(
-                grid,
-                anime
-            );
-
-        }
-
-
-    } catch (error) {
-
-        if (status) {
-
-            status.textContent =
-                "Search failed. Please try again.";
-
-        }
-
-
-        if (grid) {
-
-            grid.innerHTML = `
-                <div class="loading">
-                    Search failed.
-                </div>
-            `;
-
-        }
-
-
-        console.error(
-            "Search error:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   ANIME GRID
-========================================================= */
-
-function renderAnimeGrid(
-    grid,
-    animeList
-) {
-
-    if (!grid) {
         return;
+
     }
 
 
     if (
-        !animeList ||
-        !animeList.length
+        !currentUser
     ) {
 
         grid.innerHTML = `
-            <div class="loading">
-                <span>
-                    No anime available.
-                </span>
+            <div class="home-list-empty">
+
+                <div class="home-list-empty-icon">
+
+                    <img
+                        src="https://avatarfiles.alphacoders.com/352/thumb-1920-352391.jpeg"
+                        alt="MIRAI"
+                    >
+
+                </div>
+
+                <h3>
+                    Your list lives here
+                </h3>
+
+                <p>
+                    Log in to see the anime you
+                    have recently added.
+                </p>
+
+                <button
+                    class="primary-button"
+                    id="homeListLoginButton"
+                    type="button"
+                >
+                    Log In
+                </button>
+
             </div>
         `;
+
+
+        getElement(
+            "homeListLoginButton"
+        )?.addEventListener(
+            "click",
+            openLogin
+        );
+
+
+        updateHomeListControls();
+
 
         return;
 
     }
 
 
+    if (
+        !myList.length
+    ) {
+
+        grid.innerHTML = `
+            <div class="home-list-empty">
+
+                <div class="home-list-empty-icon">
+                    +
+                </div>
+
+                <h3>
+                    Your list is empty
+                </h3>
+
+                <p>
+                    Search for anime and add them
+                    to see them here.
+                </p>
+
+                <button
+                    class="primary-button"
+                    id="homeFindAnimeButton"
+                    type="button"
+                >
+                    Find Anime
+                </button>
+
+            </div>
+        `;
+
+
+        getElement(
+            "homeFindAnimeButton"
+        )?.addEventListener(
+            "click",
+            goToSearch
+        );
+
+
+        updateHomeListControls();
+
+
+        return;
+
+    }
+
+
+    myList.sort(
+        (
+            a,
+            b
+        ) =>
+            new Date(
+                b.savedAt ||
+                0
+            ) -
+            new Date(
+                a.savedAt ||
+                0
+            )
+    );
+
+
+    const maxStart =
+        Math.max(
+            0,
+            Math.floor(
+                (
+                    myList.length -
+                    1
+                ) /
+                HOME_LIST_SIZE
+            ) *
+            HOME_LIST_SIZE
+        );
+
+
+    homeListIndex =
+        Math.min(
+            homeListIndex,
+            maxStart
+        );
+
+
+    const visible =
+        myList.slice(
+            homeListIndex,
+            homeListIndex +
+            HOME_LIST_SIZE
+        );
+
+
     grid.innerHTML =
-        animeList
+        visible
             .map(
-                (anime, index) =>
+                (
+                    anime,
+                    index
+                ) =>
                     animeCard(
                         anime,
                         index
@@ -2745,32 +3521,162 @@ function renderAnimeGrid(
         .querySelectorAll(
             ".anime-card"
         )
-        .forEach(card => {
+        .forEach(
+            card => {
 
-            card.addEventListener(
-                "click",
-                () => {
+                card.addEventListener(
+                    "click",
+                    () => {
 
-                    const index =
-                        Number(
-                            card.dataset.index
+                        const index =
+                            Number(
+                                card.dataset.index
+                            );
+
+
+                        openAnimeModal(
+                            visible[
+                                index
+                            ]
                         );
 
+                    }
+                );
 
-                    const anime =
-                        animeList[index];
+            }
+        );
 
 
-                    openAnimeModal(
-                        anime
-                    );
-
-                }
-            );
-
-        });
+    updateHomeListControls();
 
 }
+
+
+function updateHomeListControls() {
+
+    const previous =
+        getElement(
+            "homeListPrevious"
+        );
+
+
+    const next =
+        getElement(
+            "homeListNext"
+        );
+
+
+    const counter =
+        getElement(
+            "homeListCounter"
+        );
+
+
+    const total =
+        myList.length;
+
+
+    if (
+        previous
+    ) {
+
+        previous.disabled =
+            homeListIndex <=
+            0;
+
+    }
+
+
+    if (
+        next
+    ) {
+
+        next.disabled =
+            homeListIndex +
+            HOME_LIST_SIZE >=
+            total;
+
+    }
+
+
+    if (
+        counter
+    ) {
+
+        if (
+            !total
+        ) {
+
+            counter.textContent =
+                "0 anime";
+
+        } else {
+
+            const start =
+                homeListIndex +
+                1;
+
+
+            const end =
+                Math.min(
+                    homeListIndex +
+                    HOME_LIST_SIZE,
+                    total
+                );
+
+
+            counter.textContent =
+                `${start}-${end} of ${total}`;
+
+        }
+
+    }
+
+}
+
+
+getElement(
+    "homeListPrevious"
+)?.addEventListener(
+    "click",
+    () => {
+
+        homeListIndex =
+            Math.max(
+                0,
+                homeListIndex -
+                HOME_LIST_SIZE
+            );
+
+
+        renderHomeList();
+
+    }
+);
+
+
+getElement(
+    "homeListNext"
+)?.addEventListener(
+    "click",
+    () => {
+
+        if (
+            homeListIndex +
+            HOME_LIST_SIZE <
+            myList.length
+        ) {
+
+            homeListIndex +=
+                HOME_LIST_SIZE;
+
+        }
+
+
+        renderHomeList();
+
+    }
+);
 
 
 /* =========================================================
@@ -2782,78 +3688,98 @@ function animeCard(
     index
 ) {
 
-    anime =
+    const normalized =
         normalizeAnime(
             anime
         );
 
 
+    if (
+        !normalized
+    ) {
+
+        return "";
+
+    }
+
+
     const image =
-        anime?.image_url ||
-        anime?.image ||
+        normalized.image ||
+        normalized.image_url ||
         "";
 
 
     const title =
-        anime?.title ||
+        normalized.title ||
         "Unknown Anime";
 
 
     const score =
-        anime?.score ??
-        "N/A";
+        normalized.score;
 
 
     const episodes =
-        anime?.episodes ??
-        "?";
+        normalized.episodes;
 
 
-    const listRating =
-        Number(
-            anime?.rating ||
-            0
+    const rating =
+        normalizeRating(
+            normalized.rating
         );
-
-
-    const listStatus =
-        anime?.listStatus ||
-        anime?.status ||
-        "";
 
 
     let statusText =
         "";
 
 
-    if (
-        listStatus ===
-        "watching"
+    switch (
+        normalized.listStatus
     ) {
 
-        statusText =
-            "Watching";
+        case "watching":
 
-    } else if (
-        listStatus ===
-        "completed"
-    ) {
+            statusText =
+                "Watching";
 
-        statusText =
-            "Completed";
+            break;
 
-    } else if (
-        listStatus ===
-        "plan"
-    ) {
 
-        statusText =
-            "Plan to Watch";
+        case "completed":
+
+            statusText =
+                "Completed";
+
+            break;
+
+
+        case "plan":
+
+            statusText =
+                "Plan to Watch";
+
+            break;
+
+
+        case "on_hold":
+
+            statusText =
+                "On Hold";
+
+            break;
+
+
+        case "dropped":
+
+            statusText =
+                "Dropped";
+
+            break;
 
     }
 
 
     return `
+
         <article
             class="anime-card"
             data-index="${index}"
@@ -2883,22 +3809,39 @@ function animeCard(
                 }
 
 
-                <div class="score-badge">
-                    ★ ${escapeHTML(
-                        String(score)
-                    )}
-                </div>
+                ${
+                    score !== null &&
+                    score !== undefined
+                        ? `
+                            <div class="score-badge">
+                                ★ ${
+                                    escapeHTML(
+                                        Number(
+                                            score
+                                        )
+                                            .toFixed(
+                                                1
+                                            )
+                                    )
+                                }
+                            </div>
+                        `
+                        : ""
+                }
 
 
                 ${
-                    listRating > 0
+                    rating >
+                    0
                         ? `
                             <div class="list-rating-badge">
-                                ♥ ${escapeHTML(
-                                    String(
-                                        listRating
+                                ★ ${
+                                    escapeHTML(
+                                        rating.toFixed(
+                                            1
+                                        )
                                     )
-                                )}/5
+                                }/5
                             </div>
                         `
                         : ""
@@ -2910,9 +3853,11 @@ function animeCard(
             <div class="anime-card-info">
 
                 <div class="anime-card-title">
-                    ${escapeHTML(
-                        title
-                    )}
+                    ${
+                        escapeHTML(
+                            title
+                        )
+                    }
                 </div>
 
 
@@ -2926,15 +3871,15 @@ function animeCard(
                             : ""
                     }
 
+
                     ${
-                        episodes ===
-                        "?"
-                            ? "Episodes unknown"
-                            : `${escapeHTML(
+                        episodes
+                            ? `${escapeHTML(
                                 String(
                                     episodes
                                 )
                             )} episodes`
+                            : "Episodes unknown"
                     }
 
                 </div>
@@ -2942,6 +3887,7 @@ function animeCard(
             </div>
 
         </article>
+
     `;
 
 }
@@ -2961,12 +3907,15 @@ function openAnimeModal(
         );
 
 
-    if (!currentAnime) {
+    if (
+        !currentAnime
+    ) {
 
         showToast(
             "Unable to open this anime.",
             "error"
         );
+
 
         return;
 
@@ -2974,8 +3923,8 @@ function openAnimeModal(
 
 
     const image =
-        currentAnime.image_url ||
         currentAnime.image ||
+        currentAnime.image_url ||
         "";
 
 
@@ -2991,17 +3940,12 @@ function openAnimeModal(
 
     const episodes =
         currentAnime.episodes ??
-        "?";
+        "Unknown";
 
 
     const type =
         currentAnime.type ||
         "Anime";
-
-
-    const synopsis =
-        currentAnime.synopsis ||
-        "No synopsis available.";
 
 
     const imageElement =
@@ -3010,32 +3954,22 @@ function openAnimeModal(
         );
 
 
-    if (imageElement) {
+    if (
+        imageElement
+    ) {
 
         imageElement.src =
             image;
 
+
         imageElement.alt =
             title;
+
 
         imageElement.style.display =
             image
                 ? ""
                 : "none";
-
-    }
-
-
-    const titleElement =
-        getElement(
-            "modalAnimeTitle"
-        );
-
-
-    if (titleElement) {
-
-        titleElement.textContent =
-            title;
 
     }
 
@@ -3046,7 +3980,9 @@ function openAnimeModal(
         );
 
 
-    if (typeElement) {
+    if (
+        typeElement
+    ) {
 
         typeElement.textContent =
             String(
@@ -3056,50 +3992,58 @@ function openAnimeModal(
     }
 
 
-    const metaElement =
+    const titleElement =
+        getElement(
+            "modalAnimeTitle"
+        );
+
+
+    if (
+        titleElement
+    ) {
+
+        titleElement.textContent =
+            title;
+
+    }
+
+
+    const meta =
         getElement(
             "modalAnimeMeta"
         );
 
 
-    if (metaElement) {
+    if (
+        meta
+    ) {
 
-        metaElement.textContent =
-            `★ ${score} • ${episodes} episodes`;
+        meta.textContent =
+            `★ ${
+                score === null
+                    ? "N/A"
+                    : score
+            } • ${
+                episodes ||
+                "?"
+            } episodes`;
 
     }
 
 
-    const synopsisElement =
+    const synopsis =
         getElement(
             "modalAnimeSynopsis"
         );
 
 
-    if (synopsisElement) {
+    if (
+        synopsis
+    ) {
 
-        synopsisElement.textContent =
-            synopsis;
-
-    }
-
-
-    /*
-       Populate additional details when those fields
-       exist in your HTML.
-    */
-
-    const modalStatus =
-        getElement(
-            "modalAnimeStatus"
-        );
-
-
-    if (modalStatus) {
-
-        modalStatus.textContent =
-            currentAnime.status ||
-            "Unknown";
+        synopsis.textContent =
+            currentAnime.synopsis ||
+            "No synopsis available.";
 
     }
 
@@ -3107,9 +4051,17 @@ function openAnimeModal(
     updateModalListButton();
 
 
-    animeModal
-        ?.classList
-        .add("open");
+    updateModalListControls();
+
+
+    loadAnimeTrailerButton(
+        currentAnime
+    );
+
+
+    animeModal?.classList.add(
+        "open"
+    );
 
 
     document.body.style.overflow =
@@ -3120,14 +4072,9 @@ function openAnimeModal(
 
 function closeAnimeModal() {
 
-    if (!animeModal) {
-        return;
-    }
-
-
-    animeModal
-        .classList
-        .remove("open");
+    animeModal?.classList.remove(
+        "open"
+    );
 
 
     restoreBodyScroll();
@@ -3161,83 +4108,8 @@ animeModal?.addEventListener(
 
 
 /* =========================================================
-   MY LIST HELPERS
+   MODAL LIST BUTTON
 ========================================================= */
-
-function getAnimeId(
-    anime
-) {
-
-    const normalized =
-        normalizeAnime(
-            anime
-        );
-
-
-    return (
-        normalized?.mal_id ||
-        normalized?.id ||
-        null
-    );
-
-}
-
-
-function isInList(
-    anime
-) {
-
-    const id =
-        getAnimeId(
-            anime
-        );
-
-
-    if (!id) {
-        return false;
-    }
-
-
-    return myList.some(
-        item =>
-            Number(
-                getAnimeId(
-                    item
-                )
-            ) ===
-            Number(id)
-    );
-
-}
-
-
-function getListAnime(
-    anime
-) {
-
-    const id =
-        getAnimeId(
-            anime
-        );
-
-
-    if (!id) {
-        return null;
-    }
-
-
-    return myList.find(
-        item =>
-            Number(
-                getAnimeId(
-                    item
-                )
-            ) ===
-            Number(id)
-    );
-
-}
-
 
 function updateModalListButton() {
 
@@ -3286,798 +4158,433 @@ function updateModalListButton() {
 }
 
 
-/* =========================================================
-   ADD ANIME HELPER
-========================================================= */
+getElement(
+    "modalListButton"
+)?.addEventListener(
+    "click",
+    async () => {
 
-async function addAnimeToList(
-    anime,
-    status = "plan",
-    episode = 0,
-    rating = 0
-) {
+        if (
+            !currentAnime
+        ) {
 
-    if (!currentUser) {
-
-        openLogin();
-
-        return false;
-
-    }
-
-
-    const normalized =
-        normalizeAnime(
-            anime
-        );
-
-
-    const animeId =
-        getAnimeId(
-            normalized
-        );
-
-
-    if (!animeId) {
-
-        showToast(
-            "This anime has an invalid MAL ID.",
-            "error"
-        );
-
-        return false;
-
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-                `${API_BASE}/api/my-list`,
-                {
-                    method:
-                        "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    credentials:
-                        "include",
-
-                    body:
-                        JSON.stringify({
-                            anime:
-                                normalized,
-
-                            status,
-
-                            episode,
-
-                            rating
-                        })
-                }
-            );
-
-
-        const data =
-            await response
-                .json()
-                .catch(
-                    () => ({})
-                );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Could not save anime."
-            );
+            return;
 
         }
-
-
-        await loadMyListFromServer();
-
-
-        showToast(
-            "Added to My List!",
-            "success"
-        );
-
-
-        updateModalListButton();
 
 
         if (
-            getElement(
-                "featuredListButton"
-            )
+            !currentUser
         ) {
 
-            renderFeaturedCarousel();
+            closeAnimeModal();
+
+
+            openLogin();
+
+
+            showToast(
+                "Log in to manage your list.",
+                "error"
+            );
+
+
+            return;
 
         }
 
 
-        return true;
-
-
-    } catch (error) {
-
-        console.error(
-            "ADD ANIME ERROR:",
-            error
-        );
-
-
-        showToast(
-            error.message ||
-            "Could not add anime.",
-            "error"
-        );
-
-
-        return false;
-
-    }
-
-}
-
-
-/* =========================================================
-   REMOVE ANIME
-========================================================= */
-
-async function removeAnimeFromList(
-    anime
-) {
-
-    if (!currentUser) {
-        return false;
-    }
-
-
-    const animeId =
-        getAnimeId(
-            anime
-        );
-
-
-    if (!animeId) {
-        return false;
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-                `${API_BASE}/api/my-list/${animeId}`,
-                {
-                    method:
-                        "DELETE",
-
-                    credentials:
-                        "include"
-                }
+        const button =
+            getElement(
+                "modalListButton"
             );
 
 
-        const data =
-            await response
-                .json()
-                .catch(
-                    () => ({})
-                );
+        if (
+            button
+        ) {
 
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Could not remove anime."
-            );
-
-        }
-
-
-        myList =
-            myList.filter(
-                item =>
-                    Number(
-                        getAnimeId(
-                            item
-                        )
-                    ) !==
-                    Number(
-                        animeId
-                    )
-            );
-
-
-        renderMyList();
-
-        renderHomeList();
-
-        updateModalListButton();
-
-
-        showToast(
-            "Removed from My List."
-        );
-
-
-        return true;
-
-
-    } catch (error) {
-
-        console.error(
-            "REMOVE ANIME ERROR:",
-            error
-        );
-
-
-        showToast(
-            error.message ||
-            "Could not remove anime.",
-            "error"
-        );
-
-
-        return false;
-
-    }
-
-}
-
-
-/* =========================================================
-   ADD / REMOVE BUTTON
-========================================================= */
-
-const modalListButton =
-    getElement(
-        "modalListButton"
-    );
-
-
-if (modalListButton) {
-
-    modalListButton.addEventListener(
-        "click",
-        async () => {
-
-            if (!currentUser) {
-
-                closeAnimeModal();
-
-                openLogin();
-
-
-                showToast(
-                    "Log in to add anime to your list.",
-                    "error"
-                );
-
-
-                return;
-
-            }
-
-
-            if (!currentAnime) {
-                return;
-            }
-
-
-            modalListButton.disabled =
+            button.disabled =
                 true;
 
-
-            try {
-
-                if (
-                    isInList(
-                        currentAnime
-                    )
-                ) {
-
-                    await removeAnimeFromList(
-                        currentAnime
-                    );
+        }
 
 
-                } else {
+        try {
 
-                    await addAnimeToList(
-                        currentAnime
-                    );
+            if (
+                isInList(
+                    currentAnime
+                )
+            ) {
 
-                }
+                await removeAnimeFromList(
+                    currentAnime
+                );
+
+            } else {
+
+                await addAnimeToList(
+                    currentAnime
+                );
+
+            }
 
 
-            } finally {
+            updateModalListButton();
 
-                modalListButton.disabled =
+
+            updateModalListControls();
+
+        } finally {
+
+            if (
+                button
+            ) {
+
+                button.disabled =
                     false;
 
             }
 
         }
-    );
-
-}
-
-
-/* =========================================================
-   MY LIST RENDER
-========================================================= */
-
-function renderMyList() {
-
-    const container =
-        getElement(
-            "myListContent"
-        );
-
-
-    const loginBox =
-        getElement(
-            "myListLogin"
-        );
-
-
-    if (
-        !container ||
-        !loginBox
-    ) {
-
-        return;
-
-    }
-
-
-    if (!currentUser) {
-
-        loginBox
-            .classList
-            .remove("hidden");
-
-
-        container.innerHTML =
-            "";
-
-
-        return;
-
-    }
-
-
-    loginBox
-        .classList
-        .add("hidden");
-
-
-    if (!myList.length) {
-
-        container.innerHTML = `
-            <div class="empty-list">
-
-                <div class="empty-list-icon">
-                    ◒
-                </div>
-
-                <h3>
-                    Your list is empty
-                </h3>
-
-                <p>
-                    Search for an anime and
-                    add it to your collection.
-                </p>
-
-                <button
-                    class="primary-button"
-                    id="findAnimeButton"
-                    type="button"
-                >
-                    Find Anime
-                </button>
-
-            </div>
-        `;
-
-
-        getElement(
-            "findAnimeButton"
-        )?.addEventListener(
-            "click",
-            goToSearch
-        );
-
-
-        return;
-
-    }
-
-
-    myList.sort(
-        (a, b) =>
-            new Date(
-                b.savedAt || 0
-            ) -
-            new Date(
-                a.savedAt || 0
-            )
-    );
-
-
-    container.innerHTML = `
-        <div class="anime-grid">
-            ${
-                myList
-                    .map(
-                        (anime, index) =>
-                            animeCard(
-                                anime,
-                                index
-                            )
-                    )
-                    .join("")
-            }
-        </div>
-    `;
-
-
-    container
-        .querySelectorAll(
-            ".anime-card"
-        )
-        .forEach(card => {
-
-            card.addEventListener(
-                "click",
-                () => {
-
-                    const index =
-                        Number(
-                            card.dataset.index
-                        );
-
-
-                    openAnimeModal(
-                        myList[index]
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================================
-   HOME LIST
-========================================================= */
-
-function getHomeListGrid() {
-
-    return getElement(
-        "homeListGrid"
-    );
-
-}
-
-
-function renderHomeList() {
-
-    const grid =
-        getHomeListGrid();
-
-
-    if (!grid) {
-        return;
-    }
-
-
-    if (!currentUser) {
-
-        grid.innerHTML = `
-            <div class="home-list-empty">
-
-                <div class="home-list-empty-icon">
-                    ◒
-                </div>
-
-                <h3>
-                    Your list lives here
-                </h3>
-
-                <p>
-                    Log in to see your recently
-                    added anime on the home page.
-                </p>
-
-                <button
-                    class="primary-button"
-                    id="homeListLoginButton"
-                    type="button"
-                >
-                    Log In
-                </button>
-
-            </div>
-        `;
-
-
-        getElement(
-            "homeListLoginButton"
-        )?.addEventListener(
-            "click",
-            openLogin
-        );
-
-
-        updateHomeListControls();
-
-
-        return;
-
-    }
-
-
-    if (!myList.length) {
-
-        grid.innerHTML = `
-            <div class="home-list-empty">
-
-                <div class="home-list-empty-icon">
-                    ◒
-                </div>
-
-                <h3>
-                    Your list is empty
-                </h3>
-
-                <p>
-                    Add some anime and they'll
-                    appear here, newest first.
-                </p>
-
-                <button
-                    class="primary-button"
-                    id="homeFindAnimeButton"
-                    type="button"
-                >
-                    Find Anime
-                </button>
-
-            </div>
-        `;
-
-
-        getElement(
-            "homeFindAnimeButton"
-        )?.addEventListener(
-            "click",
-            goToSearch
-        );
-
-
-        updateHomeListControls();
-
-
-        return;
-
-    }
-
-
-    myList.sort(
-        (a, b) =>
-            new Date(
-                b.savedAt || 0
-            ) -
-            new Date(
-                a.savedAt || 0
-            )
-    );
-
-
-    if (
-        homeListIndex >=
-        myList.length
-    ) {
-
-        homeListIndex =
-            Math.max(
-                0,
-                Math.floor(
-                    (myList.length - 1) /
-                    HOME_LIST_SIZE
-                ) *
-                HOME_LIST_SIZE
-            );
-
-    }
-
-
-    const visible =
-        myList.slice(
-            homeListIndex,
-            homeListIndex +
-            HOME_LIST_SIZE
-        );
-
-
-    grid.innerHTML =
-        visible
-            .map(
-                (anime, index) =>
-                    animeCard(
-                        anime,
-                        homeListIndex +
-                        index
-                    )
-            )
-            .join("");
-
-
-    grid
-        .querySelectorAll(
-            ".anime-card"
-        )
-        .forEach(card => {
-
-            card.addEventListener(
-                "click",
-                () => {
-
-                    const index =
-                        Number(
-                            card.dataset.index
-                        );
-
-
-                    openAnimeModal(
-                        myList[index]
-                    );
-
-                }
-            );
-
-        });
-
-
-    updateHomeListControls();
-
-}
-
-
-/* =========================================================
-   HOME LIST CONTROLS
-========================================================= */
-
-function updateHomeListControls() {
-
-    const previous =
-        getElement(
-            "homeListPrevious"
-        );
-
-
-    const next =
-        getElement(
-            "homeListNext"
-        );
-
-
-    const counter =
-        getElement(
-            "homeListCounter"
-        );
-
-
-    const total =
-        myList.length;
-
-
-    const start =
-        total
-            ? homeListIndex + 1
-            : 0;
-
-
-    const end =
-        total
-            ? Math.min(
-                homeListIndex +
-                HOME_LIST_SIZE,
-                total
-            )
-            : 0;
-
-
-    if (previous) {
-
-        previous.disabled =
-            homeListIndex <= 0;
-
-    }
-
-
-    if (next) {
-
-        next.disabled =
-            homeListIndex +
-            HOME_LIST_SIZE >=
-            total;
-
-    }
-
-
-    if (counter) {
-
-        counter.textContent =
-            total
-                ? `${start}-${end} of ${total}`
-                : "0 anime";
-
-    }
-
-}
-
-
-/* Home previous */
-
-getElement(
-    "homeListPrevious"
-)?.addEventListener(
-    "click",
-    () => {
-
-        homeListIndex =
-            Math.max(
-                0,
-                homeListIndex -
-                HOME_LIST_SIZE
-            );
-
-
-        renderHomeList();
 
     }
 );
 
 
-/* Home next */
+/* =========================================================
+   MODAL LIST MANAGEMENT
+========================================================= */
+
+function updateModalListControls() {
+
+    const management =
+        getElement(
+            "listManagement"
+        );
+
+
+    if (
+        !management
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !currentAnime ||
+        !isInList(
+            currentAnime
+        )
+    ) {
+
+        management.classList.add(
+            "hidden"
+        );
+
+
+        return;
+
+    }
+
+
+    management.classList.remove(
+        "hidden"
+    );
+
+
+    const existing =
+        getListAnime(
+            currentAnime
+        );
+
+
+    if (
+        !existing
+    ) {
+
+        return;
+
+    }
+
+
+    const status =
+        getElement(
+            "animeStatusSelect"
+        );
+
+
+    const episode =
+        getElement(
+            "episodeInput"
+        );
+
+
+    if (
+        status
+    ) {
+
+        status.value =
+            existing.listStatus ||
+            "plan";
+
+    }
+
+
+    if (
+        episode
+    ) {
+
+        episode.value =
+            Number(
+                existing.episode ||
+                0
+            );
+
+    }
+
+
+    const currentStatus =
+        getElement(
+            "modalCurrentStatus"
+        );
+
+
+    if (
+        currentStatus
+    ) {
+
+        const labels = {
+
+            plan:
+                "Plan to Watch",
+
+            watching:
+                "Watching",
+
+            completed:
+                "Completed",
+
+            on_hold:
+                "On Hold",
+
+            dropped:
+                "Dropped"
+
+        };
+
+
+        currentStatus.textContent =
+            `${labels[
+                existing.listStatus
+            ] ||
+            existing.listStatus ||
+            "Unknown"} • Episode ${
+                Number(
+                    existing.episode ||
+                    0
+                )
+            }`;
+
+    }
+
+}
+
+
+/* =========================================================
+   EPISODE BUTTONS
+========================================================= */
 
 getElement(
-    "homeListNext"
+    "episodePlus"
 )?.addEventListener(
     "click",
     () => {
 
+        const input =
+            getElement(
+                "episodeInput"
+            );
+
+
         if (
-            homeListIndex +
-            HOME_LIST_SIZE <
-            myList.length
+            !input ||
+            !currentAnime
         ) {
 
-            homeListIndex +=
-                HOME_LIST_SIZE;
+            return;
 
         }
 
 
-        renderHomeList();
+        const current =
+            Math.max(
+                0,
+                Math.floor(
+                    Number(
+                        input.value ||
+                        0
+                    )
+                )
+            );
+
+
+        const maximum =
+            Number(
+                currentAnime.episodes ||
+                currentAnime.episode_count ||
+                999999
+            );
+
+
+        input.value =
+            Math.min(
+                current + 1,
+                maximum
+            );
+
+    }
+);
+
+
+getElement(
+    "episodeMinus"
+)?.addEventListener(
+    "click",
+    () => {
+
+        const input =
+            getElement(
+                "episodeInput"
+            );
+
+
+        if (
+            !input
+        ) {
+
+            return;
+
+        }
+
+
+        const current =
+            Math.max(
+                0,
+                Math.floor(
+                    Number(
+                        input.value ||
+                        0
+                    )
+                )
+            );
+
+
+        input.value =
+            Math.max(
+                0,
+                current - 1
+            );
+
+    }
+);
+
+
+/* =========================================================
+   SAVE LIST CHANGES
+========================================================= */
+
+getElement(
+    "saveListChanges"
+)?.addEventListener(
+    "click",
+    async () => {
+
+        if (
+            !currentUser ||
+            !currentAnime
+        ) {
+
+            return;
+
+        }
+
+
+        const status =
+            getElement(
+                "animeStatusSelect"
+            )
+            ?.value ||
+            "plan";
+
+
+        const episode =
+            Number(
+                getElement(
+                    "episodeInput"
+                )
+                ?.value ||
+                0
+            );
+
+
+        const button =
+            getElement(
+                "saveListChanges"
+            );
+
+
+        const oldText =
+            button?.textContent ||
+            "Save Changes";
+
+
+        if (
+            button
+        ) {
+
+            button.disabled =
+                true;
+
+            button.textContent =
+                "Saving...";
+
+        }
+
+
+        try {
+
+            await updateAnimeListEntry(
+                currentAnime,
+                status,
+                episode
+            );
+
+
+            showToast(
+                "Anime updated.",
+                "success"
+            );
+
+
+        } finally {
+
+            if (
+                button
+            ) {
+
+                button.disabled =
+                    false;
+
+                button.textContent =
+                    oldText;
+
+            }
+
+        }
 
     }
 );
@@ -4087,385 +4594,217 @@ getElement(
    RATING MODAL
 ========================================================= */
 
-const modalRateButton =
-    getElement(
-        "modalRateButton"
-    );
+function updateRatingDisplay(
+    value
+) {
 
-
-if (modalRateButton) {
-
-    modalRateButton.addEventListener(
-        "click",
-        () => {
-
-            if (!currentUser) {
-
-                closeAnimeModal();
-
-                openLogin();
-
-
-                showToast(
-                    "Log in to rate anime.",
-                    "error"
-                );
-
-
-                return;
-
-            }
-
-
-            if (!currentAnime) {
-                return;
-            }
-
-
-            if (
-                !isInList(
-                    currentAnime
-                )
-            ) {
-
-                showToast(
-                    "Add the anime to My List before rating it.",
-                    "error"
-                );
-
-
-                return;
-
-            }
-
-
-            const existing =
-                getListAnime(
-                    currentAnime
-                );
-
-
-            const existingRating =
-                Number(
-                    existing?.rating ||
-                    0
-                );
-
-
-            const title =
-                getElement(
-                    "ratingAnimeTitle"
-                );
-
-
-            if (title) {
-
-                title.textContent =
-                    currentAnime.title ||
-                    "Anime";
-
-            }
-
-
-            currentRating =
-                existingRating;
-
-
-            updateStars();
-
-
-            closeAnimeModal();
-
-
-            ratingModal
-                ?.classList
-                .add("open");
-
-
-            document.body.style.overflow =
-                "hidden";
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   STAR BUTTONS
-========================================================= */
-
-function updateStars() {
-
-    queryAll(
-        ".stars button"
-    ).forEach(star => {
-
-        star.classList.toggle(
-            "selected",
-            Number(
-                star.dataset.rating
-            ) <=
-            currentRating
+    let rating =
+        roundRating(
+            value
         );
 
-    });
+
+    rating =
+        clamp(
+            rating,
+            RATING_MIN,
+            RATING_MAX
+        );
 
 
-    const ratingValue =
+    currentRating =
+        Number(
+            rating.toFixed(
+                1
+            )
+        );
+
+
+    const big =
+        getElement(
+            "ratingBigNumber"
+        );
+
+
+    const label =
         getElement(
             "ratingValue"
         );
 
 
-    if (ratingValue) {
+    if (
+        big
+    ) {
 
-        ratingValue.textContent =
-            currentRating
-                ? `${currentRating} / 5`
-                : "Select a rating";
+        big.textContent =
+            currentRating.toFixed(
+                1
+            );
+
+    }
+
+
+    if (
+        label
+    ) {
+
+        label.textContent =
+            `${currentRating.toFixed(
+                1
+            )} / 5`;
 
     }
 
 }
 
 
-queryAll(
-    ".stars button"
-).forEach(star => {
+function openRatingModal() {
 
-    star.addEventListener(
-        "click",
-        () => {
+    if (
+        !currentUser
+    ) {
 
-            currentRating =
-                Number(
-                    star.dataset.rating
-                );
+        closeAnimeModal();
 
 
-            updateStars();
+        openLogin();
 
-        }
+
+        showToast(
+            "Log in to rate anime.",
+            "error"
+        );
+
+
+        return;
+
+    }
+
+
+    if (
+        !currentAnime
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !isInList(
+            currentAnime
+        )
+    ) {
+
+        showToast(
+            "Add this anime to My List before rating it.",
+            "error"
+        );
+
+
+        return;
+
+    }
+
+
+    const existing =
+        getListAnime(
+            currentAnime
+        );
+
+
+    currentRating =
+        normalizeRating(
+            existing?.rating
+        );
+
+
+    const title =
+        getElement(
+            "ratingAnimeTitle"
+        );
+
+
+    if (
+        title
+    ) {
+
+        title.textContent =
+            currentAnime.title ||
+            "Anime";
+
+    }
+
+
+    const slider =
+        getElement(
+            "ratingSlider"
+        );
+
+
+    if (
+        slider
+    ) {
+
+        slider.min =
+            String(
+                RATING_MIN
+            );
+
+
+        slider.max =
+            String(
+                RATING_MAX
+            );
+
+
+        slider.step =
+            String(
+                RATING_STEP
+            );
+
+
+        slider.value =
+            currentRating ||
+            RATING_MIN;
+
+
+        updateRatingDisplay(
+            slider.value
+        );
+
+    }
+
+
+    ratingModal?.classList.add(
+        "open"
     );
 
-});
 
-
-/* =========================================================
-   SUBMIT RATING
-========================================================= */
-
-const submitRating =
-    getElement(
-        "submitRating"
-    );
-
-
-if (submitRating) {
-
-    submitRating.addEventListener(
-        "click",
-        async () => {
-
-            if (!currentRating) {
-
-                showToast(
-                    "Please select a rating.",
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            if (
-                !currentUser ||
-                !currentAnime
-            ) {
-                return;
-            }
-
-
-            const animeId =
-                getAnimeId(
-                    currentAnime
-                );
-
-
-            if (!animeId) {
-
-                showToast(
-                    "Invalid anime ID.",
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            if (
-                !isInList(
-                    currentAnime
-                )
-            ) {
-
-                showToast(
-                    "Add the anime to My List before rating it.",
-                    "error"
-                );
-
-
-                closeRatingModal();
-
-
-                return;
-
-            }
-
-
-            submitRating.disabled =
-                true;
-
-
-            const originalText =
-                submitRating.textContent;
-
-
-            submitRating.textContent =
-                "Saving...";
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        `${API_BASE}/api/my-list/${animeId}/rating`,
-                        {
-                            method:
-                                "PATCH",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            credentials:
-                                "include",
-
-                            body:
-                                JSON.stringify({
-                                    rating:
-                                        currentRating
-                                })
-                        }
-                    );
-
-
-                const data =
-                    await response
-                        .json()
-                        .catch(
-                            () => ({})
-                        );
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        data.error ||
-                        data.message ||
-                        "Could not save rating."
-                    );
-
-                }
-
-
-                const item =
-                    getListAnime(
-                        currentAnime
-                    );
-
-
-                if (item) {
-
-                    item.rating =
-                        currentRating;
-
-                }
-
-
-                currentAnime.rating =
-                    currentRating;
-
-
-                renderMyList();
-
-                renderHomeList();
-
-
-                showToast(
-                    `Rated ${currentRating}/5!`,
-                    "success"
-                );
-
-
-                closeRatingModal();
-
-
-            } catch (error) {
-
-                console.error(
-                    "RATING ERROR:",
-                    error
-                );
-
-
-                showToast(
-                    error.message ||
-                    "Could not save rating.",
-                    "error"
-                );
-
-
-            } finally {
-
-                submitRating.disabled =
-                    false;
-
-
-                submitRating.textContent =
-                    originalText;
-
-            }
-
-        }
-    );
+    document.body.style.overflow =
+        "hidden";
 
 }
 
-
-/* =========================================================
-   CLOSE RATING MODAL
-========================================================= */
 
 function closeRatingModal() {
 
-    if (!ratingModal) {
-        return;
-    }
-
-
-    ratingModal
-        .classList
-        .remove("open");
+    ratingModal?.classList.remove(
+        "open"
+    );
 
 
     restoreBodyScroll();
 
 }
+
+
+getElement(
+    "modalRateButton"
+)?.addEventListener(
+    "click",
+    openRatingModal
+);
 
 
 getElement(
@@ -4494,53 +4833,1811 @@ ratingModal?.addEventListener(
 
 
 /* =========================================================
-   SCHEDULE
+   RATING SLIDER
 ========================================================= */
 
-/*
-   MAL's broadcast data has:
-       broadcast.day
-       broadcast.start_time / time
-
-   The backend currently forwards broadcast directly,
-   so this frontend supports both forms.
-*/
+const ratingSlider =
+    getElement(
+        "ratingSlider"
+    );
 
 
-function parseBroadcastTime(
-    anime
+if (
+    ratingSlider
 ) {
 
-    const broadcast =
-        anime?.broadcast;
+    ratingSlider.min =
+        String(
+            RATING_MIN
+        );
 
 
-    if (!broadcast) {
-        return null;
+    ratingSlider.max =
+        String(
+            RATING_MAX
+        );
+
+
+    ratingSlider.step =
+        String(
+            RATING_STEP
+        );
+
+
+    ratingSlider.addEventListener(
+        "input",
+        event => {
+
+            updateRatingDisplay(
+                event.target.value
+            );
+
+        }
+    );
+
+
+    ratingSlider.addEventListener(
+        "change",
+        event => {
+
+            updateRatingDisplay(
+                event.target.value
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SAVE RATING
+========================================================= */
+
+getElement(
+    "submitRating"
+)?.addEventListener(
+    "click",
+    async () => {
+
+        if (
+            !currentUser ||
+            !currentAnime
+        ) {
+
+            return;
+
+        }
+
+
+        const id =
+            getAnimeId(
+                currentAnime
+            );
+
+
+        if (
+            !id
+        ) {
+
+            return;
+
+        }
+
+
+        const rating =
+            normalizeRating(
+                currentRating
+            );
+
+
+        if (
+            !rating
+        ) {
+
+            showToast(
+                "Choose a rating first.",
+                "error"
+            );
+
+
+            return;
+
+        }
+
+
+        const button =
+            getElement(
+                "submitRating"
+            );
+
+
+        const oldText =
+            button?.textContent ||
+            "Save Rating";
+
+
+        if (
+            button
+        ) {
+
+            button.disabled =
+                true;
+
+            button.textContent =
+                "Saving...";
+
+        }
+
+
+        try {
+
+            const data =
+                await apiRequest(
+                    `/api/my-list/${id}/rating`,
+                    {
+                        method:
+                            "PATCH",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify(
+                                {
+                                    rating
+                                }
+                            )
+                    }
+                );
+
+
+            const existing =
+                getListAnime(
+                    currentAnime
+                );
+
+
+            if (
+                existing
+            ) {
+
+                existing.rating =
+                    normalizeRating(
+                        data.rating ??
+                        rating
+                    );
+
+            }
+
+
+            currentAnime.rating =
+                normalizeRating(
+                    data.rating ??
+                    rating
+                );
+
+
+            renderMyList();
+
+
+            renderHomeList();
+
+
+            closeRatingModal();
+
+
+            showToast(
+                `Rated ${rating.toFixed(1)}/5.`,
+                "success"
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "RATING SAVE ERROR:",
+                error
+            );
+
+
+            showToast(
+                error.message ||
+                "Could not save rating.",
+                "error"
+            );
+
+
+        } finally {
+
+            if (
+                button
+            ) {
+
+                button.disabled =
+                    false;
+
+                button.textContent =
+                    oldText;
+
+            }
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   SEARCH PAGE
+========================================================= */
+
+getElement(
+    "searchForm"
+)?.addEventListener(
+    "submit",
+    event => {
+
+        event.preventDefault();
+
+
+        const text =
+            getElement(
+                "searchInput"
+            )
+            ?.value
+            .trim() ||
+            "";
+
+
+        performSearch(
+            text
+        );
+
+    }
+);
+
+
+async function performSearch(
+    searchText
+) {
+
+    const grid =
+        getElement(
+            "searchGrid"
+        );
+
+
+    const status =
+        getElement(
+            "searchStatus"
+        );
+
+
+    if (
+        !searchText
+    ) {
+
+        if (
+            status
+        ) {
+
+            status.textContent =
+                "Enter an anime name to search.";
+
+        }
+
+
+        if (
+            grid
+        ) {
+
+            grid.innerHTML =
+                "";
+
+        }
+
+
+        return;
+
     }
 
 
-    const raw =
-        broadcast.start_time ||
-        broadcast.time ||
+    if (
+        status
+    ) {
+
+        status.textContent =
+            `Searching for "${searchText}"...`;
+
+    }
+
+
+    if (
+        grid
+    ) {
+
+        grid.innerHTML = `
+
+            <div class="loading">
+
+                <div class="spinner"></div>
+
+                <span>
+                    Searching anime...
+                </span>
+
+            </div>
+
+        `;
+
+    }
+
+
+    try {
+
+        const data =
+            await apiRequest(
+                `/anime/search?name=${encodeURIComponent(
+                    searchText
+                )}`
+            );
+
+
+        const anime =
+            normalizeAnimeList(
+                data.data ||
+                []
+            );
+
+
+        if (
+            !anime.length
+        ) {
+
+            if (
+                status
+            ) {
+
+                status.textContent =
+                    "No anime found.";
+
+            }
+
+
+            if (
+                grid
+            ) {
+
+                grid.innerHTML = `
+
+                    <div class="loading">
+
+                        No anime found.
+
+                    </div>
+
+                `;
+
+            }
+
+
+            return;
+
+        }
+
+
+        if (
+            status
+        ) {
+
+            status.textContent =
+                `${anime.length} result${
+                    anime.length ===
+                    1
+                        ? ""
+                        : "s"
+                } found.`;
+
+        }
+
+
+        renderAnimeGrid(
+            grid,
+            anime
+        );
+
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "SEARCH ERROR:",
+            error
+        );
+
+
+        if (
+            status
+        ) {
+
+            status.textContent =
+                "Search failed. Please try again.";
+
+        }
+
+
+        if (
+            grid
+        ) {
+
+            grid.innerHTML = `
+
+                <div class="loading">
+
+                    Search failed.
+
+                </div>
+
+            `;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   GRID RENDERER
+========================================================= */
+
+function renderAnimeGrid(
+    grid,
+    animeList
+) {
+
+    if (
+        !grid
+    ) {
+
+        return;
+
+    }
+
+
+    const normalized =
+        normalizeAnimeList(
+            animeList
+        );
+
+
+    if (
+        !normalized.length
+    ) {
+
+        grid.innerHTML = `
+
+            <div class="loading">
+
+                No anime available.
+
+            </div>
+
+        `;
+
+
+        return;
+
+    }
+
+
+    grid.innerHTML =
+        normalized
+            .map(
+                (
+                    anime,
+                    index
+                ) =>
+                    animeCard(
+                        anime,
+                        index
+                    )
+            )
+            .join("");
+
+
+    grid
+        .querySelectorAll(
+            ".anime-card"
+        )
+        .forEach(
+            card => {
+
+                card.addEventListener(
+                    "click",
+                    () => {
+
+                        const index =
+                            Number(
+                                card.dataset.index
+                            );
+
+
+                        openAnimeModal(
+                            normalized[
+                                index
+                            ]
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   POPULAR ANIME
+========================================================= */
+
+async function loadPopularAnime() {
+
+    if (
+        isLoadingPopular
+    ) {
+
+        return;
+
+    }
+
+
+    isLoadingPopular =
+        true;
+
+
+    try {
+
+        const data =
+            await apiRequest(
+                "/anime/top?limit=30"
+            );
+
+
+        popularAnime =
+            normalizeAnimeList(
+                data.data ||
+                []
+            );
+
+
+        featuredIndex =
+            0;
+
+
+        renderHero();
+
+
+        const grid =
+            getElement(
+                "popularGrid"
+            );
+
+
+        if (
+            grid
+        ) {
+
+            renderAnimeGrid(
+                grid,
+                popularAnime.slice(
+                    0,
+                    12
+                )
+            );
+
+        }
+
+
+        startHeroAutoplay();
+
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "POPULAR ERROR:",
+            error
+        );
+
+
+        const grid =
+            getElement(
+                "popularGrid"
+            );
+
+
+        if (
+            grid
+        ) {
+
+            grid.innerHTML = `
+
+                <div class="loading">
+
+                    Unable to load popular anime.
+
+                </div>
+
+            `;
+
+        }
+
+    } finally {
+
+        isLoadingPopular =
+            false;
+
+    }
+
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+function getFeaturedAnime() {
+
+    if (
+        !popularAnime.length
+    ) {
+
+        return null;
+
+    }
+
+
+    const count =
+        Math.min(
+            popularAnime.length,
+            8
+        );
+
+
+    featuredIndex =
+        (
+            featuredIndex +
+            count
+        ) %
+        count;
+
+
+    return popularAnime[
+        featuredIndex
+    ];
+
+}
+
+
+function renderHero() {
+
+    const anime =
+        getFeaturedAnime();
+
+
+    if (
+        !anime
+    ) {
+
+        return;
+
+    }
+
+
+    const image =
+        anime.image ||
+        anime.image_url ||
         "";
 
 
-    if (!raw) {
+    const title =
+        anime.title ||
+        "MIRAI";
+
+
+    const hero =
+        getElement(
+            "homeHero"
+        );
+
+
+    const heroImage =
+        getElement(
+            "heroImage"
+        );
+
+
+    const heroTitle =
+        getElement(
+            "heroTitle"
+        );
+
+
+    const heroSynopsis =
+        getElement(
+            "heroSynopsis"
+        );
+
+
+    const heroMeta =
+        getElement(
+            "heroMeta"
+        );
+
+
+    if (
+        heroImage
+    ) {
+
+        heroImage.src =
+            image;
+
+
+        heroImage.alt =
+            title;
+
+    }
+
+
+    if (
+        heroTitle
+    ) {
+
+        heroTitle.textContent =
+            title;
+
+    }
+
+
+    if (
+        heroSynopsis
+    ) {
+
+        heroSynopsis.textContent =
+            anime.synopsis ||
+            "Discover your next favourite anime.";
+
+    }
+
+
+    if (
+        heroMeta
+    ) {
+
+        const score =
+            anime.score ??
+            "N/A";
+
+
+        const episodes =
+            anime.episodes ??
+            "?";
+
+
+        heroMeta.textContent =
+            `★ ${
+                score ===
+                "N/A"
+                    ? score
+                    : Number(
+                        score
+                    ).toFixed(
+                        1
+                    )
+            } • ${
+                anime.type ||
+                "Anime"
+            } • ${
+                episodes
+            } episodes`;
+
+    }
+
+
+    if (
+        hero &&
+        image
+    ) {
+
+        hero.style.backgroundImage =
+            `
+                linear-gradient(
+                    90deg,
+                    rgba(5,6,10,.98) 0%,
+                    rgba(5,6,10,.88) 34%,
+                    rgba(5,6,10,.50) 63%,
+                    rgba(5,6,10,.10) 100%
+                ),
+                url("${image.replaceAll(
+                    '"',
+                    '\\"'
+                )}")
+            `;
+
+    }
+
+
+    const viewButton =
+        getElement(
+            "heroViewButton"
+        );
+
+
+    if (
+        viewButton
+    ) {
+
+        viewButton.onclick =
+            () => {
+
+                openAnimeModal(
+                    anime
+                );
+
+            };
+
+    }
+
+
+    const trailerButton =
+        getElement(
+            "heroTrailerButton"
+        );
+
+
+    if (
+        trailerButton
+    ) {
+
+        trailerButton.onclick =
+            () => {
+
+                openTrailerForAnime(
+                    anime
+                );
+
+            };
+
+    }
+
+
+    renderHeroDots();
+
+}
+
+
+function renderHeroDots() {
+
+    const container =
+        getElement(
+            "heroDots"
+        );
+
+
+    if (
+        !container ||
+        !popularAnime.length
+    ) {
+
+        return;
+
+    }
+
+
+    const count =
+        Math.min(
+            popularAnime.length,
+            8
+        );
+
+
+    container.innerHTML =
+        Array.from(
+            {
+                length:
+                    count
+            },
+            (
+                _,
+                index
+            ) => `
+
+                <button
+                    class="carousel-dot ${
+                        index ===
+                        featuredIndex
+                            ? "active"
+                            : ""
+                    }"
+                    type="button"
+                    data-hero-index="${index}"
+                    aria-label="Featured anime ${index + 1}"
+                ></button>
+
+            `
+        )
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            "[data-hero-index]"
+        )
+        .forEach(
+            dot => {
+
+                dot.addEventListener(
+                    "click",
+                    () => {
+
+                        featuredIndex =
+                            Number(
+                                dot.dataset
+                                    .heroIndex
+                            );
+
+
+                        renderHero();
+
+                        restartHeroAutoplay();
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   HERO NEXT / PREVIOUS
+========================================================= */
+
+function nextFeaturedAnime() {
+
+    if (
+        !popularAnime.length
+    ) {
+
+        return;
+
+    }
+
+
+    const count =
+        Math.min(
+            popularAnime.length,
+            8
+        );
+
+
+    featuredIndex =
+        (
+            featuredIndex +
+            1
+        ) %
+        count;
+
+
+    renderHero();
+
+
+    restartHeroAutoplay();
+
+}
+
+
+function previousFeaturedAnime() {
+
+    if (
+        !popularAnime.length
+    ) {
+
+        return;
+
+    }
+
+
+    const count =
+        Math.min(
+            popularAnime.length,
+            8
+        );
+
+
+    featuredIndex =
+        (
+            featuredIndex -
+            1 +
+            count
+        ) %
+        count;
+
+
+    renderHero();
+
+
+    restartHeroAutoplay();
+
+}
+
+
+getElement(
+    "heroNext"
+)?.addEventListener(
+    "click",
+    nextFeaturedAnime
+);
+
+
+getElement(
+    "heroPrevious"
+)?.addEventListener(
+    "click",
+    previousFeaturedAnime
+);
+
+
+/* =========================================================
+   HERO AUTOPLAY
+========================================================= */
+
+function startHeroAutoplay() {
+
+    clearInterval(
+        heroAutoplayTimer
+    );
+
+
+    heroAutoplayTimer =
+        setInterval(
+            () => {
+
+                const home =
+                    pages.home;
+
+
+                if (
+                    home &&
+                    home.classList.contains(
+                        "active-page"
+                    )
+                ) {
+
+                    nextFeaturedAnime();
+
+                }
+
+            },
+            8000
+        );
+
+}
+
+
+function restartHeroAutoplay() {
+
+    clearInterval(
+        heroAutoplayTimer
+    );
+
+
+    startHeroAutoplay();
+
+}
+
+
+/* =========================================================
+   HERO PAUSE ON HOVER
+========================================================= */
+
+getElement(
+    "homeHero"
+)?.addEventListener(
+    "mouseenter",
+    () => {
+
+        clearInterval(
+            heroAutoplayTimer
+        );
+
+    }
+);
+
+
+getElement(
+    "homeHero"
+)?.addEventListener(
+    "mouseleave",
+    () => {
+
+        startHeroAutoplay();
+
+    }
+);
+
+
+/* =========================================================
+   TOUCH SWIPE
+========================================================= */
+
+let heroTouchStartX =
+    null;
+
+
+document.addEventListener(
+    "touchstart",
+    event => {
+
+        const home =
+            pages.home;
+
+
+        if (
+            !home ||
+            !home.classList.contains(
+                "active-page"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            event.touches.length !==
+            1
+        ) {
+
+            return;
+
+        }
+
+
+        heroTouchStartX =
+            event.touches[0]
+                .clientX;
+
+    },
+    {
+        passive:
+            true
+    }
+);
+
+
+document.addEventListener(
+    "touchend",
+    event => {
+
+        if (
+            heroTouchStartX ===
+            null
+        ) {
+
+            return;
+
+        }
+
+
+        const endX =
+            event.changedTouches[0]
+                ?.clientX;
+
+
+        if (
+            typeof endX !==
+            "number"
+        ) {
+
+            heroTouchStartX =
+                null;
+
+            return;
+
+        }
+
+
+        const distance =
+            heroTouchStartX -
+            endX;
+
+
+        if (
+            Math.abs(
+                distance
+            ) >
+            55
+        ) {
+
+            if (
+                distance >
+                0
+            ) {
+
+                nextFeaturedAnime();
+
+            } else {
+
+                previousFeaturedAnime();
+
+            }
+
+        }
+
+
+        heroTouchStartX =
+            null;
+
+    },
+    {
+        passive:
+            true
+    }
+);
+
+
+/* =========================================================
+   KEYBOARD CAROUSEL
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        const tag =
+            document.activeElement
+                ?.tagName;
+
+
+        if (
+            tag ===
+            "INPUT" ||
+            tag ===
+            "TEXTAREA" ||
+            tag ===
+            "SELECT"
+        ) {
+
+            return;
+
+        }
+
+
+        const home =
+            pages.home;
+
+
+        if (
+            !home ||
+            !home.classList.contains(
+                "active-page"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            event.key ===
+            "ArrowRight"
+        ) {
+
+            nextFeaturedAnime();
+
+        }
+
+
+        if (
+            event.key ===
+            "ArrowLeft"
+        ) {
+
+            previousFeaturedAnime();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   TRENDING
+========================================================= */
+
+async function loadTrending() {
+
+    const grid =
+        getElement(
+            "trendingGrid"
+        );
+
+
+    if (
+        !grid
+    ) {
+
+        return;
+
+    }
+
+
+    grid.innerHTML = `
+
+        <div class="loading">
+
+            <div class="spinner"></div>
+
+            <span>
+                Loading trending anime...
+            </span>
+
+        </div>
+
+    `;
+
+
+    try {
+
+        const data =
+            await apiRequest(
+                "/anime/trending?limit=30"
+            );
+
+
+        renderAnimeGrid(
+            grid,
+            data.data ||
+            []
+        );
+
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "TRENDING ERROR:",
+            error
+        );
+
+
+        grid.innerHTML = `
+
+            <div class="loading">
+
+                Unable to load trending anime.
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   DISCOVER
+========================================================= */
+
+queryAll(
+    ".discover-filter"
+)
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    queryAll(
+                        ".discover-filter"
+                    )
+                        .forEach(
+                            other => {
+
+                                other.classList.remove(
+                                    "active"
+                                );
+
+                            }
+                        );
+
+
+                    button.classList.add(
+                        "active"
+                    );
+
+
+                    currentDiscoverMode =
+                        button.dataset.discover ||
+                        "popular";
+
+
+                    loadDiscover(
+                        currentDiscoverMode
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+async function loadDiscover(
+    mode =
+        "popular"
+) {
+
+    const grid =
+        getElement(
+            "discoverGrid"
+        );
+
+
+    if (
+        !grid
+    ) {
+
+        return;
+
+    }
+
+
+    grid.innerHTML = `
+
+        <div class="loading">
+
+            <div class="spinner"></div>
+
+            <span>
+                Finding something new...
+            </span>
+
+        </div>
+
+    `;
+
+
+    try {
+
+        let anime =
+            [];
+
+
+        if (
+            mode ===
+            "popular"
+        ) {
+
+            const data =
+                await apiRequest(
+                    "/anime/trending?limit=30"
+                );
+
+
+            anime =
+                normalizeAnimeList(
+                    data.data ||
+                    []
+                );
+
+        } else {
+
+            const data =
+                await apiRequest(
+                    "/anime/top?limit=50"
+                );
+
+
+            anime =
+                normalizeAnimeList(
+                    data.data ||
+                    []
+                );
+
+        }
+
+
+        if (
+            mode ===
+            "upcoming"
+        ) {
+
+            const now =
+                new Date();
+
+
+            anime =
+                anime
+                    .filter(
+                        item => {
+
+                            if (
+                                !item.start_date
+                            ) {
+
+                                return false;
+
+                            }
+
+
+                            const date =
+                                new Date(
+                                    item.start_date
+                                );
+
+
+                            return (
+                                date >
+                                now
+                            );
+
+                        }
+                    );
+
+        }
+
+
+        if (
+            mode ===
+            "airing"
+        ) {
+
+            anime =
+                anime.filter(
+                    item =>
+                        String(
+                            item.status ||
+                            ""
+                        ).toLowerCase()
+                            .includes(
+                                "currently"
+                            ) ||
+                        Boolean(
+                            item.broadcast
+                        )
+                );
+
+        }
+
+
+        renderAnimeGrid(
+            grid,
+            anime.slice(
+                0,
+                24
+            )
+        );
+
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "DISCOVER ERROR:",
+            error
+        );
+
+
+        grid.innerHTML = `
+
+            <div class="loading">
+
+                Unable to load Discover.
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   RANDOM
+========================================================= */
+
+getElement(
+    "randomButton"
+)?.addEventListener(
+    "click",
+    async () => {
+
+        const result =
+            getElement(
+                "randomResult"
+            );
+
+
+        if (
+            result
+        ) {
+
+            result.innerHTML = `
+
+                <div class="loading">
+
+                    <div class="spinner"></div>
+
+                    <span>
+                        Finding an anime...
+                    </span>
+
+                </div>
+
+            `;
+
+        }
+
+
+        try {
+
+            const data =
+                await apiRequest(
+                    "/anime/random"
+                );
+
+
+            const anime =
+                normalizeAnime(
+                    data.data
+                );
+
+
+            if (
+                !anime
+            ) {
+
+                throw new Error(
+                    "No anime was returned."
+                );
+
+            }
+
+
+            if (
+                result
+            ) {
+
+                result.innerHTML =
+                    "";
+
+            }
+
+
+            openAnimeModal(
+                anime
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "RANDOM ERROR:",
+                error
+            );
+
+
+            if (
+                result
+            ) {
+
+                result.innerHTML =
+                    "";
+
+            }
+
+
+            showToast(
+                "Unable to find a random anime.",
+                "error"
+            );
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   SCHEDULE
+========================================================= */
+
+const VALID_DAYS = [
+
+    "sunday",
+
+    "monday",
+
+    "tuesday",
+
+    "wednesday",
+
+    "thursday",
+
+    "friday",
+
+    "saturday"
+
+];
+
+
+function parseScheduleTime(
+    anime
+) {
+
+    const airing =
+        anime?.airing ||
+        {};
+
+
+    const broadcast =
+        anime?.broadcast ||
+        {};
+
+
+    const raw =
+        airing.time ||
+        broadcast.start_time ||
+        broadcast.time ||
+        airing.display ||
+        "";
+
+
+    if (
+        !raw
+    ) {
+
         return null;
+
     }
 
 
     const match =
         String(
             raw
-        ).match(
-            /^(\d{1,2}):(\d{2})/
-        );
+        )
+            .match(
+                /(\d{1,2}):(\d{2})/
+            );
 
 
-    if (!match) {
+    if (
+        !match
+    ) {
+
         return null;
+
     }
 
 
@@ -4557,10 +6654,14 @@ function parseBroadcastTime(
 
 
     if (
-        hour < 0 ||
-        hour > 23 ||
-        minute < 0 ||
-        minute > 59
+        hour <
+        0 ||
+        hour >
+        23 ||
+        minute <
+        0 ||
+        minute >
+        59
     ) {
 
         return null;
@@ -4569,65 +6670,230 @@ function parseBroadcastTime(
 
 
     return {
+
         hour,
-        minute
+
+        minute,
+
+        total:
+            (
+                hour *
+                60
+            ) +
+            minute
+
     };
 
 }
 
 
-function formatHourLabel(
+function formatScheduleTime(
     hour,
-    minute = 0
+    minute
 ) {
 
     const period =
-        hour >= 12
+        hour >=
+        12
             ? "PM"
             : "AM";
 
 
     const twelveHour =
-        hour % 12 ||
+        hour %
+        12 ||
         12;
 
 
-    return `${twelveHour}:${String(
-        minute
-    ).padStart(
-        2,
-        "0"
-    )} ${period}`;
-
-}
-
-
-function getScheduleSortValue(
-    anime
-) {
-
-    const time =
-        parseBroadcastTime(
-            anime
-        );
-
-
-    if (!time) {
-        return Infinity;
-    }
-
-
     return (
-        time.hour *
-        60 +
-        time.minute
+        `${twelveHour}:` +
+        `${String(
+            minute
+        ).padStart(
+            2,
+            "0"
+        )} ${period}`
     );
 
 }
 
 
+/* =========================================================
+   SCHEDULE HOURS
+========================================================= */
+
+function renderScheduleHourStrip(
+    animeList
+) {
+
+    const container =
+        getElement(
+            "scheduleHours"
+        );
+
+
+    if (
+        !container
+    ) {
+
+        return;
+
+    }
+
+
+    const presentHours =
+        new Set();
+
+
+    (
+        Array.isArray(
+            animeList
+        )
+            ? animeList
+            : []
+    )
+        .forEach(
+            anime => {
+
+                const time =
+                    parseScheduleTime(
+                        anime
+                    );
+
+
+                if (
+                    time
+                ) {
+
+                    presentHours.add(
+                        time.hour
+                    );
+
+                }
+
+            }
+        );
+
+
+    container.innerHTML =
+        Array.from(
+            {
+                length:
+                    24
+            },
+            (
+                _,
+                hour
+            ) => `
+
+                <button
+                    type="button"
+                    class="schedule-hour-chip ${
+                        presentHours.has(
+                            hour
+                        )
+                            ? "has-anime"
+                            : ""
+                    }"
+                    data-hour="${hour}"
+                >
+                    ${
+                        escapeHTML(
+                            formatScheduleTime(
+                                hour,
+                                0
+                            )
+                        )
+                    }
+                </button>
+
+            `
+        )
+            .join("");
+
+
+    container
+        .querySelectorAll(
+            "[data-hour]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        const hour =
+                            Number(
+                                button.dataset.hour
+                            );
+
+
+                        const list =
+                            (
+                                Array.isArray(
+                                    animeList
+                                )
+                                    ? animeList
+                                    : []
+                            )
+                                .filter(
+                                    anime => {
+
+                                        const time =
+                                            parseScheduleTime(
+                                                anime
+                                            );
+
+
+                                        return (
+                                            time &&
+                                            time.hour ===
+                                            hour
+                                        );
+
+                                    }
+                                );
+
+
+                        if (
+                            list.length
+                        ) {
+
+                            renderScheduleGrid(
+                                getElement(
+                                    "scheduleGrid"
+                                ),
+                                list
+                            );
+
+                        } else {
+
+                            renderScheduleGrid(
+                                getElement(
+                                    "scheduleGrid"
+                                ),
+                                []
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   SCHEDULE LOAD
+========================================================= */
+
 async function loadSchedule(
-    day = "monday"
+    day =
+        "monday"
 ) {
 
     const grid =
@@ -4636,61 +6902,51 @@ async function loadSchedule(
         );
 
 
-    if (!grid) {
+    if (
+        !grid
+    ) {
+
         return;
+
     }
 
 
     currentScheduleDay =
         String(
             day
-        ).toLowerCase();
+        )
+            .trim()
+            .toLowerCase();
 
 
-    grid.innerHTML = `
-        <div class="loading">
+    if (
+        !VALID_DAYS.includes(
+            currentScheduleDay
+        )
+    ) {
 
-            <div class="spinner"></div>
+        currentScheduleDay =
+            "monday";
 
-            <span>
-                Loading ${escapeHTML(
-                    currentScheduleDay
-                )} schedule...
-            </span>
-
-        </div>
-    `;
+    }
 
 
-    updateScheduleTabState(
+    updateScheduleTabs(
         currentScheduleDay
     );
 
 
-    try {
+    if (
+        scheduleData[
+            currentScheduleDay
+        ]
+    ) {
 
-        if (
-            !scheduleData[
-                currentScheduleDay
-            ]
-        ) {
-
-            const data =
-                await fetchAnime(
-                    `/anime/schedule?day=${encodeURIComponent(
-                        currentScheduleDay
-                    )}`
-                );
-
-
+        renderScheduleHourStrip(
             scheduleData[
                 currentScheduleDay
-            ] =
-                normalizeAnimeList(
-                    data.data || []
-                );
-
-        }
+            ]
+        );
 
 
         renderScheduleGrid(
@@ -4701,23 +6957,115 @@ async function loadSchedule(
         );
 
 
-    } catch (error) {
+        return;
+
+    }
+
+
+    if (
+        isLoadingSchedule
+    ) {
+
+        return;
+
+    }
+
+
+    isLoadingSchedule =
+        true;
+
+
+    grid.innerHTML = `
+
+        <div class="loading">
+
+            <div class="spinner"></div>
+
+            <span>
+                Loading ${
+                    escapeHTML(
+                        currentScheduleDay
+                    )
+                } schedule...
+            </span>
+
+        </div>
+
+    `;
+
+
+    try {
+
+        const data =
+            await apiRequest(
+                `/anime/schedule?day=${encodeURIComponent(
+                    currentScheduleDay
+                )}`
+            );
+
+
+        scheduleData[
+            currentScheduleDay
+        ] =
+            Array.isArray(
+                data.data
+            )
+                ? data.data.map(
+                    item => ({
+
+                        ...normalizeAnime(
+                            item
+                        ),
+
+                        airing:
+                            item.airing ||
+                            null
+
+                    })
+                )
+                : [];
+
+
+        renderScheduleHourStrip(
+            scheduleData[
+                currentScheduleDay
+            ]
+        );
+
+
+        renderScheduleGrid(
+            grid,
+            scheduleData[
+                currentScheduleDay
+            ]
+        );
+
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "SCHEDULE ERROR:",
+            error
+        );
+
 
         grid.innerHTML = `
+
             <div class="loading">
 
-                <span>
-                    Unable to load the schedule.
-                </span>
+                Unable to load the schedule.
 
             </div>
+
         `;
 
 
-        console.error(
-            "Schedule error:",
-            error
-        );
+    } finally {
+
+        isLoadingSchedule =
+            false;
 
     }
 
@@ -4725,32 +7073,60 @@ async function loadSchedule(
 
 
 /* =========================================================
-   SCHEDULE TAB STATE
+   SCHEDULE TABS
 ========================================================= */
 
-function updateScheduleTabState(
+function updateScheduleTabs(
     activeDay
 ) {
 
     queryAll(
         ".schedule-tab"
-    ).forEach(tab => {
+    )
+        .forEach(
+            tab => {
 
-        tab.classList.toggle(
-            "active",
-            String(
-                tab.dataset.day
-            ).toLowerCase() ===
-            activeDay
+                tab.classList.toggle(
+                    "active",
+
+                    String(
+                        tab.dataset.day ||
+                        ""
+                    )
+                        .toLowerCase() ===
+                    activeDay
+                );
+
+            }
         );
-
-    });
 
 }
 
 
+queryAll(
+    ".schedule-tab"
+)
+    .forEach(
+        tab => {
+
+            tab.addEventListener(
+                "click",
+                () => {
+
+                    loadSchedule(
+                        tab.dataset.day ||
+                        "monday"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
 /* =========================================================
-   SCHEDULE RENDER
+   SCHEDULE GRID
 ========================================================= */
 
 function renderScheduleGrid(
@@ -4759,17 +7135,29 @@ function renderScheduleGrid(
 ) {
 
     if (
+        !grid
+    ) {
+
+        return;
+
+    }
+
+
+    if (
         !animeList ||
         !animeList.length
     ) {
 
         grid.innerHTML = `
+
             <div class="loading">
-                <span>
-                    No anime found airing on this day.
-                </span>
+
+                No anime found for this time.
+
             </div>
+
         `;
+
 
         return;
 
@@ -4777,21 +7165,41 @@ function renderScheduleGrid(
 
 
     const sorted =
-        [...animeList].sort(
-            (
-                a,
-                b
-            ) =>
-                getScheduleSortValue(
-                    a
-                ) -
-                getScheduleSortValue(
+        [...animeList]
+            .sort(
+                (
+                    a,
                     b
-                )
-        );
+                ) => {
+
+                    const at =
+                        parseScheduleTime(
+                            a
+                        );
 
 
-    const grouped =
+                    const bt =
+                        parseScheduleTime(
+                            b
+                        );
+
+
+                    return (
+                        (
+                            at?.total ??
+                            Infinity
+                        ) -
+                        (
+                            bt?.total ??
+                            Infinity
+                        )
+                    );
+
+                }
+            );
+
+
+    const groups =
         new Map();
 
 
@@ -4799,7 +7207,7 @@ function renderScheduleGrid(
         anime => {
 
             const time =
-                parseBroadcastTime(
+                parseScheduleTime(
                     anime
                 );
 
@@ -4811,12 +7219,12 @@ function renderScheduleGrid(
 
 
             if (
-                !grouped.has(
+                !groups.has(
                     key
                 )
             ) {
 
-                grouped.set(
+                groups.set(
                     key,
                     []
                 );
@@ -4824,35 +7232,43 @@ function renderScheduleGrid(
             }
 
 
-            grouped
-                .get(key)
-                .push(anime);
+            groups
+                .get(
+                    key
+                )
+                .push(
+                    anime
+                );
 
         }
     );
 
 
-    const groups =
-        [...grouped.entries()]
+    const ordered =
+        [...groups.entries()]
             .sort(
                 (
-                    a,
-                    b
+                    [a],
+                    [b]
                 ) => {
 
                     if (
-                        a[0] ===
+                        a ===
                         "unknown"
                     ) {
+
                         return 1;
+
                     }
 
 
                     if (
-                        b[0] ===
+                        b ===
                         "unknown"
                     ) {
+
                         return -1;
+
                     }
 
 
@@ -4860,26 +7276,36 @@ function renderScheduleGrid(
                         ah,
                         am
                     ] =
-                        a[0]
-                            .split(":")
-                            .map(Number);
+                        a
+                            .split(
+                                ":"
+                            )
+                            .map(
+                                Number
+                            );
 
 
                     const [
                         bh,
                         bm
                     ] =
-                        b[0]
-                            .split(":")
-                            .map(Number);
+                        b
+                            .split(
+                                ":"
+                            )
+                            .map(
+                                Number
+                            );
 
 
                     return (
-                        ah * 60 +
+                        ah *
+                        60 +
                         am
                     ) -
                     (
-                        bh * 60 +
+                        bh *
+                        60 +
                         bm
                     );
 
@@ -4887,544 +7313,513 @@ function renderScheduleGrid(
             );
 
 
-    grid.innerHTML = `
-        <div class="schedule-list">
+    grid.innerHTML =
+        ordered
+            .map(
+                (
+                    [
+                        key,
+                        items
+                    ]
+                ) => {
 
-            ${
-                groups
-                    .map(
-                        ([key, animeItems]) => {
-
-                            const timeLabel =
-                                key ===
-                                "unknown"
-
-                                    ? "Time unknown"
-
-                                    : formatHourLabel(
-                                        Number(
-                                            key.split(
-                                                ":"
-                                            )[0]
-                                        ),
-                                        Number(
-                                            key.split(
-                                                ":"
-                                            )[1]
-                                        )
-                                    );
+                    const parts =
+                        key ===
+                        "unknown"
+                            ? null
+                            : key
+                                .split(
+                                    ":"
+                                )
+                                .map(
+                                    Number
+                                );
 
 
-                            return `
-                                <section
-                                    class="schedule-hour"
-                                >
-
-                                    <div
-                                        class="schedule-time"
-                                    >
-                                        ${escapeHTML(
-                                            timeLabel
-                                        )}
-                                    </div>
+                    const label =
+                        parts
+                            ? formatScheduleTime(
+                                parts[0],
+                                parts[1]
+                            )
+                            : "Time TBA";
 
 
-                                    <div>
+                    return `
 
-                                        ${
-                                            animeItems
-                                                .map(
-                                                    anime =>
-                                                        `
-                                                            <article
-                                                                class="schedule-anime"
-                                                                data-anime-id="${escapeHTML(
-                                                                    String(
-                                                                        getAnimeId(
-                                                                            anime
-                                                                        )
+                        <section
+                            class="schedule-hour"
+                        >
+
+                            <div class="schedule-time">
+                                ${
+                                    escapeHTML(
+                                        label
+                                    )
+                                }
+                            </div>
+
+
+                            <div>
+
+                                ${
+                                    items
+                                        .map(
+                                            anime => `
+
+                                                <article
+                                                    class="schedule-anime"
+                                                    data-anime-id="${escapeHTML(
+                                                        String(
+                                                            getAnimeId(
+                                                                anime
+                                                            )
+                                                        )
+                                                    )}"
+                                                >
+
+                                                    ${
+                                                        anime.image
+                                                            ? `
+
+                                                                <img
+                                                                    src="${escapeHTML(
+                                                                        anime.image
+                                                                    )}"
+                                                                    alt="${escapeHTML(
+                                                                        anime.title
+                                                                    )}"
+                                                                    loading="lazy"
+                                                                >
+
+                                                            `
+                                                            : ""
+                                                    }
+
+
+                                                    <div>
+
+                                                        <strong>
+                                                            ${
+                                                                escapeHTML(
+                                                                    anime.title
+                                                                )
+                                                            }
+                                                        </strong>
+
+
+                                                        <div class="anime-card-meta">
+
+                                                            ${
+                                                                anime.type
+                                                                    ? escapeHTML(
+                                                                        anime.type
                                                                     )
-                                                                )}"
-                                                            >
+                                                                    : "Anime"
+                                                            }
 
-                                                                ${
-                                                                    anime.image
-                                                                        ? `
-                                                                            <img
-                                                                                src="${escapeHTML(
-                                                                                    anime.image
-                                                                                )}"
-                                                                                alt="${escapeHTML(
-                                                                                    anime.title
-                                                                                )}"
-                                                                                loading="lazy"
-                                                                            >
-                                                                        `
-                                                                        : ""
-                                                                }
+                                                            ${
+                                                                anime.episodes
+                                                                    ? ` • ${
+                                                                        escapeHTML(
+                                                                            String(
+                                                                                anime.episodes
+                                                                            )
+                                                                        )
+                                                                    } episodes`
+                                                                    : ""
+                                                            }
 
+                                                        </div>
 
-                                                                <div>
+                                                    </div>
 
-                                                                    <strong>
-                                                                        ${escapeHTML(
-                                                                            anime.title
-                                                                        )}
-                                                                    </strong>
+                                                </article>
 
+                                            `
+                                        )
+                                        .join("")
+                                }
 
-                                                                    <div class="anime-card-meta">
-                                                                        ${
-                                                                            anime.broadcast?.day
-                                                                                ? escapeHTML(
-                                                                                    String(
-                                                                                        anime.broadcast.day
-                                                                                    )
-                                                                                )
-                                                                                : ""
-                                                                        }
+                            </div>
 
-                                                                        ${
-                                                                            anime.episodes
-                                                                                ? ` • ${escapeHTML(
-                                                                                    String(
-                                                                                        anime.episodes
-                                                                                    )
-                                                                                )} episodes`
-                                                                                : ""
-                                                                        }
-                                                                    </div>
+                        </section>
 
-                                                                </div>
+                    `;
 
-                                                            </article>
-                                                        `
-                                                )
-                                                .join("")
-                                        }
-
-                                    </div>
-
-                                </section>
-                            `;
-
-                        }
-                    )
-                    .join("")
-            }
-
-        </div>
-    `;
+                }
+            )
+            .join("");
 
 
     grid
         .querySelectorAll(
             ".schedule-anime"
         )
-        .forEach(item => {
+        .forEach(
+            item => {
 
-            item.addEventListener(
-                "click",
-                () => {
+                item.addEventListener(
+                    "click",
+                    () => {
 
-                    const id =
-                        Number(
-                            item.dataset.animeId
-                        );
-
-
-                    const anime =
-                        animeList.find(
-                            entry =>
-                                Number(
-                                    getAnimeId(
-                                        entry
-                                    )
-                                ) ===
-                                id
-                        );
+                        const id =
+                            Number(
+                                item.dataset.animeId
+                            );
 
 
-                    if (anime) {
+                        const anime =
+                            animeList.find(
+                                entry =>
+                                    Number(
+                                        getAnimeId(
+                                            entry
+                                        )
+                                    ) ===
+                                    id
+                            );
 
-                        openAnimeModal(
+
+                        if (
                             anime
-                        );
+                        ) {
+
+                            openAnimeModal(
+                                anime
+                            );
+
+                        }
 
                     }
+                );
 
-                }
-            );
-
-        });
+            }
+        );
 
 }
 
 
 /* =========================================================
-   SCHEDULE TABS
+   TRAILERS
 ========================================================= */
 
-queryAll(
-    ".schedule-tab"
-).forEach(tab => {
+async function getTrailer(
+    anime
+) {
 
-    tab.addEventListener(
-        "click",
-        () => {
-
-            loadSchedule(
-                tab.dataset.day ||
-                "monday"
-            );
-
-        }
-    );
-
-});
-
-
-/* =========================================================
-   DISCOVER
-========================================================= */
-
-async function loadDiscover() {
-
-    const grid =
-        getElement(
-            "discoverGrid"
+    const id =
+        getAnimeId(
+            anime
         );
 
 
-    if (!grid) {
-        return;
+    if (
+        !id
+    ) {
+
+        return null;
+
     }
-
-
-    grid.innerHTML = `
-        <div class="loading">
-
-            <div class="spinner"></div>
-
-            <span>
-                Finding something new...
-            </span>
-
-        </div>
-    `;
 
 
     try {
 
-        let anime =
-            [];
+        const data =
+            await apiRequest(
+                `/anime/trailer/${id}`
+            );
 
 
-        if (
-            popularAnime &&
-            popularAnime.length
-        ) {
-
-            anime =
-                [...popularAnime]
-                    .sort(
-                        () =>
-                            Math.random() -
-                            0.5
-                    );
-
-
-        } else {
-
-            const data =
-                await fetchAnime(
-                    "/anime/top?limit=50"
-                );
-
-
-            anime =
-                normalizeAnimeList(
-                    data.data || []
-                );
-
-
-        }
-
-
-        renderAnimeGrid(
-            grid,
-            anime.slice(
-                0,
-                24
-            )
+        return (
+            data.data ||
+            null
         );
 
+    } catch (
+        error
+    ) {
 
-    } catch (error) {
-
-        grid.innerHTML = `
-            <div class="loading">
-
-                <span>
-                    Unable to load Discover.
-                </span>
-
-            </div>
-        `;
-
-
-        console.error(
-            "Discover error:",
+        console.debug(
+            "TRAILER ERROR:",
             error
         );
 
+
+        return null;
+
     }
 
 }
 
 
-/* =========================================================
-   RANDOM
-========================================================= */
-
-const randomButton =
-    getElement(
-        "randomButton"
-    );
-
-
-if (randomButton) {
-
-    randomButton.addEventListener(
-        "click",
-        async () => {
-
-            const result =
-                getElement(
-                    "randomResult"
-                );
-
-
-            if (result) {
-
-                result.innerHTML = `
-                    <div class="loading">
-
-                        <div class="spinner"></div>
-
-                        <span>
-                            Finding an anime...
-                        </span>
-
-                    </div>
-                `;
-
-            }
-
-
-            try {
-
-                const data =
-                    await fetchAnime(
-                        "/anime/random"
-                    );
-
-
-                const anime =
-                    normalizeAnime(
-                        data.data
-                    );
-
-
-                if (!anime) {
-
-                    throw new Error(
-                        "No anime returned."
-                    );
-
-                }
-
-
-                if (result) {
-
-                    result.innerHTML =
-                        "";
-
-                }
-
-
-                openAnimeModal(
-                    anime
-                );
-
-
-            } catch (error) {
-
-                if (result) {
-
-                    result.innerHTML =
-                        "";
-
-                }
-
-
-                showToast(
-                    "Unable to find a random anime.",
-                    "error"
-                );
-
-
-                console.error(
-                    "Random anime error:",
-                    error
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   TOAST
-========================================================= */
-
-let toastTimeout;
-
-
-function showToast(
-    message,
-    type = ""
+async function openTrailerForAnime(
+    anime
 ) {
 
-    const toast =
-        getElement(
-            "toast"
+    const trailer =
+        await getTrailer(
+            anime
         );
 
-
-    if (!toast) {
-        return;
-    }
-
-
-    toast.textContent =
-        message;
-
-
-    toast.className =
-        "toast";
-
-
-    if (type) {
-
-        toast.classList.add(
-            type
-        );
-
-    }
-
-
-    requestAnimationFrame(
-        () => {
-
-            toast.classList.add(
-                "show"
-            );
-
-        }
-    );
-
-
-    clearTimeout(
-        toastTimeout
-    );
-
-
-    toastTimeout =
-        setTimeout(
-            () => {
-
-                toast.classList.remove(
-                    "show"
-                );
-
-            },
-            3000
-        );
-
-}
-
-
-/* =========================================================
-   HTML ESCAPING
-========================================================= */
-
-function escapeHTML(
-    value
-) {
 
     if (
-        value === null ||
-        value === undefined
+        !trailer?.embed_url
     ) {
 
-        return "";
+        showToast(
+            "No official trailer is available for this anime.",
+            "error"
+        );
+
+
+        return;
 
     }
 
 
-    return String(value)
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
+    openTrailerModal(
+        trailer
+    );
 
 }
 
 
-/* =========================================================
-   BODY SCROLL
-========================================================= */
+function openTrailerModal(
+    trailer
+) {
 
-function restoreBodyScroll() {
-
-    const anyModalOpen =
-        query(
-            ".modal-overlay.open"
+    const frame =
+        getElement(
+            "trailerFrame"
         );
 
 
-    if (!anyModalOpen) {
+    if (
+        !frame ||
+        !trailer?.embed_url
+    ) {
 
-        document.body.style.overflow =
+        return;
+
+    }
+
+
+    frame.src =
+        trailer.embed_url;
+
+
+    trailerModal?.classList.add(
+        "open"
+    );
+
+
+    document.body.style.overflow =
+        "hidden";
+
+}
+
+
+function closeTrailerModal() {
+
+    const frame =
+        getElement(
+            "trailerFrame"
+        );
+
+
+    if (
+        frame
+    ) {
+
+        frame.src =
             "";
 
     }
 
+
+    trailerModal?.classList.remove(
+        "open"
+    );
+
+
+    restoreBodyScroll();
+
 }
 
 
+async function loadAnimeTrailerButton(
+    anime
+) {
+
+    const area =
+        getElement(
+            "modalTrailerArea"
+        );
+
+
+    const button =
+        getElement(
+            "modalTrailerButton"
+        );
+
+
+    if (
+        !area ||
+        !button ||
+        !anime
+    ) {
+
+        return;
+
+    }
+
+
+    area.classList.add(
+        "hidden"
+    );
+
+
+    const trailer =
+        await getTrailer(
+            anime
+        );
+
+
+    if (
+        !trailer?.embed_url
+    ) {
+
+        return;
+
+    }
+
+
+    area.classList.remove(
+        "hidden"
+    );
+
+
+    button.onclick =
+        () => {
+
+            openTrailerModal(
+                trailer
+            );
+
+        };
+
+}
+
+
+getElement(
+    "heroTrailerButton"
+)?.addEventListener(
+    "click",
+    () => {
+
+        const anime =
+            getFeaturedAnime();
+
+
+        if (
+            anime
+        ) {
+
+            openTrailerForAnime(
+                anime
+            );
+
+        }
+
+    }
+);
+
+
+getElement(
+    "modalTrailerButton"
+)?.addEventListener(
+    "click",
+    () => {
+
+        if (
+            currentAnime
+        ) {
+
+            openTrailerForAnime(
+                currentAnime
+            );
+
+        }
+
+    }
+);
+
+
+getElement(
+    "trailerModalClose"
+)?.addEventListener(
+    "click",
+    closeTrailerModal
+);
+
+
+trailerModal?.addEventListener(
+    "click",
+    event => {
+
+        if (
+            event.target ===
+            trailerModal
+        ) {
+
+            closeTrailerModal();
+
+        }
+
+    }
+);
+
+
 /* =========================================================
-   ESCAPE KEY
+   RANDOM PAGE
+========================================================= */
+
+/* Random functionality is intentionally kept
+   entirely server-driven so it does not repeatedly
+   return the same local list item. */
+
+
+/* =========================================================
+   IMAGE ERROR HANDLING
+========================================================= */
+
+document.addEventListener(
+    "error",
+    event => {
+
+        const target =
+            event.target;
+
+
+        if (
+            target?.matches?.(
+                ".anime-image, .modal-anime-image, #heroImage, .featured-slide-image"
+            )
+        ) {
+
+            target.style.display =
+                "none";
+
+        }
+
+    },
+    true
+);
+
+
+/* =========================================================
+   MODAL ESCAPE
 ========================================================= */
 
 document.addEventListener(
@@ -5447,160 +7842,69 @@ document.addEventListener(
 
         closeRatingModal();
 
-    }
-);
-
-
-/* =========================================================
-   IMAGE ERROR HANDLING
-========================================================= */
-
-document.addEventListener(
-    "error",
-    event => {
-
-        const target =
-            event.target;
-
-
-        if (
-            target &&
-            target.matches &&
-            target.matches(
-                ".anime-image, .modal-anime-image, .featured-slide-image"
-            )
-        ) {
-
-            target.style.display =
-                "none";
-
-        }
-
-    },
-    true
-);
-
-
-/* =========================================================
-   KEYBOARD CAROUSEL SUPPORT
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    event => {
-
-        if (
-            event.key ===
-            "ArrowRight"
-        ) {
-
-            const tag =
-                document.activeElement
-                    ?.tagName
-                    ?.toLowerCase();
-
-
-            if (
-                tag ===
-                "input" ||
-                tag ===
-                "textarea" ||
-                tag ===
-                "select"
-            ) {
-
-                return;
-
-            }
-
-
-            if (
-                statePageIsHome()
-            ) {
-
-                nextFeaturedAnime();
-
-            }
-
-        }
-
-
-        if (
-            event.key ===
-            "ArrowLeft"
-        ) {
-
-            const tag =
-                document.activeElement
-                    ?.tagName
-                    ?.toLowerCase();
-
-
-            if (
-                tag ===
-                "input" ||
-                tag ===
-                "textarea" ||
-                tag ===
-                "select"
-            ) {
-
-                return;
-
-            }
-
-
-            if (
-                statePageIsHome()
-            ) {
-
-                previousFeaturedAnime();
-
-            }
-
-        }
+        closeTrailerModal();
 
     }
 );
 
 
-function statePageIsHome() {
+/* =========================================================
+   MODAL BACKGROUND CLICK
+========================================================= */
 
-    const homePage =
-        pages.home;
+[
+    accountModal,
+    animeModal,
+    ratingModal,
+    trailerModal
+]
+    .filter(
+        Boolean
+    )
+    .forEach(
+        modal => {
+
+            modal.addEventListener(
+                "click",
+                event => {
+
+                    if (
+                        event.target !==
+                        modal
+                    ) {
+
+                        return;
+
+                    }
 
 
-    return (
-        homePage &&
-        homePage.classList.contains(
-            "active-page"
-        )
+                    modal.classList.remove(
+                        "open"
+                    );
+
+
+                    restoreBodyScroll();
+
+                }
+            );
+
+        }
     );
 
-}
-
 
 /* =========================================================
-   TOUCH SWIPE FOR FEATURED CAROUSEL
+   VISIBILITY REFRESH
+   Useful when the same account is open on
+   more than one browser/device.
 ========================================================= */
 
-let touchStartX = null;
-
-
 document.addEventListener(
-    "touchstart",
-    event => {
+    "visibilitychange",
+    async () => {
 
         if (
-            !statePageIsHome()
-        ) {
-            return;
-        }
-
-
-        if (
-            event.touches.length !==
-            1
+            document.visibilityState !==
+            "visible"
         ) {
 
             return;
@@ -5608,23 +7912,43 @@ document.addEventListener(
         }
 
 
-        touchStartX =
-            event.touches[0].clientX;
+        if (
+            !currentUser
+        ) {
 
-    },
-    {
-        passive: true
+            return;
+
+        }
+
+
+        try {
+
+            await loadMyListFromServer();
+
+        } catch (
+            error
+        ) {
+
+            console.debug(
+                "VISIBILITY LIST REFRESH ERROR:",
+                error
+            );
+
+        }
+
     }
 );
 
 
-document.addEventListener(
-    "touchend",
-    event => {
+/* =========================================================
+   PERIODIC LIST SYNC
+========================================================= */
+
+setInterval(
+    async () => {
 
         if (
-            touchStartX ===
-            null
+            !currentUser
         ) {
 
             return;
@@ -5632,59 +7956,33 @@ document.addEventListener(
         }
 
 
-        const touchEndX =
-            event.changedTouches[0]
-                ?.clientX;
-
-
         if (
-            typeof touchEndX !==
-            "number"
+            document.visibilityState !==
+            "visible"
         ) {
-
-            touchStartX =
-                null;
 
             return;
 
         }
 
 
-        const difference =
-            touchStartX -
-            touchEndX;
+        try {
 
+            await loadMyListFromServer();
 
-        if (
-            Math.abs(
-                difference
-            ) >
-            55
+        } catch (
+            error
         ) {
 
-            if (
-                difference >
-                0
-            ) {
-
-                nextFeaturedAnime();
-
-            } else {
-
-                previousFeaturedAnime();
-
-            }
+            console.debug(
+                "BACKGROUND SYNC ERROR:",
+                error
+            );
 
         }
-
-
-        touchStartX =
-            null;
 
     },
-    {
-        passive: true
-    }
+    60_000
 );
 
 
@@ -5693,16 +7991,6 @@ document.addEventListener(
 ========================================================= */
 
 async function initializeMIRAI() {
-
-    /*
-       Important:
-       We do NOT use localStorage for My List.
-
-       PostgreSQL + the user's session remain the
-       source of truth, which allows the same list
-       to appear on different devices.
-    */
-
 
     updateAccountUI();
 
@@ -5720,2266 +8008,83 @@ async function initializeMIRAI() {
 
 
     currentScheduleDay =
-        activeScheduleTab
-            ?.dataset
-            .day ||
+        activeScheduleTab?.dataset.day ||
         "monday";
 
 
-    loadSchedule(
+    await loadSchedule(
         currentScheduleDay
     );
+
+
+    startHeroAutoplay();
 
 }
 
 
 initializeMIRAI();
+
+
 /* =========================================================
-   MIRAI MOBILE NAVIGATION FIX
-   ========================================================= */
-
-(() => {
-
-    const mobileMenu =
-        document.getElementById("mobileMenuBtn");
-
-    /*
-       The old mobile hamburger opened the desktop
-       sidebar. MIRAI now uses the bottom navigation,
-       so the hamburger is intentionally disabled.
-    */
-
-    if (mobileMenu) {
-
-        mobileMenu.style.display = "none";
-
-        mobileMenu.onclick = null;
-
-    }
-
-
-    /*
-       Mobile search button opens the existing global
-       search instead of creating another search system.
-    */
-
-    const mobileSearch =
-        document.getElementById(
-            "mobileSearchButton"
-        );
-
-    if (mobileSearch) {
-
-        mobileSearch.addEventListener(
-            "click",
-            () => {
-
-                const input =
-                    document.getElementById(
-                        "globalSearchInput"
-                    );
-
-                if (input) {
-
-                    input.focus();
-
-                    input.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center"
-                    });
-
-                } else {
-
-                    if (
-                        typeof goToSearch ===
-                        "function"
-                    ) {
-                        goToSearch();
-                    }
-
-                }
-
-            }
-        );
-
-    }
-
-
-    /*
-       Make the Lelouch brand image return to Home.
-    */
-
-    const mobileBrand =
-        document.getElementById(
-            "mobileHomeButton"
-        );
-
-    if (mobileBrand) {
-
-        mobileBrand.addEventListener(
-            "click",
-            () => {
-
-                if (
-                    typeof showPage ===
-                    "function"
-                ) {
-                    showPage("home");
-                }
-
-            }
-        );
-
-    }
-
-})();
-/* =========================================================
-   MIRAI — ENHANCEMENT LAYER
-   ADD THIS TO THE VERY END OF YOUR ORIGINAL SCRIPT
+   FINAL MOBILE POLISH
 ========================================================= */
 
 (() => {
-    "use strict";
 
-    /* =====================================================
-       SAFE HELPERS
-    ===================================================== */
-
-    const el = id => document.getElementById(id);
-
-    const all = selector =>
-        document.querySelectorAll(selector);
-
-    const safeNumber = value => {
-        const n = Number(value);
-        return Number.isFinite(n) ? n : 0;
-    };
-
-    const escapeValue = value => {
-        if (value === null || value === undefined) {
-            return "";
-        }
-
-        return String(value)
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
-    };
-
-    /* =====================================================
-       API HELPER
-    ===================================================== */
-
-    async function miraiRequest(
-        url,
-        options = {}
-    ) {
-        const response = await fetch(
-            url,
-            {
-                credentials: "include",
-                ...options
-            }
+    const sidebar =
+        getElement(
+            "sidebar"
         );
 
-        const data =
-            await response
-                .json()
-                .catch(() => ({}));
 
-        if (!response.ok) {
-            const error = new Error(
-                data.error ||
-                data.message ||
-                "Request failed."
-            );
-
-            error.status =
-                response.status;
-
-            throw error;
-        }
-
-        return data;
-    }
-
-    /* =====================================================
-       NORMALIZE CURRENT LIST
-    ===================================================== */
-
-    function refreshLocalAnimeList(
-        updatedAnime
-    ) {
-        if (
-            typeof myList ===
-            "undefined"
-        ) {
-            return;
-        }
-
-        const id =
-            Number(
-                updatedAnime?.mal_id ||
-                updatedAnime?.id
-            );
-
-        if (!id) {
-            return;
-        }
-
-        const existingIndex =
-            myList.findIndex(
-                anime =>
-                    Number(
-                        anime?.mal_id ||
-                        anime?.id
-                    ) === id
-            );
-
-        if (
-            existingIndex >= 0
-        ) {
-            myList[
-                existingIndex
-            ] = {
-                ...myList[
-                    existingIndex
-                ],
-                ...updatedAnime,
-                id,
-                mal_id: id
-            };
-        } else {
-            myList.unshift({
-                ...updatedAnime,
-                id,
-                mal_id: id
-            });
-        }
-
-        myList.sort(
-            (a, b) =>
-                new Date(
-                    b.savedAt || 0
-                ) -
-                new Date(
-                    a.savedAt || 0
-                )
+    const menu =
+        getElement(
+            "mobileMenuBtn"
         );
 
-        if (
-            typeof renderMyList ===
-            "function"
-        ) {
-            renderMyList();
-        }
 
-        if (
-            typeof renderHomeList ===
-            "function"
-        ) {
-            renderHomeList();
-        }
-    }
-
-    /* =====================================================
-       HERO CAROUSEL
-    ===================================================== */
-
-    function enhancementHeroNext() {
-        if (
-            typeof popularAnime ===
-            "undefined" ||
-            !popularAnime.length
-        ) {
-            return;
-        }
-
-        if (
-            typeof featuredIndex ===
-            "undefined"
-        ) {
-            featuredIndex = 0;
-        }
-
-        featuredIndex =
-            (
-                featuredIndex + 1
-            ) %
-            popularAnime.length;
-
-        if (
-            typeof renderFeaturedCarousel ===
-            "function"
-        ) {
-            renderFeaturedCarousel();
-            return;
-        }
-
-        enhancementRenderHero();
-    }
-
-    function enhancementHeroPrevious() {
-        if (
-            typeof popularAnime ===
-            "undefined" ||
-            !popularAnime.length
-        ) {
-            return;
-        }
-
-        if (
-            typeof featuredIndex ===
-            "undefined"
-        ) {
-            featuredIndex = 0;
-        }
-
-        featuredIndex =
-            (
-                featuredIndex -
-                1 +
-                popularAnime.length
-            ) %
-            popularAnime.length;
-
-        if (
-            typeof renderFeaturedCarousel ===
-            "function"
-        ) {
-            renderFeaturedCarousel();
-            return;
-        }
-
-        enhancementRenderHero();
-    }
-
-    el(
-        "heroNext"
-    )?.addEventListener(
-        "click",
-        enhancementHeroNext
-    );
-
-    el(
-        "heroPrevious"
-    )?.addEventListener(
-        "click",
-        enhancementHeroPrevious
-    );
-
-    /* =====================================================
-       HERO RENDERING
-    ===================================================== */
-
-    function enhancementRenderHero() {
-        if (
-            typeof popularAnime ===
-            "undefined" ||
-            !popularAnime.length
-        ) {
-            return;
-        }
-
-        const index =
-            typeof featuredIndex ===
-            "number"
-                ? featuredIndex
-                : 0;
-
-        const anime =
-            popularAnime[
-                (
-                    index +
-                    popularAnime.length
-                ) %
-                popularAnime.length
-            ];
-
-        if (!anime) {
-            return;
-        }
-
-        const image =
-            anime.image ||
-            anime.image_url ||
-            "";
-
-        const heroImage =
-            el(
-                "heroImage"
-            );
-
-        const heroTitle =
-            el(
-                "heroTitle"
-            );
-
-        const heroSynopsis =
-            el(
-                "heroSynopsis"
-            );
-
-        const heroMeta =
-            el(
-                "heroMeta"
-            );
-
-        if (heroImage) {
-            heroImage.src =
-                image;
-
-            heroImage.alt =
-                anime.title ||
-                "Featured anime";
-        }
-
-        if (heroTitle) {
-            heroTitle.textContent =
-                anime.title ||
-                "Welcome to MIRAI.";
-        }
-
-        if (heroSynopsis) {
-            heroSynopsis.textContent =
-                anime.synopsis ||
-                "Discover your next favourite anime.";
-        }
-
-        if (heroMeta) {
-            const score =
-                anime.score ??
-                "N/A";
-
-            const episodes =
-                anime.episodes ??
-                "?";
-
-            heroMeta.textContent =
-                `★ ${score} • ${
-                    anime.type ||
-                    "Anime"
-                } • ${
-                    episodes
-                } episodes`;
-        }
-
-        const hero =
-            el(
-                "homeHero"
-            );
-
-        if (
-            hero &&
-            image
-        ) {
-            hero.style.backgroundImage =
-                `
-                    linear-gradient(
-                        90deg,
-                        rgba(7,8,13,.98) 0%,
-                        rgba(7,8,13,.88) 35%,
-                        rgba(7,8,13,.45) 68%,
-                        rgba(7,8,13,.12) 100%
-                    ),
-                    url("${image.replaceAll(
-                        '"',
-                        '\\"'
-                    )}")
-                `;
-        }
-
-        const viewButton =
-            el(
-                "heroViewButton"
-            );
-
-        if (viewButton) {
-            viewButton.onclick =
-                () => {
-
-                    if (
-                        typeof openAnimeModal ===
-                        "function"
-                    ) {
-                        openAnimeModal(
-                            anime
-                        );
-                    }
-                };
-        }
-
-        const trailerButton =
-            el(
-                "heroTrailerButton"
-            );
-
-        if (trailerButton) {
-            trailerButton.onclick =
-                () => {
-
-                    enhancementOpenTrailer(
-                        anime
-                    );
-                };
-        }
-
-        enhancementRenderHeroDots();
-    }
-
-    /* =====================================================
-       HERO DOTS
-    ===================================================== */
-
-    function enhancementRenderHeroDots() {
-        const dots =
-            el(
-                "heroDots"
-            );
-
-        if (
-            !dots ||
-            typeof popularAnime ===
-            "undefined" ||
-            !popularAnime.length
-        ) {
-            return;
-        }
-
-        const count =
-            Math.min(
-                popularAnime.length,
-                8
-            );
-
-        const current =
-            typeof featuredIndex ===
-            "number"
-                ? featuredIndex
-                : 0;
-
-        dots.innerHTML =
-            Array.from(
-                {
-                    length:
-                        count
-                },
-                (_, index) =>
-                    `
-                        <button
-                            class="carousel-dot ${
-                                index === current
-                                    ? "active"
-                                    : ""
-                            }"
-                            type="button"
-                            data-hero-index="${index}"
-                            aria-label="Show featured anime ${index + 1}"
-                        ></button>
-                    `
-            ).join("");
-
-        dots
-            .querySelectorAll(
-                "[data-hero-index]"
-            )
-            .forEach(
-                button => {
-
-                    button.addEventListener(
-                        "click",
-                        () => {
-
-                            if (
-                                typeof featuredIndex !==
-                                "undefined"
-                            ) {
-                                featuredIndex =
-                                    Number(
-                                        button.dataset
-                                            .heroIndex
-                                    );
-                            }
-
-                            enhancementRenderHero();
-
-                        }
-                    );
-
-                }
-            );
-    }
-
-    /* =====================================================
-       HERO KEYBOARD NAVIGATION
-    ===================================================== */
-
-    document.addEventListener(
-        "keydown",
-        event => {
-
-            const tag =
-                document.activeElement
-                    ?.tagName;
-
-            if (
-                tag ===
-                "INPUT" ||
-                tag ===
-                "TEXTAREA" ||
-                tag ===
-                "SELECT"
-            ) {
-                return;
-            }
-
-            const home =
-                el(
-                    "homePage"
-                );
-
-            if (
-                !home ||
-                !home.classList.contains(
-                    "active-page"
-                )
-            ) {
-                return;
-            }
-
-            if (
-                event.key ===
-                "ArrowRight"
-            ) {
-                enhancementHeroNext();
-            }
-
-            if (
-                event.key ===
-                "ArrowLeft"
-            ) {
-                enhancementHeroPrevious();
-            }
-
-        }
-    );
-
-    /* =====================================================
-       HERO TOUCH SWIPE
-    ===================================================== */
-
-    let heroTouchStart = null;
-
-    document.addEventListener(
-        "touchstart",
-        event => {
-
-            const home =
-                el(
-                    "homePage"
-                );
-
-            if (
-                !home ||
-                !home.classList.contains(
-                    "active-page"
-                )
-            ) {
-                return;
-            }
-
-            if (
-                event.touches.length !==
-                1
-            ) {
-                return;
-            }
-
-            heroTouchStart =
-                event.touches[0]
-                    .clientX;
-
-        },
-        {
-            passive: true
-        }
-    );
-
-    document.addEventListener(
-        "touchend",
-        event => {
-
-            if (
-                heroTouchStart ===
-                null
-            ) {
-                return;
-            }
-
-            const end =
-                event.changedTouches[0]
-                    ?.clientX;
-
-            if (
-                typeof end !==
-                "number"
-            ) {
-                heroTouchStart =
-                    null;
-
-                return;
-            }
-
-            const distance =
-                heroTouchStart -
-                end;
-
-            if (
-                Math.abs(distance) >
-                55
-            ) {
-
-                if (
-                    distance >
-                    0
-                ) {
-                    enhancementHeroNext();
-                } else {
-                    enhancementHeroPrevious();
-                }
-
-            }
-
-            heroTouchStart =
-                null;
-
-        },
-        {
-            passive: true
-        }
-    );
-
-    /* =====================================================
-       RATING SLIDER
-    ===================================================== */
-
-    function enhancementUpdateRating(
-        value
+    if (
+        menu &&
+        sidebar
     ) {
 
-        const rating =
-            Math.max(
-                1,
-                Math.min(
-                    5,
-                    Number(value) ||
-                    1
-                )
-            );
-
-        currentRating =
-            rating;
-
-        const big =
-            el(
-                "ratingBigNumber"
-            );
-
-        const valueElement =
-            el(
-                "ratingValue"
-            );
-
-        if (big) {
-            big.textContent =
-                String(
-                    rating
-                );
-        }
-
-        if (valueElement) {
-            valueElement.textContent =
-                `${rating} / 5`;
-        }
-    }
-
-    const ratingSlider =
-        el(
-            "ratingSlider"
-        );
-
-    if (ratingSlider) {
-
-        ratingSlider.addEventListener(
-            "input",
+        menu.addEventListener(
+            "click",
             event => {
 
-                enhancementUpdateRating(
-                    event.target.value
-                );
+                event.stopPropagation();
 
-            }
-        );
 
-        ratingSlider.addEventListener(
-            "change",
-            event => {
-
-                enhancementUpdateRating(
-                    event.target.value
-                );
-
-            }
-        );
-
-    }
-
-    /* =====================================================
-       OPEN RATING MODAL
-    ===================================================== */
-
-    el(
-        "modalRateButton"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            if (!currentUser) {
-
-                if (
-                    typeof closeAnimeModal ===
-                    "function"
-                ) {
-                    closeAnimeModal();
-                }
-
-                if (
-                    typeof openLogin ===
-                    "function"
-                ) {
-                    openLogin();
-                }
-
-                return;
-            }
-
-            if (!currentAnime) {
-                return;
-            }
-
-            const existing =
-                typeof getListAnime ===
-                "function"
-                    ? getListAnime(
-                        currentAnime
-                    )
-                    : null;
-
-            if (!existing) {
-
-                if (
-                    typeof showToast ===
-                    "function"
-                ) {
-                    showToast(
-                        "Add this anime to My List before rating it.",
-                        "error"
-                    );
-                }
-
-                return;
-            }
-
-            currentRating =
-                Number(
-                    existing.rating ||
-                    0
-                );
-
-            const slider =
-                el(
-                    "ratingSlider"
-                );
-
-            if (slider) {
-
-                slider.value =
-                    currentRating ||
-                    1;
-
-                enhancementUpdateRating(
-                    slider.value
-                );
-
-            }
-
-            const title =
-                el(
-                    "ratingAnimeTitle"
-                );
-
-            if (title) {
-                title.textContent =
-                    currentAnime.title ||
-                    "Anime";
-            }
-
-            el(
-                "ratingModal"
-            )?.classList.add(
-                "open"
-            );
-
-            document.body.style.overflow =
-                "hidden";
-
-        }
-    );
-
-    /* =====================================================
-       SAVE RATING
-    ===================================================== */
-
-    el(
-        "submitRating"
-    )?.addEventListener(
-        "click",
-        async () => {
-
-            if (
-                !currentUser ||
-                !currentAnime
-            ) {
-                return;
-            }
-
-            const animeId =
-                Number(
-                    currentAnime.mal_id ||
-                    currentAnime.id
-                );
-
-            if (!animeId) {
-                return;
-            }
-
-            const rating =
-                Math.max(
-                    1,
-                    Math.min(
-                        5,
-                        Number(
-                            currentRating
-                        ) ||
-                        1
-                    )
-                );
-
-            const button =
-                el(
-                    "submitRating"
-                );
-
-            const originalText =
-                button?.textContent ||
-                "Save Rating";
-
-            if (button) {
-                button.disabled =
-                    true;
-
-                button.textContent =
-                    "Saving...";
-            }
-
-            try {
-
-                const data =
-                    await miraiRequest(
-                        `/api/my-list/${animeId}/rating`,
-                        {
-                            method:
-                                "PATCH",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    rating
-                                })
-                        }
-                    );
-
-                const item =
-                    typeof getListAnime ===
-                    "function"
-                        ? getListAnime(
-                            currentAnime
-                        )
-                        : null;
-
-                if (item) {
-                    item.rating =
-                        rating;
-                }
-
-                currentAnime.rating =
-                    rating;
-
-                if (
-                    typeof renderMyList ===
-                    "function"
-                ) {
-                    renderMyList();
-                }
-
-                if (
-                    typeof renderHomeList ===
-                    "function"
-                ) {
-                    renderHomeList();
-                }
-
-                el(
-                    "ratingModal"
-                )?.classList.remove(
+                sidebar.classList.toggle(
                     "open"
                 );
 
-                document.body.style.overflow =
-                    "";
 
-                if (
-                    typeof showToast ===
-                    "function"
-                ) {
-                    showToast(
-                        `Rated ${rating}/5.`,
-                        "success"
-                    );
-                }
-
-            } catch (error) {
-
-                console.error(
-                    "MIRAI RATING ERROR:",
-                    error
-                );
-
-                if (
-                    typeof showToast ===
-                    "function"
-                ) {
-                    showToast(
-                        error.message ||
-                        "Could not save rating.",
-                        "error"
-                    );
-                }
-
-            } finally {
-
-                if (button) {
-
-                    button.disabled =
-                        false;
-
-                    button.textContent =
-                        originalText;
-
-                }
-
-            }
-
-        }
-    );
-
-    /* =====================================================
-       MODAL LIST MANAGEMENT
-    ===================================================== */
-
-    function enhancementUpdateModalControls() {
-
-        const management =
-            el(
-                "listManagement"
-            );
-
-        if (
-            !management ||
-            !currentAnime
-        ) {
-            return;
-        }
-
-        const existing =
-            typeof getListAnime ===
-            "function"
-                ? getListAnime(
-                    currentAnime
-                )
-                : null;
-
-        if (!existing) {
-
-            management.classList.add(
-                "hidden"
-            );
-
-            return;
-        }
-
-        management.classList.remove(
-            "hidden"
-        );
-
-        const status =
-            el(
-                "animeStatusSelect"
-            );
-
-        const episode =
-            el(
-                "episodeInput"
-            );
-
-        if (status) {
-            status.value =
-                existing.listStatus ||
-                "plan";
-        }
-
-        if (episode) {
-            episode.value =
-                Number(
-                    existing.episode ||
-                    0
-                );
-        }
-
-        const currentStatus =
-            el(
-                "modalCurrentStatus"
-            );
-
-        if (currentStatus) {
-
-            const labels = {
-                plan:
-                    "Plan to Watch",
-
-                watching:
-                    "Watching",
-
-                completed:
-                    "Completed",
-
-                on_hold:
-                    "On Hold",
-
-                dropped:
-                    "Dropped"
-            };
-
-            currentStatus.textContent =
-                `${
-                    labels[
-                        existing.listStatus
-                    ] ||
-                    existing.listStatus ||
-                    "Unknown"
-                } • Episode ${
-                    Number(
-                        existing.episode ||
-                        0
-                    )
-                }`;
-
-        }
-
-    }
-
-    el(
-        "saveListChanges"
-    )?.addEventListener(
-        "click",
-        async () => {
-
-            if (
-                !currentUser ||
-                !currentAnime
-            ) {
-                return;
-            }
-
-            const animeId =
-                Number(
-                    currentAnime.mal_id ||
-                    currentAnime.id
-                );
-
-            if (!animeId) {
-                return;
-            }
-
-            const status =
-                el(
-                    "animeStatusSelect"
-                )?.value ||
-                "plan";
-
-            const episode =
-                Math.max(
-                    0,
-                    Math.floor(
-                        Number(
-                            el(
-                                "episodeInput"
-                            )?.value ||
-                            0
-                        )
-                    )
-                );
-
-            const button =
-                el(
-                    "saveListChanges"
-                );
-
-            const original =
-                button?.textContent ||
-                "Save Changes";
-
-            if (button) {
-
-                button.disabled =
-                    true;
-
-                button.textContent =
-                    "Saving...";
-
-            }
-
-            try {
-
-                const data =
-                    await miraiRequest(
-                        `/api/my-list/${animeId}`,
-                        {
-                            method:
-                                "PATCH",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    status,
-                                    episode
-                                })
-                        }
-                    );
-
-                const local =
-                    typeof getListAnime ===
-                    "function"
-                        ? getListAnime(
-                            currentAnime
-                        )
-                        : null;
-
-                if (local) {
-
-                    local.listStatus =
-                        data.data?.status ||
-                        status;
-
-                    local.status =
-                        local.listStatus;
-
-                    local.episode =
-                        Number(
-                            data.data?.episode ??
-                            episode
-                        );
-
-                    local.savedAt =
-                        data.data?.savedAt ||
-                        new Date()
-                            .toISOString();
-
-                }
-
-                if (
-                    typeof renderMyList ===
-                    "function"
-                ) {
-                    renderMyList();
-                }
-
-                if (
-                    typeof renderHomeList ===
-                    "function"
-                ) {
-                    renderHomeList();
-                }
-
-                enhancementUpdateModalControls();
-
-                if (
-                    typeof showToast ===
-                    "function"
-                ) {
-                    showToast(
-                        "Anime updated.",
-                        "success"
-                    );
-                }
-
-            } catch (error) {
-
-                console.error(
-                    "MIRAI LIST UPDATE ERROR:",
-                    error
-                );
-
-                if (
-                    typeof showToast ===
-                    "function"
-                ) {
-                    showToast(
-                        error.message ||
-                        "Could not update the anime.",
-                        "error"
-                    );
-                }
-
-            } finally {
-
-                if (button) {
-
-                    button.disabled =
-                        false;
-
-                    button.textContent =
-                        original;
-
-                }
-
-            }
-
-        }
-    );
-
-    /* =====================================================
-       EPISODE BUTTONS
-    ===================================================== */
-
-    el(
-        "episodePlus"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            const input =
-                el(
-                    "episodeInput"
-                );
-
-            if (!input) {
-                return;
-            }
-
-            const current =
-                Math.max(
-                    0,
-                    Number(
-                        input.value ||
-                        0
-                    )
-                );
-
-            const maximum =
-                Number(
-                    currentAnime?.episodes ||
-                    currentAnime?.episode_count ||
-                    999999
-                );
-
-            input.value =
-                Math.min(
-                    current + 1,
-                    maximum
-                );
-
-        }
-    );
-
-    el(
-        "episodeMinus"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            const input =
-                el(
-                    "episodeInput"
-                );
-
-            if (!input) {
-                return;
-            }
-
-            const current =
-                Math.max(
-                    0,
-                    Number(
-                        input.value ||
-                        0
-                    )
-                );
-
-            input.value =
-                Math.max(
-                    0,
-                    current - 1
-                );
-
-        }
-    );
-
-    /* =====================================================
-       SCHEDULE TIME FORMAT
-    ===================================================== */
-
-    function enhancementParseTime(
-        anime
-    ) {
-
-        const broadcast =
-            anime?.broadcast ||
-            {};
-
-        const airing =
-            anime?.airing ||
-            {};
-
-        const raw =
-            airing.time ||
-            airing.display ||
-            broadcast.start_time ||
-            broadcast.time ||
-            "";
-
-        if (!raw) {
-            return null;
-        }
-
-        const match =
-            String(
-                raw
-            ).match(
-                /(\d{1,2}):(\d{2})/
-            );
-
-        if (!match) {
-            return null;
-        }
-
-        const hour =
-            Number(
-                match[1]
-            );
-
-        const minute =
-            Number(
-                match[2]
-            );
-
-        if (
-            hour < 0 ||
-            hour > 23 ||
-            minute < 0 ||
-            minute > 59
-        ) {
-            return null;
-        }
-
-        return {
-            hour,
-            minute,
-            total:
-                hour * 60 +
-                minute
-        };
-
-    }
-
-    function enhancementFormatTime(
-        hour,
-        minute
-    ) {
-
-        const period =
-            hour >= 12
-                ? "PM"
-                : "AM";
-
-        const twelve =
-            hour % 12 ||
-            12;
-
-        return (
-            `${twelve}:` +
-            `${String(
-                minute
-            ).padStart(
-                2,
-                "0"
-            )} ${period}`
-        );
-
-    }
-
-    /* =====================================================
-       SCHEDULE HOURS BAR
-    ===================================================== */
-
-    function enhancementRenderScheduleHours(
-        animeList
-    ) {
-
-        const hours =
-            el(
-                "scheduleHours"
-            );
-
-        if (
-            !hours
-        ) {
-            return;
-        }
-
-        const present =
-            new Set();
-
-        (
-            Array.isArray(
-                animeList
-            )
-                ? animeList
-                : []
-        )
-            .forEach(
-                anime => {
-
-                    const time =
-                        enhancementParseTime(
-                            anime
-                        );
-
-                    if (time) {
-                        present.add(
-                            time.hour
-                        );
-                    }
-
-                }
-            );
-
-        hours.innerHTML =
-            Array.from(
-                {
-                    length:
-                        24
-                },
-                (_, hour) =>
-                    `
-                        <button
-                            type="button"
-                            class="schedule-hour-chip ${
-                                present.has(hour)
-                                    ? "has-anime"
-                                    : ""
-                            }"
-                            data-hour="${hour}"
-                        >
-                            ${escapeValue(
-                                enhancementFormatTime(
-                                    hour,
-                                    0
-                                )
-                            )}
-                        </button>
-                    `
-            ).join("");
-
-        hours
-            .querySelectorAll(
-                "[data-hour]"
-            )
-            .forEach(
-                chip => {
-
-                    chip.addEventListener(
-                        "click",
-                        () => {
-
-                            const hour =
-                                Number(
-                                    chip.dataset
-                                        .hour
-                                );
-
-                            const list =
-                                Array.isArray(
-                                    animeList
-                                )
-                                    ? animeList
-                                    : [];
-
-                            const matching =
-                                list.filter(
-                                    anime => {
-
-                                        const time =
-                                            enhancementParseTime(
-                                                anime
-                                            );
-
-                                        return (
-                                            time &&
-                                            time.hour ===
-                                            hour
-                                        );
-
-                                    }
-                                );
-
-                            if (
-                                matching.length &&
-                                typeof renderScheduleGrid ===
-                                "function"
-                            ) {
-
-                                const grid =
-                                    el(
-                                        "scheduleGrid"
-                                    );
-
-                                renderScheduleGrid(
-                                    grid,
-                                    matching
-                                );
-
-                            }
-
-                        }
-                    );
-
-                }
-            );
-
-    }
-
-    /* =====================================================
-       TRAILER MODAL
-    ===================================================== */
-
-    async function enhancementGetTrailer(
-        anime
-    ) {
-
-        const id =
-            Number(
-                anime?.mal_id ||
-                anime?.id
-            );
-
-        if (!id) {
-            return null;
-        }
-
-        try {
-
-            const data =
-                await miraiRequest(
-                    `/anime/trailer/${id}`
-                );
-
-            return (
-                data?.data ||
-                null
-            );
-
-        } catch (
-            error
-        ) {
-
-            console.warn(
-                "Trailer unavailable:",
-                error
-            );
-
-            return null;
-
-        }
-
-    }
-
-    async function enhancementOpenTrailer(
-        anime
-    ) {
-
-        const trailer =
-            await enhancementGetTrailer(
-                anime
-            );
-
-        if (
-            !trailer?.embed_url
-        ) {
-
-            if (
-                typeof showToast ===
-                "function"
-            ) {
-                showToast(
-                    "No official trailer is available for this anime.",
-                    "error"
-                );
-            }
-
-            return;
-
-        }
-
-        const frame =
-            el(
-                "trailerFrame"
-            );
-
-        const modal =
-            el(
-                "trailerModal"
-            );
-
-        if (
-            !frame ||
-            !modal
-        ) {
-            return;
-        }
-
-        frame.src =
-            trailer.embed_url;
-
-        modal.classList.add(
-            "open"
-        );
-
-        document.body.style.overflow =
-            "hidden";
-
-    }
-
-    el(
-        "heroTrailerButton"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            if (
-                currentAnime
-            ) {
-                enhancementOpenTrailer(
-                    currentAnime
-                );
-                return;
-            }
-
-            if (
-                typeof popularAnime !==
-                "undefined" &&
-                popularAnime.length
-            ) {
-
-                const anime =
-                    popularAnime[
-                        typeof featuredIndex ===
-                        "number"
-                            ? featuredIndex
-                            : 0
-                    ];
-
-                enhancementOpenTrailer(
-                    anime
-                );
-
-            }
-
-        }
-    );
-
-    el(
-        "modalTrailerButton"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            if (
-                currentAnime
-            ) {
-                enhancementOpenTrailer(
-                    currentAnime
-                );
-            }
-
-        }
-    );
-
-    el(
-        "trailerModalClose"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            const modal =
-                el(
-                    "trailerModal"
-                );
-
-            const frame =
-                el(
-                    "trailerFrame"
-                );
-
-            if (frame) {
-                frame.src =
-                    "";
-            }
-
-            modal?.classList.remove(
-                "open"
-            );
-
-            document.body.style.overflow =
-                "";
-
-        }
-    );
-
-    el(
-        "trailerModal"
-    )?.addEventListener(
-        "click",
-        event => {
-
-            const modal =
-                el(
-                    "trailerModal"
-                );
-
-            if (
-                event.target ===
-                modal
-            ) {
-
-                const frame =
-                    el(
-                        "trailerFrame"
-                    );
-
-                if (frame) {
-                    frame.src =
-                        "";
-                }
-
-                modal.classList.remove(
-                    "open"
-                );
-
-                document.body.style.overflow =
-                    "";
-
-            }
-
-        }
-    );
-
-    /* =====================================================
-       MOBILE NAV IMPROVEMENTS
-    ===================================================== */
-
-    all(
-        ".mobile-nav-item"
-    ).forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    const page =
-                        button.dataset.page;
-
-                    if (
-                        page &&
-                        typeof showPage ===
-                        "function"
-                    ) {
-                        showPage(
-                            page
-                        );
-                    }
-
-                }
-            );
-
-        }
-    );
-
-    /* =====================================================
-       MOBILE BRAND -> HOME
-    ===================================================== */
-
-    el(
-        "mobileHomeButton"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            if (
-                typeof showPage ===
-                "function"
-            ) {
-                showPage(
-                    "home"
-                );
-            }
-
-        }
-    );
-
-    /* =====================================================
-       ACCOUNT BUTTON
-    ===================================================== */
-
-    el(
-        "mobileAccountBtn"
-    )?.addEventListener(
-        "click",
-        () => {
-
-            if (
-                currentUser
-            ) {
-
-                if (
-                    typeof showPage ===
-                    "function"
-                ) {
-                    showPage(
-                        "my-list"
-                    );
-                }
-
-            } else if (
-                typeof openLogin ===
-                "function"
-            ) {
-
-                openLogin();
-
-            }
-
-        }
-    );
-
-    /* =====================================================
-       BACK TO HOME ON ALL PAGES
-    ===================================================== */
-
-    all(
-        "[data-home]"
-    ).forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    if (
-                        typeof showPage ===
-                        "function"
-                    ) {
-                        showPage(
-                            "home"
-                        );
-                    }
-
-                }
-            );
-
-        }
-    );
-
-    /* =====================================================
-       KEYBOARD SEARCH
-    ===================================================== */
-
-    document.addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key !==
-                "/"
-            ) {
-                return;
-            }
-
-            const tag =
-                document.activeElement
-                    ?.tagName;
-
-            if (
-                tag ===
-                "INPUT" ||
-                tag ===
-                "TEXTAREA" ||
-                tag ===
-                "SELECT"
-            ) {
-                return;
-            }
-
-            event.preventDefault();
-
-            const input =
-                el(
-                    "globalSearchInput"
-                );
-
-            if (input) {
-
-                input.focus();
-
-                input.select();
-
-            }
-
-        }
-    );
-
-    /* =====================================================
-       ESCAPE MODALS
-    ===================================================== */
-
-    document.addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key !==
-                "Escape"
-            ) {
-                return;
-            }
-
-            all(
-                ".modal-overlay.open"
-            ).forEach(
-                modal => {
-
-                    modal.classList.remove(
+                getElement(
+                    "mobileBackdrop"
+                )?.classList.toggle(
+                    "open",
+                    sidebar.classList.contains(
                         "open"
-                    );
-
-                }
-            );
-
-            document.body.style.overflow =
-                "";
-
-            const frame =
-                el(
-                    "trailerFrame"
-                );
-
-            if (frame) {
-                frame.src =
-                    "";
-            }
-
-        }
-    );
-
-    /* =====================================================
-       REFRESH LIST WHEN TAB BECOMES VISIBLE
-    ===================================================== */
-
-    document.addEventListener(
-        "visibilitychange",
-        async () => {
-
-            if (
-                document.visibilityState !==
-                "visible"
-            ) {
-                return;
-            }
-
-            if (
-                !currentUser
-            ) {
-                return;
-            }
-
-            if (
-                typeof loadMyListFromServer ===
-                "function"
-            ) {
-
-                try {
-
-                    await loadMyListFromServer();
-
-                } catch (
-                    error
-                ) {
-
-                    console.warn(
-                        "Could not refresh MIRAI list:",
-                        error
-                    );
-
-                }
-
-            }
-
-        }
-    );
-
-    /* =====================================================
-       OPTIONAL PERIODIC SYNC
-       Keeps multiple open tabs/devices reasonably fresh.
-    ===================================================== */
-
-    setInterval(
-        async () => {
-
-            if (
-                !currentUser ||
-                document.visibilityState !==
-                "visible"
-            ) {
-                return;
-            }
-
-            if (
-                typeof loadMyListFromServer !==
-                "function"
-            ) {
-                return;
-            }
-
-            try {
-
-                await loadMyListFromServer();
-
-            } catch (
-                error
-            ) {
-
-                console.debug(
-                    "MIRAI background sync failed:",
-                    error
+                    )
                 );
 
             }
-
-        },
-        60_000
-    );
-
-    /* =====================================================
-       PATCH RENDERERS WHEN THEY ARE AVAILABLE
-    ===================================================== */
-
-    const originalOpenAnimeModal =
-        typeof openAnimeModal ===
-        "function"
-            ? openAnimeModal
-            : null;
-
-    if (originalOpenAnimeModal) {
-
-        window.openAnimeModal =
-            function(
-                anime
-            ) {
-
-                originalOpenAnimeModal(
-                    anime
-                );
-
-                setTimeout(
-                    () => {
-
-                        enhancementUpdateModalControls();
-
-                    },
-                    0
-                );
-
-            };
+        );
 
     }
 
-    /* =====================================================
-       INITIAL ENHANCEMENT REFRESH
-    ===================================================== */
 
-    setTimeout(
-        () => {
+    /*
+       Prevent horizontal overflow caused
+       by long anime titles.
+    */
 
-            if (
-                typeof popularAnime !==
-                "undefined" &&
-                popularAnime.length
-            ) {
+    document.documentElement.style.overflowX =
+        "hidden";
 
-                enhancementRenderHero();
 
-            }
-
-            if (
-                typeof scheduleData !==
-                "undefined" &&
-                currentScheduleDay &&
-                scheduleData[
-                    currentScheduleDay
-                ]
-            ) {
-
-                enhancementRenderScheduleHours(
-                    scheduleData[
-                        currentScheduleDay
-                    ]
-                );
-
-            }
-
-        },
-        500
-    );
+    document.body.style.overflowX =
+        "hidden";
 
 })();
