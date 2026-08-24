@@ -1,5 +1,6 @@
 /* =========================================================
-   MIRAI ANIME TRACKER
+   MIRAI — ANIME TRACKER
+   COMPLETE UPDATED SCRIPT
 ========================================================= */
 
 const API_BASE = "";
@@ -14,8 +15,12 @@ let currentAnime = null;
 let currentRating = 0;
 
 let myList = [];
-
 let scheduleData = {};
+let popularAnime = [];
+
+let homeListIndex = 0;
+
+const HOME_LIST_SIZE = 6;
 
 
 /* =========================================================
@@ -32,47 +37,26 @@ const pages = {
     random: document.getElementById("randomPage")
 };
 
-const navItems =
-    document.querySelectorAll(".nav-item");
+const navItems = document.querySelectorAll(".nav-item");
 
-const accountModal =
-    document.getElementById("accountModal");
+const accountModal = document.getElementById("accountModal");
+const animeModal = document.getElementById("animeModal");
+const ratingModal = document.getElementById("ratingModal");
 
-const animeModal =
-    document.getElementById("animeModal");
+const loginContainer = document.getElementById("loginContainer");
+const registerContainer = document.getElementById("registerContainer");
 
-const ratingModal =
-    document.getElementById("ratingModal");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
 
-const loginContainer =
-    document.getElementById("loginContainer");
+const loginError = document.getElementById("loginError");
+const registerError = document.getElementById("registerError");
 
-const registerContainer =
-    document.getElementById("registerContainer");
+const loggedOutAccount = document.getElementById("loggedOutAccount");
+const loggedInAccount = document.getElementById("loggedInAccount");
 
-const loginForm =
-    document.getElementById("loginForm");
-
-const registerForm =
-    document.getElementById("registerForm");
-
-const loginError =
-    document.getElementById("loginError");
-
-const registerError =
-    document.getElementById("registerError");
-
-const loggedOutAccount =
-    document.getElementById("loggedOutAccount");
-
-const loggedInAccount =
-    document.getElementById("loggedInAccount");
-
-const sidebarUsername =
-    document.getElementById("sidebarUsername");
-
-const userAvatar =
-    document.getElementById("userAvatar");
+const sidebarUsername = document.getElementById("sidebarUsername");
+const userAvatar = document.getElementById("userAvatar");
 
 
 /* =========================================================
@@ -82,11 +66,9 @@ const userAvatar =
 function showPage(pageName) {
 
     Object.values(pages).forEach(page => {
-
         if (page) {
             page.classList.remove("active-page");
         }
-
     });
 
     if (pages[pageName]) {
@@ -94,16 +76,13 @@ function showPage(pageName) {
     }
 
     navItems.forEach(item => {
-
         item.classList.toggle(
             "active",
             item.dataset.page === pageName
         );
-
     });
 
-    const sidebar =
-        document.getElementById("sidebar");
+    const sidebar = document.getElementById("sidebar");
 
     if (sidebar) {
         sidebar.classList.remove("open");
@@ -123,14 +102,23 @@ function showPage(pageName) {
     }
 
     if (pageName === "schedule") {
-        loadSchedule("monday");
+
+        const activeTab =
+            document.querySelector(".schedule-tab.active");
+
+        loadSchedule(
+            activeTab?.dataset.day || "monday"
+        );
     }
 
+    if (pageName === "discover") {
+        loadDiscover();
+    }
 }
 
 
 /* =========================================================
-   NAVIGATION
+   SIDEBAR NAVIGATION
 ========================================================= */
 
 navItems.forEach(item => {
@@ -167,6 +155,10 @@ if (mobileMenuBtn) {
 }
 
 
+/* =========================================================
+   MOBILE ACCOUNT
+========================================================= */
+
 const mobileAccountBtn =
     document.getElementById("mobileAccountBtn");
 
@@ -175,13 +167,9 @@ if (mobileAccountBtn) {
     mobileAccountBtn.addEventListener("click", () => {
 
         if (currentUser) {
-
             showPage("my-list");
-
         } else {
-
             openLogin();
-
         }
 
     });
@@ -190,76 +178,57 @@ if (mobileAccountBtn) {
 
 
 /* =========================================================
-   HERO
+   HERO BUTTONS
 ========================================================= */
 
-const heroSearchBtn =
-    document.getElementById("heroSearchBtn");
+function goToSearch() {
 
-if (heroSearchBtn) {
+    showPage("search");
 
-    heroSearchBtn.addEventListener("click", () => {
+    const input =
+        document.getElementById("searchInput");
 
-        showPage("search");
+    if (input) {
 
-        const input =
-            document.getElementById("searchInput");
-
-        if (input) {
+        setTimeout(() => {
             input.focus();
-        }
+        }, 100);
 
-    });
-
-}
-
-
-const homeSearchBtn =
-    document.getElementById("homeSearchBtn");
-
-if (homeSearchBtn) {
-
-    homeSearchBtn.addEventListener("click", () => {
-
-        showPage("search");
-
-        const input =
-            document.getElementById("searchInput");
-
-        if (input) {
-            input.focus();
-        }
-
-    });
+    }
 
 }
 
 
-const heroListBtn =
-    document.getElementById("heroListBtn");
-
-if (heroListBtn) {
-
-    heroListBtn.addEventListener("click", () => {
-
-        showPage("my-list");
-
-    });
-
-}
+document
+    .getElementById("heroSearchBtn")
+    ?.addEventListener(
+        "click",
+        goToSearch
+    );
 
 
-const listLoginBtn =
-    document.getElementById("listLoginBtn");
+document
+    .getElementById("homeSearchBtn")
+    ?.addEventListener(
+        "click",
+        goToSearch
+    );
 
-if (listLoginBtn) {
 
-    listLoginBtn.addEventListener(
+document
+    .getElementById("heroListBtn")
+    ?.addEventListener(
+        "click",
+        () => showPage("my-list")
+    );
+
+
+document
+    .getElementById("listLoginBtn")
+    ?.addEventListener(
         "click",
         openLogin
     );
-
-}
 
 
 /* =========================================================
@@ -268,23 +237,25 @@ if (listLoginBtn) {
 
 function openAccountModal() {
 
-    if (!accountModal) return;
+    if (!accountModal) {
+        return;
+    }
 
     accountModal.classList.add("open");
 
     document.body.style.overflow = "hidden";
-
 }
 
 
 function closeAccountModal() {
 
-    if (!accountModal) return;
+    if (!accountModal) {
+        return;
+    }
 
     accountModal.classList.remove("open");
 
-    document.body.style.overflow = "";
-
+    restoreBodyScroll();
 }
 
 
@@ -292,16 +263,10 @@ function openLogin() {
 
     clearAccountErrors();
 
-    if (loginContainer) {
-        loginContainer.classList.remove("hidden");
-    }
-
-    if (registerContainer) {
-        registerContainer.classList.add("hidden");
-    }
+    loginContainer?.classList.remove("hidden");
+    registerContainer?.classList.add("hidden");
 
     openAccountModal();
-
 }
 
 
@@ -309,95 +274,63 @@ function openRegister() {
 
     clearAccountErrors();
 
-    if (loginContainer) {
-        loginContainer.classList.add("hidden");
-    }
-
-    if (registerContainer) {
-        registerContainer.classList.remove("hidden");
-    }
+    loginContainer?.classList.add("hidden");
+    registerContainer?.classList.remove("hidden");
 
     openAccountModal();
-
 }
 
 
-const sidebarLoginBtn =
-    document.getElementById("sidebarLoginBtn");
-
-if (sidebarLoginBtn) {
-
-    sidebarLoginBtn.addEventListener(
+document
+    .getElementById("sidebarLoginBtn")
+    ?.addEventListener(
         "click",
         openLogin
     );
 
-}
 
-
-const sidebarSignupBtn =
-    document.getElementById("sidebarSignupBtn");
-
-if (sidebarSignupBtn) {
-
-    sidebarSignupBtn.addEventListener(
+document
+    .getElementById("sidebarSignupBtn")
+    ?.addEventListener(
         "click",
         openRegister
     );
 
-}
 
-
-const showRegisterBtn =
-    document.getElementById("showRegisterBtn");
-
-if (showRegisterBtn) {
-
-    showRegisterBtn.addEventListener(
+document
+    .getElementById("showRegisterBtn")
+    ?.addEventListener(
         "click",
         openRegister
     );
 
-}
 
-
-const showLoginBtn =
-    document.getElementById("showLoginBtn");
-
-if (showLoginBtn) {
-
-    showLoginBtn.addEventListener(
+document
+    .getElementById("showLoginBtn")
+    ?.addEventListener(
         "click",
         openLogin
     );
 
-}
 
-
-const accountModalClose =
-    document.getElementById("accountModalClose");
-
-if (accountModalClose) {
-
-    accountModalClose.addEventListener(
+document
+    .getElementById("accountModalClose")
+    ?.addEventListener(
         "click",
         closeAccountModal
     );
 
-}
 
-
-if (accountModal) {
-
-    accountModal.addEventListener("click", event => {
+accountModal?.addEventListener(
+    "click",
+    event => {
 
         if (event.target === accountModal) {
             closeAccountModal();
         }
 
-    });
-
-}
+    }
+);
 
 
 /* =========================================================
@@ -406,33 +339,28 @@ if (accountModal) {
 
 function showError(element, message) {
 
-    if (!element) return;
+    if (!element) {
+        return;
+    }
 
     element.textContent = message;
 
     element.classList.add("show");
-
 }
 
 
 function clearAccountErrors() {
 
+    loginError?.classList.remove("show");
+    registerError?.classList.remove("show");
+
     if (loginError) {
-
         loginError.textContent = "";
-
-        loginError.classList.remove("show");
-
     }
 
     if (registerError) {
-
         registerError.textContent = "";
-
-        registerError.classList.remove("show");
-
     }
-
 }
 
 
@@ -442,128 +370,138 @@ function clearAccountErrors() {
 
 if (loginForm) {
 
-    loginForm.addEventListener("submit", async event => {
+    loginForm.addEventListener(
+        "submit",
+        async event => {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        clearAccountErrors();
+            clearAccountErrors();
 
-        const identifier =
-            document
-                .getElementById("loginEmail")
-                .value
-                .trim();
+            const identifier =
+                document
+                    .getElementById("loginEmail")
+                    ?.value
+                    .trim();
 
-        const password =
-            document
-                .getElementById("loginPassword")
-                .value;
+            const password =
+                document
+                    .getElementById("loginPassword")
+                    ?.value || "";
 
-        if (!identifier || !password) {
+            if (!identifier || !password) {
 
-            showError(
-                loginError,
-                "Please enter your username/email and password."
-            );
-
-            return;
-
-        }
-
-        const button =
-            loginForm.querySelector("button");
-
-        const originalText =
-            button.textContent;
-
-        button.disabled = true;
-        button.textContent = "Logging in...";
-
-        try {
-
-            const response =
-                await fetch(
-                    `${API_BASE}/auth/login`,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-
-                        credentials: "include",
-
-                        body: JSON.stringify({
-                            identifier,
-                            password
-                        })
-                    }
+                showError(
+                    loginError,
+                    "Please enter your username/email and password."
                 );
 
-            const data =
-                await response
-                    .json()
-                    .catch(() => ({}));
+                return;
+            }
 
-            if (!response.ok) {
+            const button =
+                loginForm.querySelector("button");
 
-                throw new Error(
-                    data.message ||
-                    data.error ||
-                    "Incorrect username/email or password."
-                );
+            const originalText =
+                button?.textContent || "Log In";
+
+            if (button) {
+
+                button.disabled = true;
+                button.textContent = "Logging in...";
 
             }
 
-            currentUser =
-                data.user ||
-                data.account ||
-                null;
+            try {
 
-            if (!currentUser) {
+                const response =
+                    await fetch(
+                        `${API_BASE}/auth/login`,
+                        {
+                            method: "POST",
 
-                throw new Error(
-                    "Login succeeded but no user account was returned."
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            credentials: "include",
+
+                            body: JSON.stringify({
+                                identifier,
+                                password
+                            })
+                        }
+                    );
+
+                const data =
+                    await response
+                        .json()
+                        .catch(() => ({}));
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.error ||
+                        data.message ||
+                        "Incorrect username/email or password."
+                    );
+                }
+
+                currentUser =
+                    data.user || null;
+
+                if (!currentUser) {
+
+                    throw new Error(
+                        "Login succeeded but no user account was returned."
+                    );
+                }
+
+                homeListIndex = 0;
+
+                updateAccountUI();
+
+                await loadMyListFromServer();
+
+                closeAccountModal();
+
+                loginForm.reset();
+
+                showToast(
+                    `Welcome back, ${
+                        currentUser.username ||
+                        "User"
+                    }!`,
+                    "success"
                 );
+
+            } catch (error) {
+
+                console.error(
+                    "LOGIN ERROR:",
+                    error
+                );
+
+                showError(
+                    loginError,
+                    error.message ||
+                    "Unable to log in."
+                );
+
+            } finally {
+
+                if (button) {
+
+                    button.disabled = false;
+                    button.textContent = originalText;
+
+                }
 
             }
 
-            updateAccountUI();
-
-            await loadMyListFromServer();
-
-            closeAccountModal();
-
-            loginForm.reset();
-
-            showToast(
-                `Welcome back, ${
-                    currentUser.username || "User"
-                }!`,
-                "success"
-            );
-
-        } catch (error) {
-
-            console.error(
-                "LOGIN ERROR:",
-                error
-            );
-
-            showError(
-                loginError,
-                error.message ||
-                "Unable to log in."
-            );
-
-        } finally {
-
-            button.disabled = false;
-            button.textContent = originalText;
-
         }
-
-    });
+    );
 
 }
 
@@ -585,26 +523,26 @@ if (registerForm) {
             const username =
                 document
                     .getElementById("registerUsername")
-                    .value
-                    .trim();
+                    ?.value
+                    .trim() || "";
 
             const email =
                 document
                     .getElementById("registerEmail")
-                    .value
-                    .trim();
+                    ?.value
+                    .trim() || "";
 
             const password =
                 document
                     .getElementById("registerPassword")
-                    .value;
+                    ?.value || "";
 
             const confirmPassword =
                 document
                     .getElementById(
                         "registerConfirmPassword"
                     )
-                    .value;
+                    ?.value || "";
 
             if (username.length < 3) {
 
@@ -614,7 +552,6 @@ if (registerForm) {
                 );
 
                 return;
-
             }
 
             if (username.length > 30) {
@@ -625,7 +562,6 @@ if (registerForm) {
                 );
 
                 return;
-
             }
 
             if (!email.includes("@")) {
@@ -636,7 +572,6 @@ if (registerForm) {
                 );
 
                 return;
-
             }
 
             if (password.length < 6) {
@@ -647,7 +582,6 @@ if (registerForm) {
                 );
 
                 return;
-
             }
 
             if (password !== confirmPassword) {
@@ -658,17 +592,21 @@ if (registerForm) {
                 );
 
                 return;
-
             }
 
             const button =
                 registerForm.querySelector("button");
 
             const originalText =
-                button.textContent;
+                button?.textContent ||
+                "Create Account";
 
-            button.disabled = true;
-            button.textContent = "Creating account...";
+            if (button) {
+
+                button.disabled = true;
+                button.textContent = "Creating account...";
+
+            }
 
             try {
 
@@ -679,7 +617,8 @@ if (registerForm) {
                             method: "POST",
 
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type":
+                                    "application/json"
                             },
 
                             credentials: "include",
@@ -700,29 +639,28 @@ if (registerForm) {
                 if (!response.ok) {
 
                     throw new Error(
-                        data.message ||
                         data.error ||
+                        data.message ||
                         "Unable to create account."
                     );
-
                 }
 
                 currentUser =
-                    data.user ||
-                    data.account ||
-                    null;
+                    data.user || null;
 
                 if (!currentUser) {
 
                     throw new Error(
                         "Account was created but no user account was returned."
                     );
-
                 }
 
                 myList = [];
+                homeListIndex = 0;
 
                 updateAccountUI();
+
+                await loadMyListFromServer();
 
                 closeAccountModal();
 
@@ -748,8 +686,12 @@ if (registerForm) {
 
             } finally {
 
-                button.disabled = false;
-                button.textContent = originalText;
+                if (button) {
+
+                    button.disabled = false;
+                    button.textContent = originalText;
+
+                }
 
             }
 
@@ -768,11 +710,12 @@ const logoutBtn =
 
 if (logoutBtn) {
 
-    logoutBtn.addEventListener("click", async () => {
+    logoutBtn.addEventListener(
+        "click",
+        async () => {
 
-        try {
+            try {
 
-            const response =
                 await fetch(
                     `${API_BASE}/auth/logout`,
                     {
@@ -781,37 +724,29 @@ if (logoutBtn) {
                     }
                 );
 
-            if (!response.ok) {
+            } catch (error) {
 
-                console.warn(
-                    "Logout returned:",
-                    response.status
+                console.error(
+                    "Logout request failed:",
+                    error
                 );
 
             }
 
-        } catch (error) {
+            currentUser = null;
+            myList = [];
+            homeListIndex = 0;
 
-            console.error(
-                "Logout request failed:",
-                error
+            updateAccountUI();
+
+            showToast(
+                "You have been logged out."
             );
 
+            showPage("home");
+
         }
-
-        currentUser = null;
-
-        myList = [];
-
-        updateAccountUI();
-
-        showToast(
-            "You have been logged out."
-        );
-
-        showPage("home");
-
-    });
+    );
 
 }
 
@@ -837,25 +772,19 @@ async function checkSession() {
         if (!response.ok) {
 
             currentUser = null;
-
             myList = [];
 
             updateAccountUI();
 
             return;
-
         }
 
         const data =
             await response.json();
 
-        if (
-            data.loggedIn &&
-            data.user
-        ) {
+        if (data.loggedIn && data.user) {
 
-            currentUser =
-                data.user;
+            currentUser = data.user;
 
             updateAccountUI();
 
@@ -864,7 +793,6 @@ async function checkSession() {
         } else {
 
             currentUser = null;
-
             myList = [];
 
             updateAccountUI();
@@ -879,7 +807,6 @@ async function checkSession() {
         );
 
         currentUser = null;
-
         myList = [];
 
         updateAccountUI();
@@ -897,48 +824,29 @@ function updateAccountUI() {
 
     if (currentUser) {
 
-        if (loggedOutAccount) {
-
-            loggedOutAccount
-                .classList
-                .add("hidden");
-
-        }
-
-        if (loggedInAccount) {
-
-            loggedInAccount
-                .classList
-                .remove("hidden");
-
-        }
+        loggedOutAccount?.classList.add("hidden");
+        loggedInAccount?.classList.remove("hidden");
 
         const username =
             currentUser.username ||
             currentUser.name ||
-            currentUser.email?.split("@")[0] ||
+            currentUser.email
+                ?.split("@")[0] ||
             "User";
 
         if (sidebarUsername) {
-
-            sidebarUsername.textContent =
-                username;
-
+            sidebarUsername.textContent = username;
         }
 
         if (userAvatar) {
-
             userAvatar.textContent =
                 username
                     .charAt(0)
                     .toUpperCase();
-
         }
 
         const listSubtitle =
-            document.getElementById(
-                "listSubtitle"
-            );
+            document.getElementById("listSubtitle");
 
         if (listSubtitle) {
 
@@ -949,26 +857,11 @@ function updateAccountUI() {
 
     } else {
 
-        if (loggedOutAccount) {
-
-            loggedOutAccount
-                .classList
-                .remove("hidden");
-
-        }
-
-        if (loggedInAccount) {
-
-            loggedInAccount
-                .classList
-                .add("hidden");
-
-        }
+        loggedOutAccount?.classList.remove("hidden");
+        loggedInAccount?.classList.add("hidden");
 
         const listSubtitle =
-            document.getElementById(
-                "listSubtitle"
-            );
+            document.getElementById("listSubtitle");
 
         if (listSubtitle) {
 
@@ -980,12 +873,12 @@ function updateAccountUI() {
     }
 
     renderMyList();
-
+    renderHomeList();
 }
 
 
 /* =========================================================
-   LOAD USER'S LIST FROM DATABASE
+   LOAD USER LIST
 ========================================================= */
 
 async function loadMyListFromServer() {
@@ -995,9 +888,9 @@ async function loadMyListFromServer() {
         myList = [];
 
         renderMyList();
+        renderHomeList();
 
         return;
-
     }
 
     try {
@@ -1019,21 +912,38 @@ async function loadMyListFromServer() {
 
         if (!response.ok) {
 
+            if (response.status === 401) {
+
+                currentUser = null;
+                myList = [];
+
+                updateAccountUI();
+
+                return;
+            }
+
             throw new Error(
                 data.error ||
                 data.message ||
                 "Could not load your list."
             );
-
         }
 
         myList =
             normalizeAnimeList(
-                data.data ||
-                []
+                data.data || []
             );
 
+        myList.sort(
+            (a, b) =>
+                new Date(b.savedAt || 0) -
+                new Date(a.savedAt || 0)
+        );
+
+        homeListIndex = 0;
+
         renderMyList();
+        renderHomeList();
 
     } catch (error) {
 
@@ -1045,6 +955,7 @@ async function loadMyListFromServer() {
         myList = [];
 
         renderMyList();
+        renderHomeList();
 
         showToast(
             "Could not load your anime list.",
@@ -1077,16 +988,14 @@ async function fetchAnime(url) {
             data.message ||
             "Anime API request failed."
         );
-
     }
 
     return data;
-
 }
 
 
 /* =========================================================
-   MAL ANIME NORMALIZER
+   ANIME NORMALIZER
 ========================================================= */
 
 function normalizeAnime(anime) {
@@ -1099,15 +1008,17 @@ function normalizeAnime(anime) {
         anime.node ||
         anime;
 
+    const id =
+        node.id ||
+        anime.id ||
+        anime.mal_id ||
+        anime.anime_id;
+
     return {
 
         ...anime,
 
-        id:
-            node.id ||
-            anime.id ||
-            anime.mal_id ||
-            anime.anime_id,
+        id,
 
         mal_id:
             node.id ||
@@ -1135,6 +1046,8 @@ function normalizeAnime(anime) {
             node.main_picture?.medium ||
             anime.image ||
             anime.image_url ||
+            anime.images?.jpg?.large_image_url ||
+            anime.images?.jpg?.image_url ||
             "",
 
         score:
@@ -1143,10 +1056,23 @@ function normalizeAnime(anime) {
             anime.mal_score ??
             null,
 
+        mal_score:
+            node.mean ??
+            anime.mal_score ??
+            anime.score ??
+            null,
+
         episodes:
             node.num_episodes ??
             anime.episodes ??
             anime.episode_count ??
+            anime.num_episodes ??
+            null,
+
+        episode_count:
+            node.num_episodes ??
+            anime.episode_count ??
+            anime.episodes ??
             null,
 
         type:
@@ -1158,10 +1084,54 @@ function normalizeAnime(anime) {
             node.synopsis ||
             anime.synopsis ||
             anime.description ||
-            "No synopsis available."
+            "No synopsis available.",
+
+        status:
+            node.status ||
+            anime.status ||
+            "",
+
+        start_date:
+            node.start_date ||
+            anime.start_date ||
+            null,
+
+        end_date:
+            node.end_date ||
+            anime.end_date ||
+            null,
+
+        rank:
+            node.rank ??
+            anime.rank ??
+            null,
+
+        popularity:
+            node.popularity ??
+            anime.popularity ??
+            null,
+
+        genres:
+            node.genres ||
+            anime.genres ||
+            [],
+
+        broadcast:
+            node.broadcast ||
+            anime.broadcast ||
+            null,
+
+        source:
+            node.source ||
+            anime.source ||
+            null,
+
+        alternative_titles:
+            node.alternative_titles ||
+            anime.alternative_titles ||
+            null
 
     };
-
 }
 
 
@@ -1174,7 +1144,6 @@ function normalizeAnimeList(list) {
     return list
         .map(normalizeAnime)
         .filter(Boolean);
-
 }
 
 
@@ -1187,24 +1156,25 @@ async function loadPopularAnime() {
     const grid =
         document.getElementById("popularGrid");
 
-    if (!grid) return;
+    if (!grid) {
+        return;
+    }
 
     try {
 
         const data =
-            await fetchAnime("/anime/top");
+            await fetchAnime(
+                "/anime/top?limit=50"
+            );
 
-        const anime =
+        popularAnime =
             normalizeAnimeList(
-                data.data ||
-                data.results ||
-                data.anime ||
-                []
+                data.data || []
             );
 
         renderAnimeGrid(
             grid,
-            anime.slice(0, 12)
+            popularAnime.slice(0, 12)
         );
 
     } catch (error) {
@@ -1236,7 +1206,9 @@ async function loadTrending() {
     const grid =
         document.getElementById("trendingGrid");
 
-    if (!grid) return;
+    if (!grid) {
+        return;
+    }
 
     grid.innerHTML = `
         <div class="loading">
@@ -1251,14 +1223,13 @@ async function loadTrending() {
     try {
 
         const data =
-            await fetchAnime("/anime/trending");
+            await fetchAnime(
+                "/anime/trending"
+            );
 
         const anime =
             normalizeAnimeList(
-                data.data ||
-                data.results ||
-                data.anime ||
-                []
+                data.data || []
             );
 
         renderAnimeGrid(
@@ -1317,62 +1288,74 @@ if (searchForm) {
                 );
 
             const query =
-                input.value.trim();
+                input?.value.trim() || "";
 
             if (!query) {
 
-                status.textContent =
-                    "Enter an anime name to search.";
+                if (status) {
+                    status.textContent =
+                        "Enter an anime name to search.";
+                }
 
                 return;
-
             }
 
-            status.textContent =
-                "Searching...";
+            if (status) {
+                status.textContent = "Searching...";
+            }
 
-            grid.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
+            if (grid) {
 
-                    <span>
-                        Searching anime...
-                    </span>
-                </div>
-            `;
+                grid.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+
+                        <span>
+                            Searching anime...
+                        </span>
+                    </div>
+                `;
+
+            }
 
             try {
 
                 const data =
                     await fetchAnime(
-                        `/anime/search?name=${encodeURIComponent(query)}`
+                        `/anime/search?name=${encodeURIComponent(
+                            query
+                        )}`
                     );
 
                 const anime =
                     normalizeAnimeList(
-                        data.data ||
-                        data.results ||
-                        data.anime ||
-                        []
+                        data.data || []
                     );
 
                 if (!anime.length) {
 
-                    status.textContent =
-                        "No anime found.";
+                    if (status) {
+                        status.textContent =
+                            "No anime found.";
+                    }
 
-                    grid.innerHTML = "";
+                    if (grid) {
+                        grid.innerHTML = "";
+                    }
 
                     return;
-
                 }
 
-                status.textContent =
-                    `${anime.length} result${
-                        anime.length === 1
-                            ? ""
-                            : "s"
-                    } found.`;
+                if (status) {
+
+                    status.textContent =
+                        `${anime.length} result${
+                            anime.length === 1
+                                ? ""
+                                : "s"
+                        } found.`;
+
+                }
 
                 renderAnimeGrid(
                     grid,
@@ -1381,10 +1364,16 @@ if (searchForm) {
 
             } catch (error) {
 
-                status.textContent =
-                    "Search failed. Please try again.";
+                if (status) {
 
-                grid.innerHTML = "";
+                    status.textContent =
+                        "Search failed. Please try again.";
+
+                }
+
+                if (grid) {
+                    grid.innerHTML = "";
+                }
 
                 console.error(
                     "Search error:",
@@ -1403,14 +1392,13 @@ if (searchForm) {
    ANIME GRID
 ========================================================= */
 
-function renderAnimeGrid(
-    grid,
-    animeList
-) {
+function renderAnimeGrid(grid, animeList) {
 
-    if (!grid) return;
+    if (!grid) {
+        return;
+    }
 
-    if (!animeList.length) {
+    if (!animeList || !animeList.length) {
 
         grid.innerHTML = `
             <div class="loading">
@@ -1421,12 +1409,17 @@ function renderAnimeGrid(
         `;
 
         return;
-
     }
 
     grid.innerHTML =
         animeList
-            .map(animeCard)
+            .map(
+                (anime, index) =>
+                    animeCard(
+                        anime,
+                        index
+                    )
+            )
             .join("");
 
     grid
@@ -1451,7 +1444,6 @@ function renderAnimeGrid(
             );
 
         });
-
 }
 
 
@@ -1459,29 +1451,30 @@ function renderAnimeGrid(
    ANIME CARD
 ========================================================= */
 
-function animeCard(
-    anime,
-    index
-) {
+function animeCard(anime, index) {
 
     anime =
         normalizeAnime(anime);
 
     const image =
-        anime.image_url ||
-        "";
+        anime?.image_url || "";
 
     const title =
-        anime.title ||
+        anime?.title ||
         "Unknown Anime";
 
     const score =
-        anime.score ??
+        anime?.score ??
         "N/A";
 
     const episodes =
-        anime.episodes ??
+        anime?.episodes ??
         "?";
+
+    const listRating =
+        Number(
+            anime?.rating || 0
+        );
 
     return `
         <article
@@ -1501,13 +1494,31 @@ function animeCard(
                                 loading="lazy"
                                 onerror="this.style.display='none'"
                             >
-                          `
-                        : ""
+                        `
+                        : `
+                            <div class="anime-image-placeholder">
+                                ◒
+                            </div>
+                        `
                 }
 
                 <div class="score-badge">
-                    ★ ${escapeHTML(String(score))}
+                    ★ ${escapeHTML(
+                        String(score)
+                    )}
                 </div>
+
+                ${
+                    listRating > 0
+                        ? `
+                            <div class="list-rating-badge">
+                                ♥ ${escapeHTML(
+                                    String(listRating)
+                                )}/5
+                            </div>
+                        `
+                        : ""
+                }
 
             </div>
 
@@ -1522,7 +1533,11 @@ function animeCard(
                     ${
                         episodes === "?"
                             ? "Episodes unknown"
-                            : `${escapeHTML(String(episodes))} episodes`
+                            : `${escapeHTML(
+                                String(
+                                    episodes
+                                )
+                            )} episodes`
                     }
 
                 </div>
@@ -1531,7 +1546,6 @@ function animeCard(
 
         </article>
     `;
-
 }
 
 
@@ -1552,28 +1566,23 @@ function openAnimeModal(anime) {
         );
 
         return;
-
     }
 
     const image =
-        currentAnime.image_url ||
-        "";
+        currentAnime.image_url || "";
 
     const title =
         currentAnime.title ||
         "Unknown Anime";
 
     const score =
-        currentAnime.score ??
-        "N/A";
+        currentAnime.score ?? "N/A";
 
     const episodes =
-        currentAnime.episodes ??
-        "?";
+        currentAnime.episodes ?? "?";
 
     const type =
-        currentAnime.type ||
-        "Anime";
+        currentAnime.type || "Anime";
 
     const synopsis =
         currentAnime.synopsis ||
@@ -1586,88 +1595,99 @@ function openAnimeModal(anime) {
 
     if (imageElement) {
 
-        imageElement.src =
-            image;
+        imageElement.src = image;
+        imageElement.alt = title;
 
-        imageElement.alt =
-            title;
+        imageElement.style.display =
+            image ? "" : "none";
 
     }
 
-    document.getElementById(
-        "modalAnimeTitle"
-    ).textContent =
-        title;
+    const titleElement =
+        document.getElementById(
+            "modalAnimeTitle"
+        );
 
-    document.getElementById(
-        "modalAnimeType"
-    ).textContent =
-        String(type).toUpperCase();
+    if (titleElement) {
+        titleElement.textContent = title;
+    }
 
-    document.getElementById(
-        "modalAnimeMeta"
-    ).textContent =
-        `★ ${score}  •  ${episodes} episodes`;
+    const typeElement =
+        document.getElementById(
+            "modalAnimeType"
+        );
 
-    document.getElementById(
-        "modalAnimeSynopsis"
-    ).textContent =
-        synopsis;
+    if (typeElement) {
+
+        typeElement.textContent =
+            String(type).toUpperCase();
+
+    }
+
+    const metaElement =
+        document.getElementById(
+            "modalAnimeMeta"
+        );
+
+    if (metaElement) {
+
+        metaElement.textContent =
+            `★ ${score}  •  ${episodes} episodes`;
+
+    }
+
+    const synopsisElement =
+        document.getElementById(
+            "modalAnimeSynopsis"
+        );
+
+    if (synopsisElement) {
+        synopsisElement.textContent =
+            synopsis;
+    }
 
     updateModalListButton();
 
-    animeModal.classList.add("open");
+    animeModal?.classList.add("open");
 
-    document.body.style.overflow =
-        "hidden";
-
+    document.body.style.overflow = "hidden";
 }
 
 
 function closeAnimeModal() {
 
-    if (!animeModal) return;
+    if (!animeModal) {
+        return;
+    }
 
     animeModal.classList.remove("open");
 
-    document.body.style.overflow = "";
-
+    restoreBodyScroll();
 }
 
 
-const animeModalClose =
-    document.getElementById(
-        "animeModalClose"
-    );
-
-if (animeModalClose) {
-
-    animeModalClose.addEventListener(
+document
+    .getElementById("animeModalClose")
+    ?.addEventListener(
         "click",
         closeAnimeModal
     );
 
-}
 
+animeModal?.addEventListener(
+    "click",
+    event => {
 
-if (animeModal) {
-
-    animeModal.addEventListener(
-        "click",
-        event => {
-
-            if (event.target === animeModal) {
-                closeAnimeModal();
-            }
-
+        if (event.target === animeModal) {
+            closeAnimeModal();
         }
-    );
 
-}
+    }
+);
 
 
 /* =========================================================
-   MY LIST
+   MY LIST HELPERS
 ========================================================= */
 
 function getAnimeId(anime) {
@@ -1680,7 +1700,6 @@ function getAnimeId(anime) {
         normalized?.id ||
         null
     );
-
 }
 
 
@@ -1695,10 +1714,28 @@ function isInList(anime) {
 
     return myList.some(
         item =>
-            Number(getAnimeId(item)) ===
-            Number(id)
+            Number(
+                getAnimeId(item)
+            ) === Number(id)
     );
+}
 
+
+function getListAnime(anime) {
+
+    const id =
+        getAnimeId(anime);
+
+    if (!id) {
+        return null;
+    }
+
+    return myList.find(
+        item =>
+            Number(
+                getAnimeId(item)
+            ) === Number(id)
+    );
 }
 
 
@@ -1718,13 +1755,20 @@ function updateModalListButton() {
         button.textContent =
             "✓ In My List";
 
+        button.classList.add(
+            "in-list"
+        );
+
     } else {
 
         button.textContent =
             "+ Add to My List";
 
-    }
+        button.classList.remove(
+            "in-list"
+        );
 
+    }
 }
 
 
@@ -1746,7 +1790,6 @@ if (modalListButton) {
             if (!currentUser) {
 
                 closeAnimeModal();
-
                 openLogin();
 
                 showToast(
@@ -1755,10 +1798,11 @@ if (modalListButton) {
                 );
 
                 return;
-
             }
 
-            if (!currentAnime) return;
+            if (!currentAnime) {
+                return;
+            }
 
             const animeId =
                 getAnimeId(currentAnime);
@@ -1771,7 +1815,6 @@ if (modalListButton) {
                 );
 
                 return;
-
             }
 
             const alreadyInList =
@@ -1801,6 +1844,7 @@ if (modalListButton) {
 
                         throw new Error(
                             data.error ||
+                            data.message ||
                             "Could not remove anime."
                         );
 
@@ -1811,7 +1855,8 @@ if (modalListButton) {
                             item =>
                                 Number(
                                     getAnimeId(item)
-                                ) !== Number(animeId)
+                                ) !==
+                                Number(animeId)
                         );
 
                     showToast(
@@ -1833,20 +1878,21 @@ if (modalListButton) {
 
                                 credentials: "include",
 
-                                body:
-                                    JSON.stringify({
-                                        anime:
-                                            currentAnime,
+                                body: JSON.stringify({
 
-                                        status:
-                                            "plan",
+                                    anime:
+                                        currentAnime,
 
-                                        episode:
-                                            0,
+                                    status:
+                                        "plan",
 
-                                        rating:
-                                            0
-                                    })
+                                    episode:
+                                        0,
+
+                                    rating:
+                                        0
+
+                                })
                             }
                         );
 
@@ -1859,16 +1905,27 @@ if (modalListButton) {
 
                         throw new Error(
                             data.error ||
+                            data.message ||
                             "Could not save anime."
                         );
 
                     }
 
-                    myList.push(
+                    const savedAnime =
                         normalizeAnime(
                             currentAnime
-                        )
+                        );
+
+                    savedAnime.savedAt =
+                        new Date().toISOString();
+
+                    savedAnime.rating = 0;
+
+                    myList.unshift(
+                        savedAnime
                     );
+
+                    homeListIndex = 0;
 
                     showToast(
                         "Added to My List!",
@@ -1880,6 +1937,7 @@ if (modalListButton) {
                 updateModalListButton();
 
                 renderMyList();
+                renderHomeList();
 
             } catch (error) {
 
@@ -1896,7 +1954,8 @@ if (modalListButton) {
 
             } finally {
 
-                modalListButton.disabled = false;
+                modalListButton.disabled =
+                    false;
 
             }
 
@@ -1928,19 +1987,14 @@ function renderMyList() {
 
     if (!currentUser) {
 
-        loginBox.classList.remove(
-            "hidden"
-        );
+        loginBox.classList.remove("hidden");
 
         container.innerHTML = "";
 
         return;
-
     }
 
-    loginBox.classList.add(
-        "hidden"
-    );
+    loginBox.classList.add("hidden");
 
     if (!myList.length) {
 
@@ -1971,27 +2025,35 @@ function renderMyList() {
             </div>
         `;
 
-        const button =
-            document.getElementById(
-                "findAnimeButton"
-            );
-
-        if (button) {
-
-            button.addEventListener(
+        document
+            .getElementById("findAnimeButton")
+            ?.addEventListener(
                 "click",
                 () => showPage("search")
             );
 
-        }
-
         return;
-
     }
+
+    myList.sort(
+        (a, b) =>
+            new Date(b.savedAt || 0) -
+            new Date(a.savedAt || 0)
+    );
 
     container.innerHTML = `
         <div class="anime-grid">
-            ${myList.map(animeCard).join("")}
+            ${
+                myList
+                    .map(
+                        (anime, index) =>
+                            animeCard(
+                                anime,
+                                index
+                            )
+                    )
+                    .join("")
+            }
         </div>
     `;
 
@@ -2016,8 +2078,289 @@ function renderMyList() {
             );
 
         });
-
 }
+
+
+/* =========================================================
+   HOME LIST
+========================================================= */
+
+function getHomeListGrid() {
+
+    return document.getElementById(
+        "homeListGrid"
+    );
+}
+
+
+function renderHomeList() {
+
+    const grid =
+        getHomeListGrid();
+
+    if (!grid) {
+        return;
+    }
+
+    if (!currentUser) {
+
+        grid.innerHTML = `
+            <div class="home-list-empty">
+                <div class="home-list-empty-icon">
+                    ◒
+                </div>
+
+                <h3>
+                    Your list lives here
+                </h3>
+
+                <p>
+                    Log in to see your recently
+                    added anime on the home page.
+                </p>
+
+                <button
+                    class="primary-button"
+                    id="homeListLoginButton"
+                    type="button"
+                >
+                    Log In
+                </button>
+            </div>
+        `;
+
+        document
+            .getElementById(
+                "homeListLoginButton"
+            )
+            ?.addEventListener(
+                "click",
+                openLogin
+            );
+
+        updateHomeListControls();
+
+        return;
+    }
+
+    if (!myList.length) {
+
+        grid.innerHTML = `
+            <div class="home-list-empty">
+                <div class="home-list-empty-icon">
+                    ◒
+                </div>
+
+                <h3>
+                    Your list is empty
+                </h3>
+
+                <p>
+                    Add some anime and they'll
+                    appear here, newest first.
+                </p>
+
+                <button
+                    class="primary-button"
+                    id="homeFindAnimeButton"
+                    type="button"
+                >
+                    Find Anime
+                </button>
+            </div>
+        `;
+
+        document
+            .getElementById(
+                "homeFindAnimeButton"
+            )
+            ?.addEventListener(
+                "click",
+                goToSearch
+            );
+
+        updateHomeListControls();
+
+        return;
+    }
+
+    myList.sort(
+        (a, b) =>
+            new Date(b.savedAt || 0) -
+            new Date(a.savedAt || 0)
+    );
+
+    if (
+        homeListIndex >=
+        myList.length
+    ) {
+
+        homeListIndex =
+            Math.max(
+                0,
+                Math.floor(
+                    (myList.length - 1) /
+                    HOME_LIST_SIZE
+                ) *
+                HOME_LIST_SIZE
+            );
+
+    }
+
+    const visible =
+        myList.slice(
+            homeListIndex,
+            homeListIndex +
+                HOME_LIST_SIZE
+        );
+
+    grid.innerHTML =
+        visible
+            .map(
+                (anime, index) =>
+                    animeCard(
+                        anime,
+                        homeListIndex +
+                        index
+                    )
+            )
+            .join("");
+
+    grid
+        .querySelectorAll(".anime-card")
+        .forEach(card => {
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    const index =
+                        Number(
+                            card.dataset.index
+                        );
+
+                    openAnimeModal(
+                        myList[index]
+                    );
+
+                }
+            );
+
+        });
+
+    updateHomeListControls();
+}
+
+
+/* =========================================================
+   HOME LIST CONTROLS
+========================================================= */
+
+function updateHomeListControls() {
+
+    const previous =
+        document.getElementById(
+            "homeListPrevious"
+        );
+
+    const next =
+        document.getElementById(
+            "homeListNext"
+        );
+
+    const counter =
+        document.getElementById(
+            "homeListCounter"
+        );
+
+    const total =
+        myList.length;
+
+    const start =
+        total
+            ? homeListIndex + 1
+            : 0;
+
+    const end =
+        total
+            ? Math.min(
+                homeListIndex +
+                HOME_LIST_SIZE,
+                total
+            )
+            : 0;
+
+    if (previous) {
+
+        previous.disabled =
+            homeListIndex <= 0;
+
+    }
+
+    if (next) {
+
+        next.disabled =
+            homeListIndex +
+            HOME_LIST_SIZE >=
+            total;
+
+    }
+
+    if (counter) {
+
+        counter.textContent =
+            total
+                ? `${start}-${end} of ${total}`
+                : "0 anime";
+
+    }
+}
+
+
+document
+    .getElementById(
+        "homeListPrevious"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+
+            homeListIndex =
+                Math.max(
+                    0,
+                    homeListIndex -
+                    HOME_LIST_SIZE
+                );
+
+            renderHomeList();
+
+        }
+    );
+
+
+document
+    .getElementById(
+        "homeListNext"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+
+            if (
+                homeListIndex +
+                HOME_LIST_SIZE <
+                myList.length
+            ) {
+
+                homeListIndex +=
+                    HOME_LIST_SIZE;
+
+            }
+
+            renderHomeList();
+
+        }
+    );
 
 
 /* =========================================================
@@ -2038,7 +2381,6 @@ if (modalRateButton) {
             if (!currentUser) {
 
                 closeAnimeModal();
-
                 openLogin();
 
                 showToast(
@@ -2047,39 +2389,43 @@ if (modalRateButton) {
                 );
 
                 return;
+            }
+
+            if (!currentAnime) {
+                return;
+            }
+
+            const existing =
+                getListAnime(
+                    currentAnime
+                );
+
+            const existingRating =
+                Number(
+                    existing?.rating || 0
+                );
+
+            const title =
+                document.getElementById(
+                    "ratingAnimeTitle"
+                );
+
+            if (title) {
+
+                title.textContent =
+                    currentAnime.title ||
+                    "Anime";
 
             }
 
-            if (!currentAnime) return;
+            currentRating =
+                existingRating;
 
-            document.getElementById(
-                "ratingAnimeTitle"
-            ).textContent =
-                currentAnime.title ||
-                "Anime";
-
-            currentRating = 0;
-
-            document
-                .querySelectorAll(".stars button")
-                .forEach(star => {
-
-                    star.classList.remove(
-                        "selected"
-                    );
-
-                });
-
-            document.getElementById(
-                "ratingValue"
-            ).textContent =
-                "Select a rating";
+            updateStars();
 
             closeAnimeModal();
 
-            ratingModal.classList.add(
-                "open"
-            );
+            ratingModal?.classList.add("open");
 
             document.body.style.overflow =
                 "hidden";
@@ -2087,6 +2433,41 @@ if (modalRateButton) {
         }
     );
 
+}
+
+
+/* =========================================================
+   STAR BUTTONS
+========================================================= */
+
+function updateStars() {
+
+    document
+        .querySelectorAll(".stars button")
+        .forEach(star => {
+
+            star.classList.toggle(
+                "selected",
+                Number(
+                    star.dataset.rating
+                ) <= currentRating
+            );
+
+        });
+
+    const ratingValue =
+        document.getElementById(
+            "ratingValue"
+        );
+
+    if (ratingValue) {
+
+        ratingValue.textContent =
+            currentRating
+                ? `${currentRating} / 5`
+                : "Select a rating";
+
+    }
 }
 
 
@@ -2103,31 +2484,17 @@ document
                         star.dataset.rating
                     );
 
-                document
-                    .querySelectorAll(
-                        ".stars button"
-                    )
-                    .forEach(item => {
-
-                        item.classList.toggle(
-                            "selected",
-                            Number(
-                                item.dataset.rating
-                            ) <= currentRating
-                        );
-
-                    });
-
-                document.getElementById(
-                    "ratingValue"
-                ).textContent =
-                    `${currentRating} / 5`;
+                updateStars();
 
             }
         );
 
     });
 
+
+/* =========================================================
+   SUBMIT RATING
+========================================================= */
 
 const submitRating =
     document.getElementById(
@@ -2138,7 +2505,7 @@ if (submitRating) {
 
     submitRating.addEventListener(
         "click",
-        () => {
+        async () => {
 
             if (!currentRating) {
 
@@ -2148,58 +2515,136 @@ if (submitRating) {
                 );
 
                 return;
-
             }
 
-            showToast(
-                `Rated ${currentRating}/5!`,
-                "success"
-            );
+            if (
+                !currentUser ||
+                !currentAnime
+            ) {
+                return;
+            }
 
-            closeRatingModal();
+            const animeId =
+                getAnimeId(
+                    currentAnime
+                );
 
-        }
-    );
+            if (!animeId) {
 
-}
+                showToast(
+                    "Invalid anime ID.",
+                    "error"
+                );
 
+                return;
+            }
 
-function closeRatingModal() {
+            if (
+                !isInList(
+                    currentAnime
+                )
+            ) {
 
-    if (!ratingModal) return;
+                showToast(
+                    "Add the anime to My List before rating it.",
+                    "error"
+                );
 
-    ratingModal.classList.remove(
-        "open"
-    );
-
-    document.body.style.overflow = "";
-
-}
-
-
-const ratingModalClose =
-    document.getElementById(
-        "ratingModalClose"
-    );
-
-if (ratingModalClose) {
-
-    ratingModalClose.addEventListener(
-        "click",
-        closeRatingModal
-    );
-
-}
-
-
-if (ratingModal) {
-
-    ratingModal.addEventListener(
-        "click",
-        event => {
-
-            if (event.target === ratingModal) {
                 closeRatingModal();
+
+                return;
+            }
+
+            submitRating.disabled = true;
+
+            const originalText =
+                submitRating.textContent;
+
+            submitRating.textContent =
+                "Saving...";
+
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_BASE}/api/my-list/${animeId}/rating`,
+                        {
+                            method: "PATCH",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            credentials: "include",
+
+                            body: JSON.stringify({
+                                rating:
+                                    currentRating
+                            })
+                        }
+                    );
+
+                const data =
+                    await response
+                        .json()
+                        .catch(() => ({}));
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.error ||
+                        data.message ||
+                        "Could not save rating."
+                    );
+                }
+
+                const item =
+                    getListAnime(
+                        currentAnime
+                    );
+
+                if (item) {
+
+                    item.rating =
+                        currentRating;
+
+                }
+
+                currentAnime.rating =
+                    currentRating;
+
+                renderMyList();
+                renderHomeList();
+
+                showToast(
+                    `Rated ${currentRating}/5!`,
+                    "success"
+                );
+
+                closeRatingModal();
+
+            } catch (error) {
+
+                console.error(
+                    "RATING ERROR:",
+                    error
+                );
+
+                showToast(
+                    error.message ||
+                    "Could not save rating.",
+                    "error"
+                );
+
+            } finally {
+
+                submitRating.disabled =
+                    false;
+
+                submitRating.textContent =
+                    originalText;
+
             }
 
         }
@@ -2209,19 +2654,58 @@ if (ratingModal) {
 
 
 /* =========================================================
+   CLOSE RATING MODAL
+========================================================= */
+
+function closeRatingModal() {
+
+    if (!ratingModal) {
+        return;
+    }
+
+    ratingModal.classList.remove("open");
+
+    restoreBodyScroll();
+}
+
+
+document
+    .getElementById("ratingModalClose")
+    ?.addEventListener(
+        "click",
+        closeRatingModal
+    );
+
+
+ratingModal?.addEventListener(
+    "click",
+    event => {
+
+        if (event.target === ratingModal) {
+            closeRatingModal();
+        }
+
+    }
+);
+
+
+/* =========================================================
    SCHEDULE
 ========================================================= */
 
-async function loadSchedule(
-    day = "monday"
-) {
+async function loadSchedule(day = "monday") {
 
     const grid =
         document.getElementById(
             "scheduleGrid"
         );
 
-    if (!grid) return;
+    if (!grid) {
+        return;
+    }
+
+    const safeDay =
+        String(day).toLowerCase();
 
     grid.innerHTML = `
         <div class="loading">
@@ -2229,7 +2713,9 @@ async function loadSchedule(
             <div class="spinner"></div>
 
             <span>
-                Loading ${escapeHTML(day)} schedule...
+                Loading ${escapeHTML(
+                    safeDay
+                )} schedule...
             </span>
 
         </div>
@@ -2237,26 +2723,25 @@ async function loadSchedule(
 
     try {
 
-        if (!scheduleData[day]) {
+        if (!scheduleData[safeDay]) {
 
             const data =
                 await fetchAnime(
-                    `/anime/schedule?day=${encodeURIComponent(day)}`
+                    `/anime/schedule?day=${encodeURIComponent(
+                        safeDay
+                    )}`
                 );
 
-            scheduleData[day] =
+            scheduleData[safeDay] =
                 normalizeAnimeList(
-                    data.data ||
-                    data.results ||
-                    data.anime ||
-                    []
+                    data.data || []
                 );
 
         }
 
         renderAnimeGrid(
             grid,
-            scheduleData[day]
+            scheduleData[safeDay]
         );
 
     } catch (error) {
@@ -2275,9 +2760,12 @@ async function loadSchedule(
         );
 
     }
-
 }
 
+
+/* =========================================================
+   SCHEDULE TABS
+========================================================= */
 
 document
     .querySelectorAll(".schedule-tab")
@@ -2299,18 +2787,105 @@ document
 
                     });
 
-                tab.classList.add(
-                    "active"
-                );
+                tab.classList.add("active");
 
                 loadSchedule(
-                    tab.dataset.day
+                    tab.dataset.day ||
+                    "monday"
                 );
 
             }
         );
 
     });
+
+
+/* =========================================================
+   DISCOVER
+========================================================= */
+
+async function loadDiscover() {
+
+    const grid =
+        document.getElementById(
+            "discoverGrid"
+        );
+
+    if (!grid) {
+        return;
+    }
+
+    grid.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+
+            <span>
+                Finding something new...
+            </span>
+        </div>
+    `;
+
+    try {
+
+        if (
+            popularAnime &&
+            popularAnime.length
+        ) {
+
+            const shuffled =
+                [...popularAnime]
+                    .sort(
+                        () =>
+                            Math.random() -
+                            0.5
+                    );
+
+            renderAnimeGrid(
+                grid,
+                shuffled.slice(0, 24)
+            );
+
+            return;
+        }
+
+        const data =
+            await fetchAnime(
+                "/anime/top?limit=50"
+            );
+
+        const anime =
+            normalizeAnimeList(
+                data.data || []
+            );
+
+        renderAnimeGrid(
+            grid,
+            anime
+                .sort(
+                    () =>
+                        Math.random() -
+                        0.5
+                )
+                .slice(0, 24)
+        );
+
+    } catch (error) {
+
+        grid.innerHTML = `
+            <div class="loading">
+                <span>
+                    Unable to load Discover.
+                </span>
+            </div>
+        `;
+
+        console.error(
+            "Discover error:",
+            error
+        );
+
+    }
+}
 
 
 /* =========================================================
@@ -2333,17 +2908,21 @@ if (randomButton) {
                     "randomResult"
                 );
 
-            result.innerHTML = `
-                <div class="loading">
+            if (result) {
 
-                    <div class="spinner"></div>
+                result.innerHTML = `
+                    <div class="loading">
 
-                    <span>
-                        Finding an anime...
-                    </span>
+                        <div class="spinner"></div>
 
-                </div>
-            `;
+                        <span>
+                            Finding an anime...
+                        </span>
+
+                    </div>
+                `;
+
+            }
 
             try {
 
@@ -2354,10 +2933,7 @@ if (randomButton) {
 
                 const anime =
                     normalizeAnime(
-                        data.data ||
-                        data.anime ||
-                        data.node ||
-                        data
+                        data.data
                     );
 
                 if (!anime) {
@@ -2368,13 +2944,17 @@ if (randomButton) {
 
                 }
 
-                result.innerHTML = "";
+                if (result) {
+                    result.innerHTML = "";
+                }
 
                 openAnimeModal(anime);
 
             } catch (error) {
 
-                result.innerHTML = "";
+                if (result) {
+                    result.innerHTML = "";
+                }
 
                 showToast(
                     "Unable to find a random anime.",
@@ -2410,7 +2990,9 @@ function showToast(
             "toast"
         );
 
-    if (!toast) return;
+    if (!toast) {
+        return;
+    }
 
     toast.textContent =
         message;
@@ -2428,22 +3010,27 @@ function showToast(
 
     });
 
-    clearTimeout(toastTimeout);
+    clearTimeout(
+        toastTimeout
+    );
 
     toastTimeout =
-        setTimeout(() => {
+        setTimeout(
+            () => {
 
-            toast.classList.remove(
-                "show"
-            );
+                toast.classList.remove(
+                    "show"
+                );
 
-        }, 3000);
+            },
+            3000
+        );
 
 }
 
 
 /* =========================================================
-   ESCAPE HTML
+   HTML ESCAPING
 ========================================================= */
 
 function escapeHTML(value) {
@@ -2461,12 +3048,28 @@ function escapeHTML(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
-
 }
 
 
 /* =========================================================
-   ESCAPE MODALS
+   BODY SCROLL
+========================================================= */
+
+function restoreBodyScroll() {
+
+    const anyModalOpen =
+        document.querySelector(
+            ".modal-overlay.open"
+        );
+
+    if (!anyModalOpen) {
+        document.body.style.overflow = "";
+    }
+}
+
+
+/* =========================================================
+   ESCAPE / CLOSE MODALS
 ========================================================= */
 
 document.addEventListener(
@@ -2486,19 +3089,36 @@ document.addEventListener(
 
 
 /* =========================================================
+   IMAGE ERROR HANDLING
+========================================================= */
+
+document.addEventListener(
+    "error",
+    event => {
+
+        if (
+            event.target &&
+            event.target.matches &&
+            event.target.matches(
+                ".anime-image"
+            )
+        ) {
+
+            event.target.style.display =
+                "none";
+
+        }
+
+    },
+    true
+);
+
+
+/* =========================================================
    STARTUP
 ========================================================= */
 
 async function initializeMIRAI() {
-
-    /*
-        We check the server FIRST.
-
-        The database now controls the user's
-        login and anime list.
-
-        Nothing important relies on localStorage.
-    */
 
     updateAccountUI();
 
@@ -2506,7 +3126,15 @@ async function initializeMIRAI() {
 
     loadPopularAnime();
 
-    loadSchedule("monday");
+    const activeScheduleTab =
+        document.querySelector(
+            ".schedule-tab.active"
+        );
+
+    loadSchedule(
+        activeScheduleTab?.dataset.day ||
+        "monday"
+    );
 
 }
 
