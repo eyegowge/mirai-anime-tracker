@@ -40,7 +40,7 @@
 
 
 <!-- =====================================================
-     BACKDROP
+     MOBILE BACKDROP
 ===================================================== -->
 
 <div
@@ -60,11 +60,11 @@
 
     <div class="brand">
 
-        <div class="brand-symbol">
+        <div class="brand-icon">
             M
         </div>
 
-        <div class="brand-text">
+        <div>
 
             <div class="brand-name">
                 MIRAI
@@ -78,6 +78,8 @@
 
     </div>
 
+
+    <!-- SIDEBAR SEARCH -->
 
     <div class="sidebar-search">
 
@@ -99,6 +101,8 @@
     </div>
 
 
+    <!-- NAVIGATION -->
+
     <nav class="navigation">
 
         <button
@@ -107,7 +111,9 @@
             type="button"
         >
 
-            <span class="nav-icon">⌂</span>
+            <span class="nav-icon">
+                ⌂
+            </span>
 
             <span>
                 Home
@@ -122,7 +128,9 @@
             type="button"
         >
 
-            <span class="nav-icon">▤</span>
+            <span class="nav-icon">
+                ▤
+            </span>
 
             <span>
                 My List
@@ -137,7 +145,9 @@
             type="button"
         >
 
-            <span class="nav-icon">⌁</span>
+            <span class="nav-icon">
+                ↗
+            </span>
 
             <span>
                 Trending
@@ -152,7 +162,9 @@
             type="button"
         >
 
-            <span class="nav-icon">◷</span>
+            <span class="nav-icon">
+                ◷
+            </span>
 
             <span>
                 Schedule
@@ -167,7 +179,9 @@
             type="button"
         >
 
-            <span class="nav-icon">◈</span>
+            <span class="nav-icon">
+                ◈
+            </span>
 
             <span>
                 Discover
@@ -182,7 +196,9 @@
             type="button"
         >
 
-            <span class="nav-icon">✦</span>
+            <span class="nav-icon">
+                ✦
+            </span>
 
             <span>
                 Random
@@ -192,6 +208,8 @@
 
     </nav>
 
+
+    <!-- ACCOUNT -->
 
     <div class="sidebar-bottom">
 
@@ -234,13 +252,16 @@
                     ?
                 </div>
 
+
                 <div class="user-info">
 
                     <span>
                         LOGGED IN AS
                     </span>
 
-                    <strong id="sidebarUsername">
+                    <strong
+                        id="sidebarUsername"
+                    >
                         User
                     </strong>
 
@@ -286,7 +307,7 @@
         type="button"
     >
 
-        <span class="mobile-brand-symbol">
+        <span>
             M
         </span>
 
@@ -308,13 +329,13 @@
 
 
 <!-- =====================================================
-     GLOBAL MOBILE/HEADER SEARCH
+     GLOBAL SEARCH
 ===================================================== -->
 
-<div class="global-search-bar">
+<div class="global-search">
 
     <button
-        class="global-home-button"
+        class="back-home-button"
         id="globalHomeButton"
         type="button"
         title="Back to Home"
@@ -324,13 +345,14 @@
 
 
     <form
-        class="global-search-form"
+        class="global-search-box"
         id="globalSearchForm"
     >
 
         <span>
             ⌕
         </span>
+
 
         <input
             id="globalSearchInput"
@@ -339,7 +361,9 @@
             autocomplete="off"
         >
 
+
         <button
+            id="globalSearchButton"
             type="submit"
         >
             Search
@@ -367,22 +391,28 @@
 >
 
 
-    <!-- HERO -->
+    <!-- HERO / FEATURED -->
 
     <section
         class="hero"
         id="homeHero"
     >
 
-        <div class="hero-content">
+        <div
+            class="hero-content"
+            id="heroContent"
+        >
 
             <div class="hero-label">
                 MIRAI FEATURED
             </div>
 
+
             <h1 id="heroTitle">
-                Welcome to MIRAI.
+                Welcome to
+                <span>MIRAI.</span>
             </h1>
+
 
             <p id="heroSynopsis">
                 Discover your next favourite anime.
@@ -419,6 +449,8 @@
         </div>
 
 
+        <!-- FEATURED IMAGE -->
+
         <div class="hero-art">
 
             <img
@@ -429,6 +461,8 @@
 
         </div>
 
+
+        <!-- CAROUSEL ARROWS -->
 
         <button
             class="carousel-arrow carousel-prev"
@@ -450,15 +484,25 @@
         </button>
 
 
+        <!-- FEATURED DOTS -->
+
         <div
             class="carousel-dots"
             id="heroDots"
         ></div>
 
+
+        <!-- SCRIPT-COMPATIBLE FEATURED CONTAINER -->
+
+        <div
+            class="featured-carousel hidden"
+            id="featuredCarousel"
+        ></div>
+
     </section>
 
 
-    <!-- MY LIST ON HOME -->
+    <!-- HOME MY LIST -->
 
     <section class="home-section">
 
@@ -480,7 +524,7 @@
             <div class="section-controls">
 
                 <button
-                    class="circle-button"
+                    class="circle-button list-arrow"
                     id="homeListPrevious"
                     type="button"
                     aria-label="Previous list items"
@@ -490,7 +534,7 @@
 
 
                 <button
-                    class="circle-button"
+                    class="circle-button list-arrow"
                     id="homeListNext"
                     type="button"
                     aria-label="Next list items"
@@ -525,6 +569,13 @@
 
             </div>
 
+        </div>
+
+
+        <div
+            class="home-list-counter"
+            id="homeListCounter"
+        >
         </div>
 
     </section>
@@ -597,17 +648,21 @@
             class="back-home-button"
             id="searchBackHome"
             type="button"
+            data-home
         >
             ← Back to Home
         </button>
+
 
         <p class="section-kicker">
             EXPLORE
         </p>
 
+
         <h1>
             Search Anime
         </h1>
+
 
         <p>
             Find your next anime to watch.
@@ -626,6 +681,7 @@
             <span>
                 ⌕
             </span>
+
 
             <input
                 id="searchInput"
@@ -680,13 +736,16 @@
             ← Back to Home
         </button>
 
+
         <p class="section-kicker">
             POPULAR
         </p>
 
+
         <h1>
             Trending Anime
         </h1>
+
 
         <p>
             See what anime are currently popular.
@@ -734,13 +793,16 @@
             ← Back to Home
         </button>
 
+
         <p class="section-kicker">
             AIRING NOW
         </p>
 
+
         <h1>
             Anime Schedule
         </h1>
+
 
         <p>
             See what is airing throughout the week.
@@ -759,6 +821,7 @@
             Sun
         </button>
 
+
         <button
             class="schedule-tab active"
             data-day="monday"
@@ -766,6 +829,7 @@
         >
             Mon
         </button>
+
 
         <button
             class="schedule-tab"
@@ -775,6 +839,7 @@
             Tue
         </button>
 
+
         <button
             class="schedule-tab"
             data-day="wednesday"
@@ -782,6 +847,7 @@
         >
             Wed
         </button>
+
 
         <button
             class="schedule-tab"
@@ -791,6 +857,7 @@
             Thu
         </button>
 
+
         <button
             class="schedule-tab"
             data-day="friday"
@@ -798,6 +865,7 @@
         >
             Fri
         </button>
+
 
         <button
             class="schedule-tab"
@@ -817,7 +885,7 @@
 
 
     <div
-        class="anime-grid schedule-grid"
+        class="schedule-list"
         id="scheduleGrid"
     >
 
@@ -855,13 +923,16 @@
             ← Back to Home
         </button>
 
+
         <p class="section-kicker">
             YOUR COLLECTION
         </p>
 
+
         <h1>
             My List
         </h1>
+
 
         <p id="listSubtitle">
             Log in to access your personal anime collection.
@@ -881,14 +952,17 @@
                 M
             </div>
 
+
             <h3>
                 Your list is waiting for you
             </h3>
+
 
             <p>
                 Log in to start building your personal
                 anime collection.
             </p>
+
 
             <button
                 class="primary-button"
@@ -918,6 +992,7 @@
                 All
             </button>
 
+
             <button
                 class="status-tab"
                 data-status="plan"
@@ -925,6 +1000,7 @@
             >
                 Plan to Watch
             </button>
+
 
             <button
                 class="status-tab"
@@ -934,28 +1010,13 @@
                 Watching
             </button>
 
+
             <button
                 class="status-tab"
                 data-status="completed"
                 type="button"
             >
                 Completed
-            </button>
-
-            <button
-                class="status-tab"
-                data-status="on-hold"
-                type="button"
-            >
-                On Hold
-            </button>
-
-            <button
-                class="status-tab"
-                data-status="dropped"
-                type="button"
-            >
-                Dropped
             </button>
 
         </div>
@@ -989,13 +1050,16 @@
             ← Back to Home
         </button>
 
+
         <p class="section-kicker">
             EXPLORE
         </p>
 
+
         <h1>
             Discover
         </h1>
+
 
         <p>
             Find something new to add to your list.
@@ -1014,6 +1078,7 @@
             Popular
         </button>
 
+
         <button
             class="discover-filter"
             data-discover="upcoming"
@@ -1021,6 +1086,7 @@
         >
             Upcoming
         </button>
+
 
         <button
             class="discover-filter"
@@ -1081,9 +1147,11 @@
             NEED SOMETHING NEW?
         </p>
 
+
         <h1>
             Pick something for me.
         </h1>
+
 
         <p>
             Let MIRAI choose a random anime for you.
@@ -1123,6 +1191,7 @@
             class="modal-close"
             id="animeModalClose"
             type="button"
+            aria-label="Close"
         >
             ×
         </button>
@@ -1201,14 +1270,17 @@
                 </div>
 
 
+                <!-- LIST MANAGEMENT -->
+
                 <div
                     class="list-management hidden"
                     id="listManagement"
                 >
 
-                    <label>
+                    <label for="animeStatusSelect">
                         Status
                     </label>
+
 
                     <select
                         id="animeStatusSelect"
@@ -1226,18 +1298,10 @@
                             Completed
                         </option>
 
-                        <option value="on-hold">
-                            On Hold
-                        </option>
-
-                        <option value="dropped">
-                            Dropped
-                        </option>
-
                     </select>
 
 
-                    <label>
+                    <label for="episodeInput">
                         Episodes watched
                     </label>
 
@@ -1281,6 +1345,8 @@
                 </div>
 
 
+                <!-- TRAILER -->
+
                 <div
                     class="trailer-area hidden"
                     id="modalTrailerArea"
@@ -1320,6 +1386,7 @@
             class="modal-close"
             id="ratingModalClose"
             type="button"
+            aria-label="Close"
         >
             ×
         </button>
@@ -1331,9 +1398,11 @@
                 YOUR RATING
             </p>
 
+
             <h2>
                 Rate this anime
             </h2>
+
 
             <p id="ratingAnimeTitle">
                 Anime
@@ -1351,7 +1420,7 @@
                 </span>
 
                 <small>
-                    / 10
+                    / 5
                 </small>
 
             </div>
@@ -1361,7 +1430,7 @@
                 id="ratingSlider"
                 type="range"
                 min="1"
-                max="10"
+                max="5"
                 step="1"
                 value="5"
             >
@@ -1374,11 +1443,11 @@
                 </span>
 
                 <span>
-                    5
+                    3
                 </span>
 
                 <span>
-                    10
+                    5
                 </span>
 
             </div>
@@ -1390,7 +1459,7 @@
             class="rating-value"
             id="ratingValue"
         >
-            5 / 10
+            5 / 5
         </div>
 
 
@@ -1422,6 +1491,7 @@
             class="modal-close"
             id="trailerModalClose"
             type="button"
+            aria-label="Close"
         >
             ×
         </button>
@@ -1433,7 +1503,11 @@
                 id="trailerFrame"
                 src=""
                 title="Anime trailer"
-                allow="autoplay; encrypted-media; picture-in-picture"
+                allow="
+                    autoplay;
+                    encrypted-media;
+                    picture-in-picture
+                "
                 allowfullscreen
             ></iframe>
 
@@ -1459,6 +1533,7 @@
             class="modal-close"
             id="accountModalClose"
             type="button"
+            aria-label="Close"
         >
             ×
         </button>
@@ -1488,9 +1563,11 @@
                     WELCOME BACK
                 </p>
 
+
                 <h2>
                     Log In
                 </h2>
+
 
                 <p>
                     Continue your anime journey.
@@ -1507,6 +1584,7 @@
                     Username or Email
                 </label>
 
+
                 <input
                     id="loginEmail"
                     type="text"
@@ -1518,6 +1596,7 @@
                 <label for="loginPassword">
                     Password
                 </label>
+
 
                 <input
                     id="loginPassword"
@@ -1572,9 +1651,11 @@
                     JOIN MIRAI
                 </p>
 
+
                 <h2>
                     Create Account
                 </h2>
+
 
                 <p>
                     Start building your anime collection.
@@ -1591,6 +1672,7 @@
                     Username
                 </label>
 
+
                 <input
                     id="registerUsername"
                     type="text"
@@ -1602,6 +1684,7 @@
                 <label for="registerEmail">
                     Email
                 </label>
+
 
                 <input
                     id="registerEmail"
@@ -1615,6 +1698,7 @@
                     Password
                 </label>
 
+
                 <input
                     id="registerPassword"
                     type="password"
@@ -1626,6 +1710,7 @@
                 <label for="registerConfirmPassword">
                     Confirm Password
                 </label>
+
 
                 <input
                     id="registerConfirmPassword"
@@ -1695,8 +1780,15 @@
         data-page="home"
         type="button"
     >
-        <span>⌂</span>
-        <small>Home</small>
+
+        <span>
+            ⌂
+        </span>
+
+        <small>
+            Home
+        </small>
+
     </button>
 
 
@@ -1705,8 +1797,15 @@
         data-page="my-list"
         type="button"
     >
-        <span>▤</span>
-        <small>List</small>
+
+        <span>
+            ▤
+        </span>
+
+        <small>
+            List
+        </small>
+
     </button>
 
 
@@ -1715,8 +1814,15 @@
         data-page="trending"
         type="button"
     >
-        <span>⌁</span>
-        <small>Trending</small>
+
+        <span>
+            ↗
+        </span>
+
+        <small>
+            Trending
+        </small>
+
     </button>
 
 
@@ -1725,8 +1831,15 @@
         data-page="schedule"
         type="button"
     >
-        <span>◷</span>
-        <small>Schedule</small>
+
+        <span>
+            ◷
+        </span>
+
+        <small>
+            Schedule
+        </small>
+
     </button>
 
 
@@ -1735,16 +1848,27 @@
         data-page="discover"
         type="button"
     >
-        <span>◈</span>
-        <small>Discover</small>
+
+        <span>
+            ◈
+        </span>
+
+        <small>
+            Discover
+        </small>
+
     </button>
 
 </nav>
 
 
+<!-- =====================================================
+     FOOTER
+===================================================== -->
+
 <footer>
 
-    <span class="footer-symbol">
+    <span>
         M
     </span>
 
