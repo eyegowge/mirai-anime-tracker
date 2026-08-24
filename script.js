@@ -5833,3 +5833,2153 @@ initializeMIRAI();
     }
 
 })();
+/* =========================================================
+   MIRAI — ENHANCEMENT LAYER
+   ADD THIS TO THE VERY END OF YOUR ORIGINAL SCRIPT
+========================================================= */
+
+(() => {
+    "use strict";
+
+    /* =====================================================
+       SAFE HELPERS
+    ===================================================== */
+
+    const el = id => document.getElementById(id);
+
+    const all = selector =>
+        document.querySelectorAll(selector);
+
+    const safeNumber = value => {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    const escapeValue = value => {
+        if (value === null || value === undefined) {
+            return "";
+        }
+
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    };
+
+    /* =====================================================
+       API HELPER
+    ===================================================== */
+
+    async function miraiRequest(
+        url,
+        options = {}
+    ) {
+        const response = await fetch(
+            url,
+            {
+                credentials: "include",
+                ...options
+            }
+        );
+
+        const data =
+            await response
+                .json()
+                .catch(() => ({}));
+
+        if (!response.ok) {
+            const error = new Error(
+                data.error ||
+                data.message ||
+                "Request failed."
+            );
+
+            error.status =
+                response.status;
+
+            throw error;
+        }
+
+        return data;
+    }
+
+    /* =====================================================
+       NORMALIZE CURRENT LIST
+    ===================================================== */
+
+    function refreshLocalAnimeList(
+        updatedAnime
+    ) {
+        if (
+            typeof myList ===
+            "undefined"
+        ) {
+            return;
+        }
+
+        const id =
+            Number(
+                updatedAnime?.mal_id ||
+                updatedAnime?.id
+            );
+
+        if (!id) {
+            return;
+        }
+
+        const existingIndex =
+            myList.findIndex(
+                anime =>
+                    Number(
+                        anime?.mal_id ||
+                        anime?.id
+                    ) === id
+            );
+
+        if (
+            existingIndex >= 0
+        ) {
+            myList[
+                existingIndex
+            ] = {
+                ...myList[
+                    existingIndex
+                ],
+                ...updatedAnime,
+                id,
+                mal_id: id
+            };
+        } else {
+            myList.unshift({
+                ...updatedAnime,
+                id,
+                mal_id: id
+            });
+        }
+
+        myList.sort(
+            (a, b) =>
+                new Date(
+                    b.savedAt || 0
+                ) -
+                new Date(
+                    a.savedAt || 0
+                )
+        );
+
+        if (
+            typeof renderMyList ===
+            "function"
+        ) {
+            renderMyList();
+        }
+
+        if (
+            typeof renderHomeList ===
+            "function"
+        ) {
+            renderHomeList();
+        }
+    }
+
+    /* =====================================================
+       HERO CAROUSEL
+    ===================================================== */
+
+    function enhancementHeroNext() {
+        if (
+            typeof popularAnime ===
+            "undefined" ||
+            !popularAnime.length
+        ) {
+            return;
+        }
+
+        if (
+            typeof featuredIndex ===
+            "undefined"
+        ) {
+            featuredIndex = 0;
+        }
+
+        featuredIndex =
+            (
+                featuredIndex + 1
+            ) %
+            popularAnime.length;
+
+        if (
+            typeof renderFeaturedCarousel ===
+            "function"
+        ) {
+            renderFeaturedCarousel();
+            return;
+        }
+
+        enhancementRenderHero();
+    }
+
+    function enhancementHeroPrevious() {
+        if (
+            typeof popularAnime ===
+            "undefined" ||
+            !popularAnime.length
+        ) {
+            return;
+        }
+
+        if (
+            typeof featuredIndex ===
+            "undefined"
+        ) {
+            featuredIndex = 0;
+        }
+
+        featuredIndex =
+            (
+                featuredIndex -
+                1 +
+                popularAnime.length
+            ) %
+            popularAnime.length;
+
+        if (
+            typeof renderFeaturedCarousel ===
+            "function"
+        ) {
+            renderFeaturedCarousel();
+            return;
+        }
+
+        enhancementRenderHero();
+    }
+
+    el(
+        "heroNext"
+    )?.addEventListener(
+        "click",
+        enhancementHeroNext
+    );
+
+    el(
+        "heroPrevious"
+    )?.addEventListener(
+        "click",
+        enhancementHeroPrevious
+    );
+
+    /* =====================================================
+       HERO RENDERING
+    ===================================================== */
+
+    function enhancementRenderHero() {
+        if (
+            typeof popularAnime ===
+            "undefined" ||
+            !popularAnime.length
+        ) {
+            return;
+        }
+
+        const index =
+            typeof featuredIndex ===
+            "number"
+                ? featuredIndex
+                : 0;
+
+        const anime =
+            popularAnime[
+                (
+                    index +
+                    popularAnime.length
+                ) %
+                popularAnime.length
+            ];
+
+        if (!anime) {
+            return;
+        }
+
+        const image =
+            anime.image ||
+            anime.image_url ||
+            "";
+
+        const heroImage =
+            el(
+                "heroImage"
+            );
+
+        const heroTitle =
+            el(
+                "heroTitle"
+            );
+
+        const heroSynopsis =
+            el(
+                "heroSynopsis"
+            );
+
+        const heroMeta =
+            el(
+                "heroMeta"
+            );
+
+        if (heroImage) {
+            heroImage.src =
+                image;
+
+            heroImage.alt =
+                anime.title ||
+                "Featured anime";
+        }
+
+        if (heroTitle) {
+            heroTitle.textContent =
+                anime.title ||
+                "Welcome to MIRAI.";
+        }
+
+        if (heroSynopsis) {
+            heroSynopsis.textContent =
+                anime.synopsis ||
+                "Discover your next favourite anime.";
+        }
+
+        if (heroMeta) {
+            const score =
+                anime.score ??
+                "N/A";
+
+            const episodes =
+                anime.episodes ??
+                "?";
+
+            heroMeta.textContent =
+                `★ ${score} • ${
+                    anime.type ||
+                    "Anime"
+                } • ${
+                    episodes
+                } episodes`;
+        }
+
+        const hero =
+            el(
+                "homeHero"
+            );
+
+        if (
+            hero &&
+            image
+        ) {
+            hero.style.backgroundImage =
+                `
+                    linear-gradient(
+                        90deg,
+                        rgba(7,8,13,.98) 0%,
+                        rgba(7,8,13,.88) 35%,
+                        rgba(7,8,13,.45) 68%,
+                        rgba(7,8,13,.12) 100%
+                    ),
+                    url("${image.replaceAll(
+                        '"',
+                        '\\"'
+                    )}")
+                `;
+        }
+
+        const viewButton =
+            el(
+                "heroViewButton"
+            );
+
+        if (viewButton) {
+            viewButton.onclick =
+                () => {
+
+                    if (
+                        typeof openAnimeModal ===
+                        "function"
+                    ) {
+                        openAnimeModal(
+                            anime
+                        );
+                    }
+                };
+        }
+
+        const trailerButton =
+            el(
+                "heroTrailerButton"
+            );
+
+        if (trailerButton) {
+            trailerButton.onclick =
+                () => {
+
+                    enhancementOpenTrailer(
+                        anime
+                    );
+                };
+        }
+
+        enhancementRenderHeroDots();
+    }
+
+    /* =====================================================
+       HERO DOTS
+    ===================================================== */
+
+    function enhancementRenderHeroDots() {
+        const dots =
+            el(
+                "heroDots"
+            );
+
+        if (
+            !dots ||
+            typeof popularAnime ===
+            "undefined" ||
+            !popularAnime.length
+        ) {
+            return;
+        }
+
+        const count =
+            Math.min(
+                popularAnime.length,
+                8
+            );
+
+        const current =
+            typeof featuredIndex ===
+            "number"
+                ? featuredIndex
+                : 0;
+
+        dots.innerHTML =
+            Array.from(
+                {
+                    length:
+                        count
+                },
+                (_, index) =>
+                    `
+                        <button
+                            class="carousel-dot ${
+                                index === current
+                                    ? "active"
+                                    : ""
+                            }"
+                            type="button"
+                            data-hero-index="${index}"
+                            aria-label="Show featured anime ${index + 1}"
+                        ></button>
+                    `
+            ).join("");
+
+        dots
+            .querySelectorAll(
+                "[data-hero-index]"
+            )
+            .forEach(
+                button => {
+
+                    button.addEventListener(
+                        "click",
+                        () => {
+
+                            if (
+                                typeof featuredIndex !==
+                                "undefined"
+                            ) {
+                                featuredIndex =
+                                    Number(
+                                        button.dataset
+                                            .heroIndex
+                                    );
+                            }
+
+                            enhancementRenderHero();
+
+                        }
+                    );
+
+                }
+            );
+    }
+
+    /* =====================================================
+       HERO KEYBOARD NAVIGATION
+    ===================================================== */
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            const tag =
+                document.activeElement
+                    ?.tagName;
+
+            if (
+                tag ===
+                "INPUT" ||
+                tag ===
+                "TEXTAREA" ||
+                tag ===
+                "SELECT"
+            ) {
+                return;
+            }
+
+            const home =
+                el(
+                    "homePage"
+                );
+
+            if (
+                !home ||
+                !home.classList.contains(
+                    "active-page"
+                )
+            ) {
+                return;
+            }
+
+            if (
+                event.key ===
+                "ArrowRight"
+            ) {
+                enhancementHeroNext();
+            }
+
+            if (
+                event.key ===
+                "ArrowLeft"
+            ) {
+                enhancementHeroPrevious();
+            }
+
+        }
+    );
+
+    /* =====================================================
+       HERO TOUCH SWIPE
+    ===================================================== */
+
+    let heroTouchStart = null;
+
+    document.addEventListener(
+        "touchstart",
+        event => {
+
+            const home =
+                el(
+                    "homePage"
+                );
+
+            if (
+                !home ||
+                !home.classList.contains(
+                    "active-page"
+                )
+            ) {
+                return;
+            }
+
+            if (
+                event.touches.length !==
+                1
+            ) {
+                return;
+            }
+
+            heroTouchStart =
+                event.touches[0]
+                    .clientX;
+
+        },
+        {
+            passive: true
+        }
+    );
+
+    document.addEventListener(
+        "touchend",
+        event => {
+
+            if (
+                heroTouchStart ===
+                null
+            ) {
+                return;
+            }
+
+            const end =
+                event.changedTouches[0]
+                    ?.clientX;
+
+            if (
+                typeof end !==
+                "number"
+            ) {
+                heroTouchStart =
+                    null;
+
+                return;
+            }
+
+            const distance =
+                heroTouchStart -
+                end;
+
+            if (
+                Math.abs(distance) >
+                55
+            ) {
+
+                if (
+                    distance >
+                    0
+                ) {
+                    enhancementHeroNext();
+                } else {
+                    enhancementHeroPrevious();
+                }
+
+            }
+
+            heroTouchStart =
+                null;
+
+        },
+        {
+            passive: true
+        }
+    );
+
+    /* =====================================================
+       RATING SLIDER
+    ===================================================== */
+
+    function enhancementUpdateRating(
+        value
+    ) {
+
+        const rating =
+            Math.max(
+                1,
+                Math.min(
+                    5,
+                    Number(value) ||
+                    1
+                )
+            );
+
+        currentRating =
+            rating;
+
+        const big =
+            el(
+                "ratingBigNumber"
+            );
+
+        const valueElement =
+            el(
+                "ratingValue"
+            );
+
+        if (big) {
+            big.textContent =
+                String(
+                    rating
+                );
+        }
+
+        if (valueElement) {
+            valueElement.textContent =
+                `${rating} / 5`;
+        }
+    }
+
+    const ratingSlider =
+        el(
+            "ratingSlider"
+        );
+
+    if (ratingSlider) {
+
+        ratingSlider.addEventListener(
+            "input",
+            event => {
+
+                enhancementUpdateRating(
+                    event.target.value
+                );
+
+            }
+        );
+
+        ratingSlider.addEventListener(
+            "change",
+            event => {
+
+                enhancementUpdateRating(
+                    event.target.value
+                );
+
+            }
+        );
+
+    }
+
+    /* =====================================================
+       OPEN RATING MODAL
+    ===================================================== */
+
+    el(
+        "modalRateButton"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            if (!currentUser) {
+
+                if (
+                    typeof closeAnimeModal ===
+                    "function"
+                ) {
+                    closeAnimeModal();
+                }
+
+                if (
+                    typeof openLogin ===
+                    "function"
+                ) {
+                    openLogin();
+                }
+
+                return;
+            }
+
+            if (!currentAnime) {
+                return;
+            }
+
+            const existing =
+                typeof getListAnime ===
+                "function"
+                    ? getListAnime(
+                        currentAnime
+                    )
+                    : null;
+
+            if (!existing) {
+
+                if (
+                    typeof showToast ===
+                    "function"
+                ) {
+                    showToast(
+                        "Add this anime to My List before rating it.",
+                        "error"
+                    );
+                }
+
+                return;
+            }
+
+            currentRating =
+                Number(
+                    existing.rating ||
+                    0
+                );
+
+            const slider =
+                el(
+                    "ratingSlider"
+                );
+
+            if (slider) {
+
+                slider.value =
+                    currentRating ||
+                    1;
+
+                enhancementUpdateRating(
+                    slider.value
+                );
+
+            }
+
+            const title =
+                el(
+                    "ratingAnimeTitle"
+                );
+
+            if (title) {
+                title.textContent =
+                    currentAnime.title ||
+                    "Anime";
+            }
+
+            el(
+                "ratingModal"
+            )?.classList.add(
+                "open"
+            );
+
+            document.body.style.overflow =
+                "hidden";
+
+        }
+    );
+
+    /* =====================================================
+       SAVE RATING
+    ===================================================== */
+
+    el(
+        "submitRating"
+    )?.addEventListener(
+        "click",
+        async () => {
+
+            if (
+                !currentUser ||
+                !currentAnime
+            ) {
+                return;
+            }
+
+            const animeId =
+                Number(
+                    currentAnime.mal_id ||
+                    currentAnime.id
+                );
+
+            if (!animeId) {
+                return;
+            }
+
+            const rating =
+                Math.max(
+                    1,
+                    Math.min(
+                        5,
+                        Number(
+                            currentRating
+                        ) ||
+                        1
+                    )
+                );
+
+            const button =
+                el(
+                    "submitRating"
+                );
+
+            const originalText =
+                button?.textContent ||
+                "Save Rating";
+
+            if (button) {
+                button.disabled =
+                    true;
+
+                button.textContent =
+                    "Saving...";
+            }
+
+            try {
+
+                const data =
+                    await miraiRequest(
+                        `/api/my-list/${animeId}/rating`,
+                        {
+                            method:
+                                "PATCH",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    rating
+                                })
+                        }
+                    );
+
+                const item =
+                    typeof getListAnime ===
+                    "function"
+                        ? getListAnime(
+                            currentAnime
+                        )
+                        : null;
+
+                if (item) {
+                    item.rating =
+                        rating;
+                }
+
+                currentAnime.rating =
+                    rating;
+
+                if (
+                    typeof renderMyList ===
+                    "function"
+                ) {
+                    renderMyList();
+                }
+
+                if (
+                    typeof renderHomeList ===
+                    "function"
+                ) {
+                    renderHomeList();
+                }
+
+                el(
+                    "ratingModal"
+                )?.classList.remove(
+                    "open"
+                );
+
+                document.body.style.overflow =
+                    "";
+
+                if (
+                    typeof showToast ===
+                    "function"
+                ) {
+                    showToast(
+                        `Rated ${rating}/5.`,
+                        "success"
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "MIRAI RATING ERROR:",
+                    error
+                );
+
+                if (
+                    typeof showToast ===
+                    "function"
+                ) {
+                    showToast(
+                        error.message ||
+                        "Could not save rating.",
+                        "error"
+                    );
+                }
+
+            } finally {
+
+                if (button) {
+
+                    button.disabled =
+                        false;
+
+                    button.textContent =
+                        originalText;
+
+                }
+
+            }
+
+        }
+    );
+
+    /* =====================================================
+       MODAL LIST MANAGEMENT
+    ===================================================== */
+
+    function enhancementUpdateModalControls() {
+
+        const management =
+            el(
+                "listManagement"
+            );
+
+        if (
+            !management ||
+            !currentAnime
+        ) {
+            return;
+        }
+
+        const existing =
+            typeof getListAnime ===
+            "function"
+                ? getListAnime(
+                    currentAnime
+                )
+                : null;
+
+        if (!existing) {
+
+            management.classList.add(
+                "hidden"
+            );
+
+            return;
+        }
+
+        management.classList.remove(
+            "hidden"
+        );
+
+        const status =
+            el(
+                "animeStatusSelect"
+            );
+
+        const episode =
+            el(
+                "episodeInput"
+            );
+
+        if (status) {
+            status.value =
+                existing.listStatus ||
+                "plan";
+        }
+
+        if (episode) {
+            episode.value =
+                Number(
+                    existing.episode ||
+                    0
+                );
+        }
+
+        const currentStatus =
+            el(
+                "modalCurrentStatus"
+            );
+
+        if (currentStatus) {
+
+            const labels = {
+                plan:
+                    "Plan to Watch",
+
+                watching:
+                    "Watching",
+
+                completed:
+                    "Completed",
+
+                on_hold:
+                    "On Hold",
+
+                dropped:
+                    "Dropped"
+            };
+
+            currentStatus.textContent =
+                `${
+                    labels[
+                        existing.listStatus
+                    ] ||
+                    existing.listStatus ||
+                    "Unknown"
+                } • Episode ${
+                    Number(
+                        existing.episode ||
+                        0
+                    )
+                }`;
+
+        }
+
+    }
+
+    el(
+        "saveListChanges"
+    )?.addEventListener(
+        "click",
+        async () => {
+
+            if (
+                !currentUser ||
+                !currentAnime
+            ) {
+                return;
+            }
+
+            const animeId =
+                Number(
+                    currentAnime.mal_id ||
+                    currentAnime.id
+                );
+
+            if (!animeId) {
+                return;
+            }
+
+            const status =
+                el(
+                    "animeStatusSelect"
+                )?.value ||
+                "plan";
+
+            const episode =
+                Math.max(
+                    0,
+                    Math.floor(
+                        Number(
+                            el(
+                                "episodeInput"
+                            )?.value ||
+                            0
+                        )
+                    )
+                );
+
+            const button =
+                el(
+                    "saveListChanges"
+                );
+
+            const original =
+                button?.textContent ||
+                "Save Changes";
+
+            if (button) {
+
+                button.disabled =
+                    true;
+
+                button.textContent =
+                    "Saving...";
+
+            }
+
+            try {
+
+                const data =
+                    await miraiRequest(
+                        `/api/my-list/${animeId}`,
+                        {
+                            method:
+                                "PATCH",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    status,
+                                    episode
+                                })
+                        }
+                    );
+
+                const local =
+                    typeof getListAnime ===
+                    "function"
+                        ? getListAnime(
+                            currentAnime
+                        )
+                        : null;
+
+                if (local) {
+
+                    local.listStatus =
+                        data.data?.status ||
+                        status;
+
+                    local.status =
+                        local.listStatus;
+
+                    local.episode =
+                        Number(
+                            data.data?.episode ??
+                            episode
+                        );
+
+                    local.savedAt =
+                        data.data?.savedAt ||
+                        new Date()
+                            .toISOString();
+
+                }
+
+                if (
+                    typeof renderMyList ===
+                    "function"
+                ) {
+                    renderMyList();
+                }
+
+                if (
+                    typeof renderHomeList ===
+                    "function"
+                ) {
+                    renderHomeList();
+                }
+
+                enhancementUpdateModalControls();
+
+                if (
+                    typeof showToast ===
+                    "function"
+                ) {
+                    showToast(
+                        "Anime updated.",
+                        "success"
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "MIRAI LIST UPDATE ERROR:",
+                    error
+                );
+
+                if (
+                    typeof showToast ===
+                    "function"
+                ) {
+                    showToast(
+                        error.message ||
+                        "Could not update the anime.",
+                        "error"
+                    );
+                }
+
+            } finally {
+
+                if (button) {
+
+                    button.disabled =
+                        false;
+
+                    button.textContent =
+                        original;
+
+                }
+
+            }
+
+        }
+    );
+
+    /* =====================================================
+       EPISODE BUTTONS
+    ===================================================== */
+
+    el(
+        "episodePlus"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            const input =
+                el(
+                    "episodeInput"
+                );
+
+            if (!input) {
+                return;
+            }
+
+            const current =
+                Math.max(
+                    0,
+                    Number(
+                        input.value ||
+                        0
+                    )
+                );
+
+            const maximum =
+                Number(
+                    currentAnime?.episodes ||
+                    currentAnime?.episode_count ||
+                    999999
+                );
+
+            input.value =
+                Math.min(
+                    current + 1,
+                    maximum
+                );
+
+        }
+    );
+
+    el(
+        "episodeMinus"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            const input =
+                el(
+                    "episodeInput"
+                );
+
+            if (!input) {
+                return;
+            }
+
+            const current =
+                Math.max(
+                    0,
+                    Number(
+                        input.value ||
+                        0
+                    )
+                );
+
+            input.value =
+                Math.max(
+                    0,
+                    current - 1
+                );
+
+        }
+    );
+
+    /* =====================================================
+       SCHEDULE TIME FORMAT
+    ===================================================== */
+
+    function enhancementParseTime(
+        anime
+    ) {
+
+        const broadcast =
+            anime?.broadcast ||
+            {};
+
+        const airing =
+            anime?.airing ||
+            {};
+
+        const raw =
+            airing.time ||
+            airing.display ||
+            broadcast.start_time ||
+            broadcast.time ||
+            "";
+
+        if (!raw) {
+            return null;
+        }
+
+        const match =
+            String(
+                raw
+            ).match(
+                /(\d{1,2}):(\d{2})/
+            );
+
+        if (!match) {
+            return null;
+        }
+
+        const hour =
+            Number(
+                match[1]
+            );
+
+        const minute =
+            Number(
+                match[2]
+            );
+
+        if (
+            hour < 0 ||
+            hour > 23 ||
+            minute < 0 ||
+            minute > 59
+        ) {
+            return null;
+        }
+
+        return {
+            hour,
+            minute,
+            total:
+                hour * 60 +
+                minute
+        };
+
+    }
+
+    function enhancementFormatTime(
+        hour,
+        minute
+    ) {
+
+        const period =
+            hour >= 12
+                ? "PM"
+                : "AM";
+
+        const twelve =
+            hour % 12 ||
+            12;
+
+        return (
+            `${twelve}:` +
+            `${String(
+                minute
+            ).padStart(
+                2,
+                "0"
+            )} ${period}`
+        );
+
+    }
+
+    /* =====================================================
+       SCHEDULE HOURS BAR
+    ===================================================== */
+
+    function enhancementRenderScheduleHours(
+        animeList
+    ) {
+
+        const hours =
+            el(
+                "scheduleHours"
+            );
+
+        if (
+            !hours
+        ) {
+            return;
+        }
+
+        const present =
+            new Set();
+
+        (
+            Array.isArray(
+                animeList
+            )
+                ? animeList
+                : []
+        )
+            .forEach(
+                anime => {
+
+                    const time =
+                        enhancementParseTime(
+                            anime
+                        );
+
+                    if (time) {
+                        present.add(
+                            time.hour
+                        );
+                    }
+
+                }
+            );
+
+        hours.innerHTML =
+            Array.from(
+                {
+                    length:
+                        24
+                },
+                (_, hour) =>
+                    `
+                        <button
+                            type="button"
+                            class="schedule-hour-chip ${
+                                present.has(hour)
+                                    ? "has-anime"
+                                    : ""
+                            }"
+                            data-hour="${hour}"
+                        >
+                            ${escapeValue(
+                                enhancementFormatTime(
+                                    hour,
+                                    0
+                                )
+                            )}
+                        </button>
+                    `
+            ).join("");
+
+        hours
+            .querySelectorAll(
+                "[data-hour]"
+            )
+            .forEach(
+                chip => {
+
+                    chip.addEventListener(
+                        "click",
+                        () => {
+
+                            const hour =
+                                Number(
+                                    chip.dataset
+                                        .hour
+                                );
+
+                            const list =
+                                Array.isArray(
+                                    animeList
+                                )
+                                    ? animeList
+                                    : [];
+
+                            const matching =
+                                list.filter(
+                                    anime => {
+
+                                        const time =
+                                            enhancementParseTime(
+                                                anime
+                                            );
+
+                                        return (
+                                            time &&
+                                            time.hour ===
+                                            hour
+                                        );
+
+                                    }
+                                );
+
+                            if (
+                                matching.length &&
+                                typeof renderScheduleGrid ===
+                                "function"
+                            ) {
+
+                                const grid =
+                                    el(
+                                        "scheduleGrid"
+                                    );
+
+                                renderScheduleGrid(
+                                    grid,
+                                    matching
+                                );
+
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+    }
+
+    /* =====================================================
+       TRAILER MODAL
+    ===================================================== */
+
+    async function enhancementGetTrailer(
+        anime
+    ) {
+
+        const id =
+            Number(
+                anime?.mal_id ||
+                anime?.id
+            );
+
+        if (!id) {
+            return null;
+        }
+
+        try {
+
+            const data =
+                await miraiRequest(
+                    `/anime/trailer/${id}`
+                );
+
+            return (
+                data?.data ||
+                null
+            );
+
+        } catch (
+            error
+        ) {
+
+            console.warn(
+                "Trailer unavailable:",
+                error
+            );
+
+            return null;
+
+        }
+
+    }
+
+    async function enhancementOpenTrailer(
+        anime
+    ) {
+
+        const trailer =
+            await enhancementGetTrailer(
+                anime
+            );
+
+        if (
+            !trailer?.embed_url
+        ) {
+
+            if (
+                typeof showToast ===
+                "function"
+            ) {
+                showToast(
+                    "No official trailer is available for this anime.",
+                    "error"
+                );
+            }
+
+            return;
+
+        }
+
+        const frame =
+            el(
+                "trailerFrame"
+            );
+
+        const modal =
+            el(
+                "trailerModal"
+            );
+
+        if (
+            !frame ||
+            !modal
+        ) {
+            return;
+        }
+
+        frame.src =
+            trailer.embed_url;
+
+        modal.classList.add(
+            "open"
+        );
+
+        document.body.style.overflow =
+            "hidden";
+
+    }
+
+    el(
+        "heroTrailerButton"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            if (
+                currentAnime
+            ) {
+                enhancementOpenTrailer(
+                    currentAnime
+                );
+                return;
+            }
+
+            if (
+                typeof popularAnime !==
+                "undefined" &&
+                popularAnime.length
+            ) {
+
+                const anime =
+                    popularAnime[
+                        typeof featuredIndex ===
+                        "number"
+                            ? featuredIndex
+                            : 0
+                    ];
+
+                enhancementOpenTrailer(
+                    anime
+                );
+
+            }
+
+        }
+    );
+
+    el(
+        "modalTrailerButton"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            if (
+                currentAnime
+            ) {
+                enhancementOpenTrailer(
+                    currentAnime
+                );
+            }
+
+        }
+    );
+
+    el(
+        "trailerModalClose"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            const modal =
+                el(
+                    "trailerModal"
+                );
+
+            const frame =
+                el(
+                    "trailerFrame"
+                );
+
+            if (frame) {
+                frame.src =
+                    "";
+            }
+
+            modal?.classList.remove(
+                "open"
+            );
+
+            document.body.style.overflow =
+                "";
+
+        }
+    );
+
+    el(
+        "trailerModal"
+    )?.addEventListener(
+        "click",
+        event => {
+
+            const modal =
+                el(
+                    "trailerModal"
+                );
+
+            if (
+                event.target ===
+                modal
+            ) {
+
+                const frame =
+                    el(
+                        "trailerFrame"
+                    );
+
+                if (frame) {
+                    frame.src =
+                        "";
+                }
+
+                modal.classList.remove(
+                    "open"
+                );
+
+                document.body.style.overflow =
+                    "";
+
+            }
+
+        }
+    );
+
+    /* =====================================================
+       MOBILE NAV IMPROVEMENTS
+    ===================================================== */
+
+    all(
+        ".mobile-nav-item"
+    ).forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const page =
+                        button.dataset.page;
+
+                    if (
+                        page &&
+                        typeof showPage ===
+                        "function"
+                    ) {
+                        showPage(
+                            page
+                        );
+                    }
+
+                }
+            );
+
+        }
+    );
+
+    /* =====================================================
+       MOBILE BRAND -> HOME
+    ===================================================== */
+
+    el(
+        "mobileHomeButton"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            if (
+                typeof showPage ===
+                "function"
+            ) {
+                showPage(
+                    "home"
+                );
+            }
+
+        }
+    );
+
+    /* =====================================================
+       ACCOUNT BUTTON
+    ===================================================== */
+
+    el(
+        "mobileAccountBtn"
+    )?.addEventListener(
+        "click",
+        () => {
+
+            if (
+                currentUser
+            ) {
+
+                if (
+                    typeof showPage ===
+                    "function"
+                ) {
+                    showPage(
+                        "my-list"
+                    );
+                }
+
+            } else if (
+                typeof openLogin ===
+                "function"
+            ) {
+
+                openLogin();
+
+            }
+
+        }
+    );
+
+    /* =====================================================
+       BACK TO HOME ON ALL PAGES
+    ===================================================== */
+
+    all(
+        "[data-home]"
+    ).forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    if (
+                        typeof showPage ===
+                        "function"
+                    ) {
+                        showPage(
+                            "home"
+                        );
+                    }
+
+                }
+            );
+
+        }
+    );
+
+    /* =====================================================
+       KEYBOARD SEARCH
+    ===================================================== */
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key !==
+                "/"
+            ) {
+                return;
+            }
+
+            const tag =
+                document.activeElement
+                    ?.tagName;
+
+            if (
+                tag ===
+                "INPUT" ||
+                tag ===
+                "TEXTAREA" ||
+                tag ===
+                "SELECT"
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const input =
+                el(
+                    "globalSearchInput"
+                );
+
+            if (input) {
+
+                input.focus();
+
+                input.select();
+
+            }
+
+        }
+    );
+
+    /* =====================================================
+       ESCAPE MODALS
+    ===================================================== */
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key !==
+                "Escape"
+            ) {
+                return;
+            }
+
+            all(
+                ".modal-overlay.open"
+            ).forEach(
+                modal => {
+
+                    modal.classList.remove(
+                        "open"
+                    );
+
+                }
+            );
+
+            document.body.style.overflow =
+                "";
+
+            const frame =
+                el(
+                    "trailerFrame"
+                );
+
+            if (frame) {
+                frame.src =
+                    "";
+            }
+
+        }
+    );
+
+    /* =====================================================
+       REFRESH LIST WHEN TAB BECOMES VISIBLE
+    ===================================================== */
+
+    document.addEventListener(
+        "visibilitychange",
+        async () => {
+
+            if (
+                document.visibilityState !==
+                "visible"
+            ) {
+                return;
+            }
+
+            if (
+                !currentUser
+            ) {
+                return;
+            }
+
+            if (
+                typeof loadMyListFromServer ===
+                "function"
+            ) {
+
+                try {
+
+                    await loadMyListFromServer();
+
+                } catch (
+                    error
+                ) {
+
+                    console.warn(
+                        "Could not refresh MIRAI list:",
+                        error
+                    );
+
+                }
+
+            }
+
+        }
+    );
+
+    /* =====================================================
+       OPTIONAL PERIODIC SYNC
+       Keeps multiple open tabs/devices reasonably fresh.
+    ===================================================== */
+
+    setInterval(
+        async () => {
+
+            if (
+                !currentUser ||
+                document.visibilityState !==
+                "visible"
+            ) {
+                return;
+            }
+
+            if (
+                typeof loadMyListFromServer !==
+                "function"
+            ) {
+                return;
+            }
+
+            try {
+
+                await loadMyListFromServer();
+
+            } catch (
+                error
+            ) {
+
+                console.debug(
+                    "MIRAI background sync failed:",
+                    error
+                );
+
+            }
+
+        },
+        60_000
+    );
+
+    /* =====================================================
+       PATCH RENDERERS WHEN THEY ARE AVAILABLE
+    ===================================================== */
+
+    const originalOpenAnimeModal =
+        typeof openAnimeModal ===
+        "function"
+            ? openAnimeModal
+            : null;
+
+    if (originalOpenAnimeModal) {
+
+        window.openAnimeModal =
+            function(
+                anime
+            ) {
+
+                originalOpenAnimeModal(
+                    anime
+                );
+
+                setTimeout(
+                    () => {
+
+                        enhancementUpdateModalControls();
+
+                    },
+                    0
+                );
+
+            };
+
+    }
+
+    /* =====================================================
+       INITIAL ENHANCEMENT REFRESH
+    ===================================================== */
+
+    setTimeout(
+        () => {
+
+            if (
+                typeof popularAnime !==
+                "undefined" &&
+                popularAnime.length
+            ) {
+
+                enhancementRenderHero();
+
+            }
+
+            if (
+                typeof scheduleData !==
+                "undefined" &&
+                currentScheduleDay &&
+                scheduleData[
+                    currentScheduleDay
+                ]
+            ) {
+
+                enhancementRenderScheduleHours(
+                    scheduleData[
+                        currentScheduleDay
+                    ]
+                );
+
+            }
+
+        },
+        500
+    );
+
+})();
