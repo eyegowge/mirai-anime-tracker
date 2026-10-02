@@ -53,45 +53,32 @@ function roundRating(v) { const n = Number(v); return Number.isFinite(n) ? Math.
 function normalizeRating(v) { const n = roundRating(v); return n <= 0 ? 0 : Number(clamp(n, RATING_MIN, RATING_MAX).toFixed(1)); }
 function restoreBodyScroll() { if (!document.querySelector(".modal-overlay.open")) document.body.style.overflow = ""; }
 
-/* =========================================================
-   THEME SYSTEM
-========================================================= */
-
+/* THEME */
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("mirai-theme", theme);
   const label = getElement("themeToggleLabel");
-  if (label) label.textContent = `Theme: ${THEME_LABELS[theme] || theme}`;
+  if (label) label.textContent = THEME_LABELS[theme] || theme;
 }
-
 function initTheme() {
   const saved = localStorage.getItem("mirai-theme");
   applyTheme(THEMES.includes(saved) ? saved : "aurora");
 }
-
 getElement("themeToggleBtn")?.addEventListener("click", () => {
   const current = document.documentElement.getAttribute("data-theme") || "aurora";
-  const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
-  applyTheme(next);
+  applyTheme(THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
 });
 
-/* =========================================================
-   INTRO SPLASH (cloud whoosh)
-========================================================= */
-
+/* SPLASH */
 function initSplash() {
   const splash = getElement("splash");
   if (!splash) return;
-  const alreadySeen = sessionStorage.getItem("mirai-splash-seen");
-  if (alreadySeen) { splash.classList.add("done"); return; }
+  if (sessionStorage.getItem("mirai-splash-seen")) { splash.classList.add("done"); return; }
   sessionStorage.setItem("mirai-splash-seen", "1");
-  setTimeout(() => splash.classList.add("done"), 2600);
+  setTimeout(() => splash.classList.add("done"), 3200);
 }
 
-/* =========================================================
-   TOAST
-========================================================= */
-
+/* TOAST */
 function showToast(message, type = "") {
   const toast = getElement("toast");
   if (!toast) return;
@@ -103,10 +90,7 @@ function showToast(message, type = "") {
   toastTimeout = setTimeout(() => toast.classList.remove("show"), 3200);
 }
 
-/* =========================================================
-   API
-========================================================= */
-
+/* API */
 async function apiRequest(url, options = {}) {
   const response = await fetch(`${API_BASE}${url}`, { credentials: "include", ...options });
   const data = await response.json().catch(() => ({}));
@@ -119,10 +103,7 @@ async function apiRequest(url, options = {}) {
   return data;
 }
 
-/* =========================================================
-   NORMALIZE ANIME
-========================================================= */
-
+/* NORMALIZE */
 function normalizeAnime(anime) {
   if (!anime) return null;
   const node = anime.node || anime;
@@ -161,26 +142,19 @@ function normalizeAnime(anime) {
     trailer_url: node.trailer_url || anime.trailer_url || anime.trailer?.embed_url || null
   };
 }
-
 function normalizeAnimeList(list) {
   if (!Array.isArray(list)) return [];
   return list.map(normalizeAnime).filter(Boolean);
 }
 
-/* =========================================================
-   PAGE NAVIGATION
-========================================================= */
-
+/* PAGE NAV */
 function showPage(pageName) {
   Object.values(pages).forEach(p => p && p.classList.remove("active-page"));
   if (pages[pageName]) pages[pageName].classList.add("active-page");
-
   navItems.forEach(i => i.classList.toggle("active", i.dataset.page === pageName));
   mobileNavItems.forEach(i => i.classList.toggle("active", i.dataset.page === pageName));
-
   getElement("sidebar")?.classList.remove("open");
   getElement("mobileBackdrop")?.classList.remove("open");
-
   window.scrollTo({ top: 0, behavior: "smooth" });
 
   if (pageName === "home") startHeroAutoplay();
@@ -189,26 +163,20 @@ function showPage(pageName) {
   if (pageName === "schedule") loadSchedule(query(".schedule-tab.active")?.dataset.day || currentScheduleDay || "monday");
   if (pageName === "discover") loadDiscover(currentDiscoverMode);
 }
-
 navItems.forEach(i => i.addEventListener("click", () => showPage(i.dataset.page)));
 mobileNavItems.forEach(i => i.addEventListener("click", () => showPage(i.dataset.page)));
 
-/* =========================================================
-   MOBILE SIDEBAR / DRAWER
-========================================================= */
-
+/* MOBILE DRAWER */
 const mobileMenuBtn = getElement("mobileMenuBtn");
 mobileMenuBtn?.addEventListener("click", event => {
   event.stopPropagation();
   getElement("sidebar")?.classList.toggle("open");
   getElement("mobileBackdrop")?.classList.toggle("open");
 });
-
 getElement("mobileBackdrop")?.addEventListener("click", () => {
   getElement("sidebar")?.classList.remove("open");
   getElement("mobileBackdrop")?.classList.remove("open");
 });
-
 document.addEventListener("click", event => {
   const sidebar = getElement("sidebar");
   if (!sidebar || !sidebar.classList.contains("open")) return;
@@ -216,35 +184,17 @@ document.addEventListener("click", event => {
   sidebar.classList.remove("open");
   getElement("mobileBackdrop")?.classList.remove("open");
 });
-
-getElement("mobileSearchButton")?.addEventListener("click", () => {
-  showPage("search");
-  setTimeout(() => getElement("searchInput")?.focus(), 150);
-});
-
-getElement("mobileAccountBtn")?.addEventListener("click", () => {
-  currentUser ? showPage("my-list") : openLogin();
-});
-
+getElement("mobileSearchButton")?.addEventListener("click", () => { showPage("search"); setTimeout(() => getElement("searchInput")?.focus(), 150); });
+getElement("mobileAccountBtn")?.addEventListener("click", () => currentUser ? showPage("my-list") : openLogin());
 getElement("mobileHomeButton")?.addEventListener("click", () => showPage("home"));
 
-/* =========================================================
-   BACK HOME
-========================================================= */
-
+/* BACK HOME */
 queryAll("[data-home]").forEach(b => b.addEventListener("click", () => showPage("home")));
 queryAll(".back-home-button").forEach(b => b.addEventListener("click", () => showPage("home")));
 getElement("globalHomeButton")?.addEventListener("click", () => showPage("home"));
 
-/* =========================================================
-   SEARCH (global + page, works from any tab)
-========================================================= */
-
-function goToSearch() {
-  showPage("search");
-  setTimeout(() => getElement("searchInput")?.focus(), 120);
-}
-
+/* SEARCH */
+function goToSearch() { showPage("search"); setTimeout(() => getElement("searchInput")?.focus(), 120); }
 getElement("homeSearchBtn")?.addEventListener("click", goToSearch);
 getElement("homeListButton")?.addEventListener("click", () => showPage("my-list"));
 getElement("sidebarSearchButton")?.addEventListener("click", goToSearch);
@@ -259,29 +209,20 @@ async function performGlobalSearch() {
   showPage("search");
   await performSearch(text);
 }
-
 getElement("globalSearchForm")?.addEventListener("submit", e => { e.preventDefault(); performGlobalSearch(); });
 getElement("globalSearchButton")?.addEventListener("click", e => { e.preventDefault(); performGlobalSearch(); });
-
 document.addEventListener("keydown", event => {
   const tag = document.activeElement?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
   if (event.key === "/") { event.preventDefault(); getElement("globalSearchInput")?.focus(); getElement("globalSearchInput")?.select(); }
 });
+getElement("globalSearchInput")?.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); performGlobalSearch(); } });
 
-getElement("globalSearchInput")?.addEventListener("keydown", event => {
-  if (event.key === "Enter") { event.preventDefault(); performGlobalSearch(); }
-});
-
-/* =========================================================
-   ACCOUNT MODAL
-========================================================= */
-
+/* ACCOUNT MODAL */
 function openAccountModal() { accountModal?.classList.add("open"); document.body.style.overflow = "hidden"; }
 function closeAccountModal() { accountModal?.classList.remove("open"); restoreBodyScroll(); }
 function openLogin() { clearAccountErrors(); loginContainer?.classList.remove("hidden"); registerContainer?.classList.add("hidden"); openAccountModal(); }
 function openRegister() { clearAccountErrors(); loginContainer?.classList.add("hidden"); registerContainer?.classList.remove("hidden"); openAccountModal(); }
-
 getElement("sidebarLoginBtn")?.addEventListener("click", openLogin);
 getElement("sidebarSignupBtn")?.addEventListener("click", openRegister);
 getElement("listLoginBtn")?.addEventListener("click", openLogin);
@@ -289,13 +230,9 @@ getElement("showRegisterBtn")?.addEventListener("click", openRegister);
 getElement("showLoginBtn")?.addEventListener("click", openLogin);
 getElement("accountModalClose")?.addEventListener("click", closeAccountModal);
 accountModal?.addEventListener("click", e => { if (e.target === accountModal) closeAccountModal(); });
-
-function clearAccountErrors() {
-  [loginError, registerError].forEach(el => { if (el) { el.textContent = ""; el.classList.remove("show"); } });
-}
+function clearAccountErrors() { [loginError, registerError].forEach(el => { if (el) { el.textContent = ""; el.classList.remove("show"); } }); }
 function showAccountError(el, msg) { if (el) { el.textContent = msg; el.classList.add("show"); } }
 
-/* REGISTER */
 registerForm?.addEventListener("submit", async event => {
   event.preventDefault();
   clearAccountErrors();
@@ -331,7 +268,6 @@ registerForm?.addEventListener("submit", async event => {
   }
 });
 
-/* LOGIN */
 loginForm?.addEventListener("submit", async event => {
   event.preventDefault();
   clearAccountErrors();
@@ -360,7 +296,6 @@ loginForm?.addEventListener("submit", async event => {
   }
 });
 
-/* LOGOUT */
 getElement("logoutBtn")?.addEventListener("click", async () => {
   try { await apiRequest("/auth/logout", { method: "POST" }); } catch (error) { console.error("LOGOUT ERROR:", error); }
   currentUser = null; myList = []; homeListIndex = 0;
@@ -369,10 +304,7 @@ getElement("logoutBtn")?.addEventListener("click", async () => {
   showToast("You have been logged out.");
 });
 
-/* =========================================================
-   ACCOUNT UI
-========================================================= */
-
+/* ACCOUNT UI */
 function updateAccountUI() {
   if (currentUser) {
     loggedOutAccount?.classList.add("hidden");
@@ -394,10 +326,7 @@ function updateAccountUI() {
   renderHomeList();
 }
 
-/* =========================================================
-   SESSION
-========================================================= */
-
+/* SESSION */
 async function checkSession() {
   try {
     const data = await apiRequest("/auth/me", { cache: "no-store" });
@@ -414,10 +343,7 @@ async function checkSession() {
   }
 }
 
-/* =========================================================
-   MY LIST
-========================================================= */
-
+/* MY LIST */
 async function loadMyListFromServer() {
   if (!currentUser) { myList = []; renderMyList(); renderHomeList(); return; }
   if (isLoadingList) return;
@@ -513,10 +439,7 @@ async function updateAnimeListEntry(anime, status, episode) {
   }
 }
 
-/* =========================================================
-   MY LIST RENDER
-========================================================= */
-
+/* MY LIST RENDER */
 function renderMyList() {
   const container = getElement("myListContent");
   const loginBox = getElement("myListLogin");
@@ -547,7 +470,8 @@ function renderMyList() {
   }
 
   container.innerHTML = `<div class="anime-grid">${filtered.map((a, i) => animeCard(a, i)).join("")}</div>`;
-  container.querySelectorAll(".anime-card").forEach(card => {
+  container.querySelectorAll(".anime-card").forEach((card, i) => {
+    card.style.animationDelay = `${i * 0.04}s`;
     card.addEventListener("click", () => openAnimeModal(filtered[Number(card.dataset.index)]));
   });
 }
@@ -560,10 +484,7 @@ queryAll(".status-tab").forEach(tab => {
   });
 });
 
-/* =========================================================
-   HOME LIST (recent → oldest, paged with arrows)
-========================================================= */
-
+/* HOME LIST */
 function renderHomeList() {
   const grid = getElement("homeListGrid");
   if (!grid) return;
@@ -600,7 +521,8 @@ function renderHomeList() {
   const visible = myList.slice(homeListIndex, homeListIndex + HOME_LIST_SIZE);
 
   grid.innerHTML = visible.map((a, i) => animeCard(a, i)).join("");
-  grid.querySelectorAll(".anime-card").forEach(card => {
+  grid.querySelectorAll(".anime-card").forEach((card, i) => {
+    card.style.animationDelay = `${i * 0.04}s`;
     card.addEventListener("click", () => openAnimeModal(visible[Number(card.dataset.index)]));
   });
 
@@ -615,18 +537,13 @@ function updateHomeListControls() {
 
   if (previous) previous.disabled = homeListIndex <= 0;
   if (next) next.disabled = homeListIndex + HOME_LIST_SIZE >= total;
-  if (counter) {
-    counter.textContent = !total ? "0 anime" : `${homeListIndex + 1}-${Math.min(homeListIndex + HOME_LIST_SIZE, total)} of ${total}`;
-  }
+  if (counter) counter.textContent = !total ? "0 anime" : `${homeListIndex + 1}-${Math.min(homeListIndex + HOME_LIST_SIZE, total)} of ${total}`;
 }
 
 getElement("homeListPrevious")?.addEventListener("click", () => { homeListIndex = Math.max(0, homeListIndex - HOME_LIST_SIZE); renderHomeList(); });
 getElement("homeListNext")?.addEventListener("click", () => { if (homeListIndex + HOME_LIST_SIZE < myList.length) homeListIndex += HOME_LIST_SIZE; renderHomeList(); });
 
-/* =========================================================
-   ANIME CARD
-========================================================= */
-
+/* ANIME CARD */
 function animeCard(anime, index) {
   const a = normalizeAnime(anime);
   if (!a) return "";
@@ -649,10 +566,7 @@ function animeCard(anime, index) {
     </article>`;
 }
 
-/* =========================================================
-   ANIME MODAL
-========================================================= */
-
+/* ANIME MODAL */
 function openAnimeModal(anime) {
   currentAnime = normalizeAnime(anime);
   if (!currentAnime) { showToast("Unable to open this anime.", "error"); return; }
@@ -680,7 +594,6 @@ function openAnimeModal(anime) {
   animeModal?.classList.add("open");
   document.body.style.overflow = "hidden";
 }
-
 function closeAnimeModal() { animeModal?.classList.remove("open"); restoreBodyScroll(); }
 getElement("animeModalClose")?.addEventListener("click", closeAnimeModal);
 animeModal?.addEventListener("click", e => { if (e.target === animeModal) closeAnimeModal(); });
@@ -732,7 +645,6 @@ getElement("episodePlus")?.addEventListener("click", () => {
   const maximum = Number(currentAnime.episodes || currentAnime.episode_count || 999999);
   input.value = Math.min(current + 1, maximum);
 });
-
 getElement("episodeMinus")?.addEventListener("click", () => {
   const input = getElement("episodeInput");
   if (!input) return;
@@ -750,10 +662,7 @@ getElement("saveListChanges")?.addEventListener("click", async () => {
   finally { if (button) { button.disabled = false; button.textContent = oldText; } }
 });
 
-/* =========================================================
-   RATING MODAL (0.5 increments)
-========================================================= */
-
+/* RATING MODAL */
 function updateRatingDisplay(value) {
   let rating = clamp(roundRating(value), RATING_MIN, RATING_MAX);
   currentRating = Number(rating.toFixed(1));
@@ -784,7 +693,6 @@ function openRatingModal() {
   ratingModal?.classList.add("open");
   document.body.style.overflow = "hidden";
 }
-
 function closeRatingModal() { ratingModal?.classList.remove("open"); restoreBodyScroll(); }
 getElement("modalRateButton")?.addEventListener("click", openRatingModal);
 getElement("ratingModalClose")?.addEventListener("click", closeRatingModal);
@@ -821,10 +729,7 @@ getElement("submitRating")?.addEventListener("click", async () => {
   } finally { if (button) { button.disabled = false; button.textContent = oldText; } }
 });
 
-/* =========================================================
-   SEARCH
-========================================================= */
-
+/* SEARCH */
 getElement("searchForm")?.addEventListener("submit", e => { e.preventDefault(); performSearch(getElement("searchInput")?.value.trim() || ""); });
 
 async function performSearch(searchText) {
@@ -864,15 +769,13 @@ function renderAnimeGrid(grid, animeList) {
   const normalized = normalizeAnimeList(animeList);
   if (!normalized.length) { grid.innerHTML = `<div class="loading">No anime available.</div>`; return; }
   grid.innerHTML = normalized.map((a, i) => animeCard(a, i)).join("");
-  grid.querySelectorAll(".anime-card").forEach(card => {
+  grid.querySelectorAll(".anime-card").forEach((card, i) => {
+    card.style.animationDelay = `${Math.min(i, 20) * 0.03}s`;
     card.addEventListener("click", () => openAnimeModal(normalized[Number(card.dataset.index)]));
   });
 }
 
-/* =========================================================
-   POPULAR / HERO SLIDESHOW (with trailer preview)
-========================================================= */
-
+/* HERO / POPULAR */
 async function loadPopularAnime() {
   if (isLoadingPopular) return;
   isLoadingPopular = true;
@@ -901,7 +804,6 @@ function getFeaturedAnime() {
 function renderHero() {
   const anime = getFeaturedAnime();
   if (!anime) return;
-
   hideTrailerInline();
 
   const image = anime.image || anime.image_url || "";
@@ -920,10 +822,8 @@ function renderHero() {
 
   const viewButton = getElement("heroViewButton");
   if (viewButton) viewButton.onclick = () => openAnimeModal(anime);
-
   const trailerButton = getElement("heroTrailerButton");
   if (trailerButton) trailerButton.onclick = () => openTrailerForAnime(anime);
-
   const previewBtn = getElement("heroPreviewBtn");
   if (previewBtn) previewBtn.onclick = () => toggleTrailerInline(anime);
 
@@ -934,17 +834,13 @@ async function toggleTrailerInline(anime) {
   const wrap = getElement("trailerInline");
   const frame = getElement("trailerInlineFrame");
   if (!wrap || !frame) return;
-
   if (!wrap.classList.contains("hidden")) { hideTrailerInline(); return; }
-
   const trailer = await getTrailer(anime);
   if (!trailer?.embed_url) { showToast("No trailer preview is available for this anime.", "error"); return; }
-
   frame.src = `${trailer.embed_url}${trailer.embed_url.includes("?") ? "&" : "?"}autoplay=1&mute=1`;
   wrap.classList.remove("hidden");
   clearInterval(heroAutoplayTimer);
 }
-
 function hideTrailerInline() {
   const wrap = getElement("trailerInline");
   const frame = getElement("trailerInlineFrame");
@@ -966,7 +862,6 @@ function renderHeroDots() {
 
 function nextFeaturedAnime() { if (!popularAnime.length) return; const count = Math.min(popularAnime.length, 8); featuredIndex = (featuredIndex + 1) % count; renderHero(); restartHeroAutoplay(); }
 function previousFeaturedAnime() { if (!popularAnime.length) return; const count = Math.min(popularAnime.length, 8); featuredIndex = (featuredIndex - 1 + count) % count; renderHero(); restartHeroAutoplay(); }
-
 getElement("heroNext")?.addEventListener("click", nextFeaturedAnime);
 getElement("heroPrevious")?.addEventListener("click", previousFeaturedAnime);
 
@@ -978,7 +873,6 @@ function startHeroAutoplay() {
   }, 8000);
 }
 function restartHeroAutoplay() { clearInterval(heroAutoplayTimer); startHeroAutoplay(); }
-
 getElement("homeHero")?.addEventListener("mouseenter", () => clearInterval(heroAutoplayTimer));
 getElement("homeHero")?.addEventListener("mouseleave", () => startHeroAutoplay());
 
@@ -988,7 +882,6 @@ document.addEventListener("touchstart", e => {
   if (!home?.classList.contains("active-page") || e.touches.length !== 1) return;
   heroTouchStartX = e.touches[0].clientX;
 }, { passive: true });
-
 document.addEventListener("touchend", e => {
   if (heroTouchStartX === null) return;
   const endX = e.changedTouches[0]?.clientX;
@@ -1006,10 +899,7 @@ document.addEventListener("keydown", event => {
   if (event.key === "ArrowLeft") previousFeaturedAnime();
 });
 
-/* =========================================================
-   TRENDING / DISCOVER / RANDOM
-========================================================= */
-
+/* TRENDING / DISCOVER / RANDOM */
 async function loadTrending() {
   const grid = getElement("trendingGrid");
   if (!grid) return;
@@ -1036,19 +926,13 @@ async function loadDiscover(mode = "popular") {
   const grid = getElement("discoverGrid");
   if (!grid) return;
   grid.innerHTML = `<div class="loading"><div class="spinner"></div><span>Finding something new...</span></div>`;
-
   try {
     let anime = [];
     if (mode === "popular") anime = normalizeAnimeList((await apiRequest("/anime/trending?limit=30")).data || []);
     else anime = normalizeAnimeList((await apiRequest("/anime/top?limit=50")).data || []);
 
-    if (mode === "upcoming") {
-      const now = new Date();
-      anime = anime.filter(item => item.start_date && new Date(item.start_date) > now);
-    }
-    if (mode === "airing") {
-      anime = anime.filter(item => String(item.status || "").toLowerCase().includes("currently") || Boolean(item.broadcast));
-    }
+    if (mode === "upcoming") { const now = new Date(); anime = anime.filter(item => item.start_date && new Date(item.start_date) > now); }
+    if (mode === "airing") anime = anime.filter(item => String(item.status || "").toLowerCase().includes("currently") || Boolean(item.broadcast));
 
     renderAnimeGrid(grid, anime.slice(0, 24));
   } catch (error) {
@@ -1073,10 +957,7 @@ getElement("randomButton")?.addEventListener("click", async () => {
   }
 });
 
-/* =========================================================
-   SCHEDULE (hourly, always shows air time)
-========================================================= */
-
+/* SCHEDULE */
 const VALID_DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
 
 function parseScheduleTime(anime) {
@@ -1152,7 +1033,6 @@ async function loadSchedule(day = "monday") {
 function updateScheduleTabs(activeDay) {
   queryAll(".schedule-tab").forEach(tab => tab.classList.toggle("active", String(tab.dataset.day || "").toLowerCase() === activeDay));
 }
-
 queryAll(".schedule-tab").forEach(tab => tab.addEventListener("click", () => loadSchedule(tab.dataset.day || "monday")));
 
 function renderScheduleGrid(grid, animeList) {
@@ -1208,10 +1088,7 @@ function renderScheduleGrid(grid, animeList) {
   });
 }
 
-/* =========================================================
-   TRAILERS
-========================================================= */
-
+/* TRAILERS */
 async function getTrailer(anime) {
   const id = getAnimeId(anime);
   if (!id) return null;
@@ -1255,10 +1132,7 @@ getElement("modalTrailerButton")?.addEventListener("click", () => { if (currentA
 getElement("trailerModalClose")?.addEventListener("click", closeTrailerModal);
 trailerModal?.addEventListener("click", e => { if (e.target === trailerModal) closeTrailerModal(); });
 
-/* =========================================================
-   IMAGE ERROR / MODAL ESCAPE / BACKGROUND CLICK
-========================================================= */
-
+/* MISC */
 document.addEventListener("error", event => {
   if (event.target?.matches?.(".anime-image, .modal-anime-image, #heroImage")) event.target.style.display = "none";
 }, true);
@@ -1276,11 +1150,6 @@ document.addEventListener("keydown", event => {
   });
 });
 
-/* =========================================================
-   SYNC ACROSS DEVICES
-   (see note at top of message re: cookie SameSite/Secure config)
-========================================================= */
-
 document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState !== "visible" || !currentUser) return;
   try { await loadMyListFromServer(); } catch (error) { console.debug("VISIBILITY LIST REFRESH ERROR:", error); }
@@ -1291,10 +1160,7 @@ setInterval(async () => {
   try { await loadMyListFromServer(); } catch (error) { console.debug("BACKGROUND SYNC ERROR:", error); }
 }, 60_000);
 
-/* =========================================================
-   STARTUP
-========================================================= */
-
+/* STARTUP */
 async function initializeMIRAI() {
   initTheme();
   initSplash();
