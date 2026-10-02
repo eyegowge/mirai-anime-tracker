@@ -1,5 +1,5 @@
 /* =========================================================
-   MIRAI — ANIME TRACKER — FRONTEND SCRIPT
+   ANIVAULT — FRONTEND SCRIPT
 ========================================================= */
 
 const API_BASE = "";
@@ -10,8 +10,8 @@ let toastTimeout = null, heroAutoplayTimer = null;
 let isLoadingSchedule = false, isLoadingList = false, isLoadingPopular = false;
 
 const HOME_LIST_SIZE = 6, RATING_MIN = 0.5, RATING_MAX = 5, RATING_STEP = 0.5;
-const THEMES = ["aurora", "sakura", "cyber"];
-const THEME_LABELS = { aurora: "Aurora", sakura: "Sakura", cyber: "Cyber" };
+const THEMES = ["crimson", "violet", "teal"];
+const THEME_LABELS = { crimson: "Crimson", violet: "Violet", teal: "Teal" };
 
 const pages = {
   home: document.getElementById("homePage"),
@@ -56,16 +56,16 @@ function restoreBodyScroll() { if (!document.querySelector(".modal-overlay.open"
 /* THEME */
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("mirai-theme", theme);
+  localStorage.setItem("anivault-theme", theme);
   const label = getElement("themeToggleLabel");
   if (label) label.textContent = THEME_LABELS[theme] || theme;
 }
 function initTheme() {
-  const saved = localStorage.getItem("mirai-theme");
-  applyTheme(THEMES.includes(saved) ? saved : "aurora");
+  const saved = localStorage.getItem("anivault-theme");
+  applyTheme(THEMES.includes(saved) ? saved : "crimson");
 }
 getElement("themeToggleBtn")?.addEventListener("click", () => {
-  const current = document.documentElement.getAttribute("data-theme") || "aurora";
+  const current = document.documentElement.getAttribute("data-theme") || "crimson";
   applyTheme(THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
 });
 
@@ -73,9 +73,9 @@ getElement("themeToggleBtn")?.addEventListener("click", () => {
 function initSplash() {
   const splash = getElement("splash");
   if (!splash) return;
-  if (sessionStorage.getItem("mirai-splash-seen")) { splash.classList.add("done"); return; }
-  sessionStorage.setItem("mirai-splash-seen", "1");
-  setTimeout(() => splash.classList.add("done"), 3200);
+  if (sessionStorage.getItem("anivault-splash-seen")) { splash.classList.add("done"); return; }
+  sessionStorage.setItem("anivault-splash-seen", "1");
+  setTimeout(() => splash.classList.add("done"), 2200);
 }
 
 /* TOAST */
@@ -259,7 +259,7 @@ registerForm?.addEventListener("submit", async event => {
     registerForm.reset();
     updateAccountUI();
     await loadMyListFromServer();
-    showToast("Your MIRAI account has been created.", "success");
+    showToast("Your ANIVAULT account has been created.", "success");
   } catch (error) {
     console.error("REGISTER ERROR:", error);
     showAccountError(registerError, error.message || "Could not create account.");
@@ -451,7 +451,7 @@ function renderMyList() {
   if (!myList.length) {
     container.innerHTML = `
       <div class="empty-list">
-        <div class="empty-list-icon"><svg viewBox="0 0 64 64" width="30" height="30"><path d="M32 2 L58 18 V46 L32 62 L6 46 V18 Z" fill="currentColor"/></svg></div>
+        <div class="empty-list-icon"><svg viewBox="0 0 100 100" width="30" height="30"><rect width="100" height="100" rx="24" fill="currentColor"/></svg></div>
         <h3>Your list is empty</h3>
         <p>Search for an anime and start building your collection.</p>
         <button class="primary-button" id="findAnimeButton" type="button">Find Anime</button>
@@ -470,8 +470,7 @@ function renderMyList() {
   }
 
   container.innerHTML = `<div class="anime-grid">${filtered.map((a, i) => animeCard(a, i)).join("")}</div>`;
-  container.querySelectorAll(".anime-card").forEach((card, i) => {
-    card.style.animationDelay = `${i * 0.04}s`;
+  container.querySelectorAll(".anime-card").forEach(card => {
     card.addEventListener("click", () => openAnimeModal(filtered[Number(card.dataset.index)]));
   });
 }
@@ -492,7 +491,7 @@ function renderHomeList() {
   if (!currentUser) {
     grid.innerHTML = `
       <div class="home-list-empty">
-        <div class="home-list-empty-icon"><svg viewBox="0 0 64 64" width="26" height="26"><path d="M32 2 L58 18 V46 L32 62 L6 46 V18 Z" fill="currentColor"/></svg></div>
+        <div class="home-list-empty-icon"><svg viewBox="0 0 100 100" width="26" height="26"><rect width="100" height="100" rx="24" fill="currentColor"/></svg></div>
         <h3>Your list lives here</h3>
         <p>Log in to see the anime you have recently added.</p>
         <button class="primary-button" id="homeListLoginButton" type="button">Log In</button>
@@ -521,8 +520,7 @@ function renderHomeList() {
   const visible = myList.slice(homeListIndex, homeListIndex + HOME_LIST_SIZE);
 
   grid.innerHTML = visible.map((a, i) => animeCard(a, i)).join("");
-  grid.querySelectorAll(".anime-card").forEach((card, i) => {
-    card.style.animationDelay = `${i * 0.04}s`;
+  grid.querySelectorAll(".anime-card").forEach(card => {
     card.addEventListener("click", () => openAnimeModal(visible[Number(card.dataset.index)]));
   });
 
@@ -769,8 +767,7 @@ function renderAnimeGrid(grid, animeList) {
   const normalized = normalizeAnimeList(animeList);
   if (!normalized.length) { grid.innerHTML = `<div class="loading">No anime available.</div>`; return; }
   grid.innerHTML = normalized.map((a, i) => animeCard(a, i)).join("");
-  grid.querySelectorAll(".anime-card").forEach((card, i) => {
-    card.style.animationDelay = `${Math.min(i, 20) * 0.03}s`;
+  grid.querySelectorAll(".anime-card").forEach(card => {
     card.addEventListener("click", () => openAnimeModal(normalized[Number(card.dataset.index)]));
   });
 }
@@ -813,7 +810,7 @@ function renderHero() {
   const heroMeta = getElement("heroMeta");
 
   if (heroImage) { heroImage.src = image; heroImage.alt = anime.title; }
-  if (heroTitle) heroTitle.textContent = anime.title || "MIRAI";
+  if (heroTitle) heroTitle.textContent = anime.title || "ANIVAULT";
   if (heroSynopsis) heroSynopsis.textContent = anime.synopsis || "Discover your next favourite anime.";
   if (heroMeta) {
     const score = anime.score ?? "N/A";
